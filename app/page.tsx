@@ -1,5 +1,6 @@
 "use client";
 
+import { supabase } from './supabase';
 import { useState, useEffect } from "react";
 import {
   Plus,
@@ -13,12 +14,13 @@ import {
   RotateCcw,
   Sparkles,
   Calculator,
-  Target,
   Upload,
   Flame,
   Trash2,
   Award,
   ChevronRight,
+  Cloud,
+  CloudOff,
 } from "lucide-react";
 
 // Standards-Based Grading Scale Definition on 4.33 Scale
@@ -115,6 +117,7 @@ export default function Home() {
   >("standards");
   const [selectedClassId, setSelectedClassId] = useState<string>("1");
   const [isLoaded, setIsLoaded] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'error'>('synced');
 
   // Form states
   const [newClassName, setNewClassName] = useState("");
@@ -137,21 +140,69 @@ export default function Home() {
   const [isParsing, setIsParsing] = useState(false);
   const [parsedItems, setParsedItems] = useState<Partial<Task>[]>([]);
 
-  // Load from LocalStorage
+  // Initial Load from Supabase with LocalStorage Fallback
   useEffect(() => {
-    const savedClasses = localStorage.getItem("tracker_classes_v4");
-    const savedTasks = localStorage.getItem("tracker_tasks_v4");
-    if (savedClasses) setClasses(JSON.parse(savedClasses));
-    if (savedTasks) setTasks(JSON.parse(savedTasks));
-    setIsLoaded(true);
+    async function loadData() {
+      setSyncStatus('syncing');
+      try {
+        const { data, error } = await supabase
+          .from('user_data')
+          .select('data')
+          .eq('user_id', 'my_sync_key')
+          .single();
+
+        if (data && data.data) {
+          if (data.data.classes) setClasses(data.data.classes);
+          if (data.data.tasks) setTasks(data.data.tasks);
+          setSyncStatus('synced');
+        } else {
+          // LocalStorage fallback
+          const savedClasses = localStorage.getItem("tracker_classes_v4");
+          const savedTasks = localStorage.getItem("tracker_tasks_v4");
+          if (savedClasses) setClasses(JSON.parse(savedClasses));
+          if (savedTasks) setTasks(JSON.parse(savedTasks));
+          setSyncStatus('synced');
+        }
+      } catch (err) {
+        console.error('Data load error:', err);
+        setSyncStatus('error');
+      } finally {
+        setIsLoaded(true);
+      }
+    }
+    loadData();
   }, []);
 
-  // Save to LocalStorage
+  // Save to Supabase and LocalStorage on change
   useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem("tracker_classes_v4", JSON.stringify(classes));
-      localStorage.setItem("tracker_tasks_v4", JSON.stringify(tasks));
+    if (!isLoaded) return;
+
+    localStorage.setItem("tracker_classes_v4", JSON.stringify(classes));
+    localStorage.setItem("tracker_tasks_v4", JSON.stringify(tasks));
+
+    async function saveData() {
+      setSyncStatus('syncing');
+      try {
+        const { error } = await supabase
+          .from('user_data')
+          .upsert(
+            {
+              user_id: 'my_sync_key',
+              data: { classes, tasks },
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id' }
+          );
+
+        if (error) setSyncStatus('error');
+        else setSyncStatus('synced');
+      } catch (err) {
+        setSyncStatus('error');
+      }
     }
+
+    const timeout = setTimeout(saveData, 500);
+    return () => clearTimeout(timeout);
   }, [classes, tasks, isLoaded]);
 
   // Convert average 4.33 GPA points back to overall letter grade
@@ -354,6 +405,10 @@ export default function Home() {
     );
   };
 
+  const deleteTask = (id: string) => {
+    setTasks(tasks.filter((t) => t.id !== id));
+  };
+
   const updateTaskScore = (id: string, score: number) => {
     setTasks(
       tasks.map((task) => (task.id === id ? { ...task, score } : task))
@@ -453,7 +508,7 @@ export default function Home() {
   const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-8">
+    <main className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-8 font-sans">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <header className="border-b border-slate-800 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -466,29 +521,37 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center gap-4">
-            <div>
-              <div className="text-xs text-slate-400 font-medium uppercase tracking-wider flex items-center gap-1">
-                <Flame size={14} className="text-amber-500" /> Focus Timer ({timerMode})
-              </div>
-              <div className="text-2xl font-mono font-bold text-blue-400">
-                {Math.floor(timeLeft / 60)}:{timeLeft % 60 < 10 ? "0" : ""}
-                {timeLeft % 60}
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs">
+              {syncStatus === 'synced' && <><Cloud className="w-4 h-4 text-emerald-400" /><span className="text-emerald-400">Cloud Synced</span></>}
+              {syncStatus === 'syncing' && <><Cloud className="w-4 h-4 text-amber-400 animate-pulse" /><span className="text-amber-400">Syncing...</span></>}
+              {syncStatus === 'error' && <><CloudOff className="w-4 h-4 text-rose-400" /><span className="text-rose-400">Sync Error</span></>}
             </div>
-            <div className="flex gap-1">
-              <button
-                onClick={toggleTimer}
-                className="p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition"
-              >
-                {isTimerRunning ? <Pause size={18} /> : <Play size={18} />}
-              </button>
-              <button
-                onClick={resetTimer}
-                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
-              >
-                <RotateCcw size={18} />
-              </button>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center gap-4">
+              <div>
+                <div className="text-xs text-slate-400 font-medium uppercase tracking-wider flex items-center gap-1">
+                  <Flame size={14} className="text-amber-500" /> Focus Timer ({timerMode})
+                </div>
+                <div className="text-2xl font-mono font-bold text-blue-400">
+                  {Math.floor(timeLeft / 60)}:{timeLeft % 60 < 10 ? "0" : ""}
+                  {timeLeft % 60}
+                </div>
+              </div>
+              <div className="flex gap-1">
+                <button
+                  onClick={toggleTimer}
+                  className="p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition"
+                >
+                  {isTimerRunning ? <Pause size={18} /> : <Play size={18} />}
+                </button>
+                <button
+                  onClick={resetTimer}
+                  className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
+                >
+                  <RotateCcw size={18} />
+                </button>
+              </div>
             </div>
           </div>
         </header>
@@ -844,18 +907,23 @@ export default function Home() {
 
                           <button
                             onClick={() => deleteStandard(activeClass.id, st.id)}
-                            className="text-slate-500 hover:text-red-400 p-1"
+                            className="text-slate-500 hover:text-red-400 p-1 rounded"
                           >
                             <Trash2 size={16} />
                           </button>
                         </div>
                       </div>
                     ))}
+                    {activeClass.standards.length === 0 && (
+                      <p className="text-slate-500 text-xs text-center py-6">
+                        No standards added for this course yet.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* TAB 2: SCHEDULE TASKS */}
+              {/* TAB 2: SCHEDULE LIST */}
               {activeTab === "list" && (
                 <div className="space-y-3 pt-2">
                   {tasks.map((task) => {
@@ -863,87 +931,109 @@ export default function Home() {
                     return (
                       <div
                         key={task.id}
-                        className={`flex items-center justify-between p-4 rounded-lg border transition ${
-                          task.completed
-                            ? "bg-slate-900/40 border-slate-800/50 opacity-60 line-through"
-                            : "bg-slate-800/40 border-slate-800"
-                        }`}
+                        className="flex items-center justify-between p-3.5 bg-slate-800/40 rounded-xl border border-slate-800"
                       >
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => toggleTask(task.id)}
-                            className={`w-6 h-6 rounded-md flex items-center justify-center border ${
+                            className={`w-5 h-5 rounded border flex items-center justify-center transition ${
                               task.completed
-                                ? "bg-emerald-600 border-emerald-600"
-                                : "border-slate-600 hover:border-slate-400"
+                                ? "bg-blue-600 border-blue-500 text-white"
+                                : "border-slate-600 hover:border-blue-400"
                             }`}
                           >
-                            {task.completed && <Check size={16} />}
+                            {task.completed && <Check size={14} />}
                           </button>
                           <div>
-                            <p className="font-medium text-sm">{task.title}</p>
-                            <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                            <span
+                              className={`text-sm font-medium ${
+                                task.completed ? "line-through text-slate-500" : ""
+                              }`}
+                            >
+                              {task.title}
+                            </span>
+                            <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
                               {cls && (
-                                <span
-                                  className="px-2 py-0.5 rounded text-white font-medium"
-                                  style={{ backgroundColor: cls.color }}
-                                >
+                                <span className="flex items-center gap-1">
+                                  <span
+                                    className="w-2 h-2 rounded-full"
+                                    style={{ backgroundColor: cls.color }}
+                                  />
                                   {cls.name}
                                 </span>
                               )}
-                              {task.dueDate && <span>Due: {task.dueDate}</span>}
-                              {task.weight ? (
-                                <span className="text-amber-400 font-medium">
-                                  {task.weight}% Grade Weight
-                                </span>
-                              ) : null}
-                              <span className="flex items-center gap-1">
-                                <Clock size={12} /> {task.actualHours}/{task.estimatedHours} hrs
-                              </span>
+                              {task.dueDate && <span>• Due {task.dueDate}</span>}
+                              {task.weight ? <span>• {task.weight}% Weight</span> : null}
                             </div>
                           </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-slate-400 font-mono">
+                            {task.actualHours}/{task.estimatedHours} hrs
+                          </span>
+                          <button
+                            onClick={() => deleteTask(task.id)}
+                            className="text-slate-500 hover:text-red-400 p-1"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </div>
                     );
                   })}
+                  {tasks.length === 0 && (
+                    <p className="text-slate-500 text-xs text-center py-6">
+                      No tasks found. Add a task above to get started.
+                    </p>
+                  )}
                 </div>
               )}
 
-              {/* TAB 3: CALENDAR */}
+              {/* TAB 3: CALENDAR VIEW */}
               {activeTab === "calendar" && (
                 <div className="pt-2 space-y-4">
-                  <h3 className="text-lg font-medium text-slate-300">
-                    {currentMonth}
-                  </h3>
-                  <div className="grid grid-cols-7 gap-2">
+                  <div className="flex justify-between items-center text-sm font-bold">
+                    <span>{currentMonth}</span>
+                    <span className="text-xs font-normal text-slate-400">
+                      Deadlines mapped to dates
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-7 gap-2 text-center text-xs">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+                      <div key={d} className="font-semibold text-slate-500 py-1">
+                        {d}
+                      </div>
+                    ))}
                     {daysArray.map((day) => {
-                      const formattedDay = day < 10 ? `0${day}` : `${day}`;
-                      const dayTasks = tasks.filter((t) =>
-                        t.dueDate?.endsWith(`-${formattedDay}`)
-                      );
+                      const dayStr = `2026-09-${day < 10 ? "0" + day : day}`;
+                      const dayTasks = tasks.filter((t) => t.dueDate === dayStr);
 
                       return (
                         <div
                           key={day}
-                          className="bg-slate-800/60 border border-slate-800 rounded-lg p-2 min-h-[70px] flex flex-col gap-1"
+                          className="min-h-[60px] bg-slate-800/30 border border-slate-800/60 rounded-lg p-1 text-left flex flex-col justify-between"
                         >
-                          <span className="text-xs text-slate-400 font-bold">
+                          <span className="text-[10px] text-slate-500 font-bold">
                             {day}
                           </span>
-                          {dayTasks.map((t) => {
-                            const cls = classes.find((c) => c.id === t.classId);
-                            return (
-                              <div
-                                key={t.id}
-                                className="text-[10px] p-1 rounded font-medium text-white truncate"
-                                style={{
-                                  backgroundColor: cls?.color || "#3B82F6",
-                                }}
-                              >
-                                {t.title}
-                              </div>
-                            );
-                          })}
+                          <div className="space-y-1">
+                            {dayTasks.map((t) => {
+                              const cls = classes.find((c) => c.id === t.classId);
+                              return (
+                                <div
+                                  key={t.id}
+                                  className="text-[9px] px-1 py-0.5 rounded truncate text-white font-medium"
+                                  style={{
+                                    backgroundColor: cls?.color || "#3B82F6",
+                                  }}
+                                  title={t.title}
+                                >
+                                  {t.title}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       );
                     })}
@@ -951,153 +1041,98 @@ export default function Home() {
                 </div>
               )}
 
-              {/* TAB 4: WHAT-IF GRADES */}
+              {/* TAB 4: WHAT-IF GRADECALCULATOR */}
               {activeTab === "grades" && (
-                <div className="space-y-6 pt-2">
-                  {classes.map((cls) => {
-                    const gradePercent = getClassGradePercentage(cls);
-                    const classTasks = tasks.filter((t) => t.classId === cls.id);
-                    const pendingTasks = classTasks.filter(
-                      (t) => t.score === undefined && (t.weight || 0) > 0
-                    );
-                    const pendingWeight = pendingTasks.reduce(
-                      (sum, t) => sum + (t.weight || 0),
-                      0
-                    );
-
-                    const target = cls.targetGrade || 90;
-                    const gradedTasks = classTasks.filter(
-                      (t) => t.score !== undefined && (t.weight || 0) > 0
-                    );
-                    const weightedPoints = gradedTasks.reduce(
-                      (sum, t) => sum + ((t.score || 0) * (t.weight || 0)) / 100,
-                      0
-                    );
-                    const neededPoints = target - weightedPoints;
-                    const requiredScore =
-                      pendingWeight > 0
-                        ? (neededPoints / pendingWeight) * 100
-                        : 0;
-
-                    return (
-                      <div
-                        key={cls.id}
-                        className="bg-slate-800/40 p-4 rounded-xl border border-slate-800 space-y-3"
-                      >
-                        <div className="flex items-center justify-between border-b border-slate-700/50 pb-2">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: cls.color }}
-                            />
-                            <h3 className="font-bold text-base">{cls.name}</h3>
-                          </div>
-                          <div className="text-sm flex items-center gap-2">
-                            Current Calculated %:
-                            <span className="font-bold text-emerald-400">
-                              {gradePercent !== null ? `${gradePercent}%` : "N/A"}
-                            </span>
-                          </div>
-                        </div>
-
-                        {pendingWeight > 0 && (
-                          <div className="bg-blue-950/40 border border-blue-500/20 p-3 rounded-lg flex items-center justify-between text-xs">
-                            <span className="text-slate-300 flex items-center gap-1.5">
-                              <Target size={14} className="text-blue-400" /> Target Grade: {target}%
-                            </span>
-                            <span className="font-semibold text-blue-300">
-                              Needed average on remaining tasks:{" "}
-                              {requiredScore <= 100
-                                ? `${requiredScore.toFixed(1)}%`
-                                : "Not mathematically possible"}
-                            </span>
-                          </div>
-                        )}
-
-                        <div className="space-y-2">
-                          {classTasks.map((t) => (
-                            <div
-                              key={t.id}
-                              className="flex items-center justify-between text-xs bg-slate-900/60 p-2.5 rounded-lg"
-                            >
-                              <span>
-                                {t.title}{" "}
-                                {t.weight
-                                  ? `(${t.weight}% weight)`
-                                  : "(Homework / Ungraded)"}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="number"
-                                  placeholder="Grade %"
-                                  value={t.score ?? ""}
-                                  onChange={(e) =>
-                                    updateTaskScore(
-                                      t.id,
-                                      parseFloat(e.target.value) || 0
-                                    )
-                                  }
-                                  className="w-16 bg-slate-800 border border-slate-700 px-2 py-1 rounded text-center text-xs focus:outline-none"
-                                />
-                                <span>%</span>
-                              </div>
+                <div className="space-y-4 pt-2">
+                  <p className="text-xs text-slate-400">
+                    Input scores to simulate your hypothetical weighted average percentage for each class.
+                  </p>
+                  <div className="space-y-3">
+                    {tasks.map((task) => {
+                      const cls = classes.find((c) => c.id === task.classId);
+                      return (
+                        <div
+                          key={task.id}
+                          className="flex items-center justify-between p-3 bg-slate-800/40 rounded-xl border border-slate-800 text-xs"
+                        >
+                          <div>
+                            <span className="font-semibold">{task.title}</span>
+                            <div className="text-slate-400">
+                              {cls?.name} • Weight: {task.weight || 0}%
                             </div>
-                          ))}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400">Score %:</span>
+                            <input
+                              type="number"
+                              placeholder="e.g. 95"
+                              value={task.score ?? ""}
+                              onChange={(e) =>
+                                updateTaskScore(
+                                  task.id,
+                                  parseFloat(e.target.value) || 0
+                                )
+                              }
+                              className="w-16 bg-slate-900 border border-slate-700 px-2 py-1 rounded text-right font-mono font-bold text-blue-400 focus:outline-none"
+                            />
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
-              {/* TAB 5: SYLLABUS AI IMPORT */}
+              {/* TAB 5: SYLLABUS AI UPLOADER */}
               {activeTab === "syllabus" && (
-                <div className="space-y-6 pt-2">
-                  <div className="border-2 border-dashed border-slate-700 rounded-xl p-8 text-center space-y-3 bg-slate-800/20">
-                    <Upload size={32} className="mx-auto text-blue-400" />
-                    <h3 className="font-semibold text-base">
-                      Upload Syllabus (PDF / Document)
-                    </h3>
-                    <p className="text-xs text-slate-400 max-w-md mx-auto">
-                      Extract assignments, due dates, and weight distributions directly into your course schedule.
-                    </p>
-                    <input
-                      type="file"
-                      onChange={handleSyllabusUpload}
-                      className="hidden"
-                      id="syllabus-upload"
-                    />
-                    <label
-                      htmlFor="syllabus-upload"
-                      className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs font-semibold cursor-pointer"
-                    >
-                      {isParsing ? "Extracting Tasks..." : "Select File"}
+                <div className="space-y-4 pt-2 text-center">
+                  <div className="border-2 border-dashed border-slate-800 hover:border-blue-500/50 rounded-2xl p-8 transition flex flex-col items-center justify-center gap-3">
+                    <Upload size={32} className="text-blue-400" />
+                    <div>
+                      <h3 className="font-bold text-sm">
+                        Upload Syllabus PDF / Document
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Extract key dates, weights, and assignments automatically.
+                      </p>
+                    </div>
+                    <label className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-medium rounded-lg cursor-pointer">
+                      Select File
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={handleSyllabusUpload}
+                      />
                     </label>
                   </div>
 
+                  {isParsing && (
+                    <p className="text-xs text-blue-400 animate-pulse">
+                      Parsing syllabus structure with AI...
+                    </p>
+                  )}
+
                   {parsedItems.length > 0 && (
-                    <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-800 space-y-4">
-                      <h4 className="font-semibold text-sm text-emerald-400">
-                        Extracted {parsedItems.length} Tasks
+                    <div className="text-left space-y-3 pt-4 border-t border-slate-800">
+                      <h4 className="text-xs font-bold text-slate-300">
+                        Parsed Assignments Preview:
                       </h4>
-                      <div className="space-y-2">
-                        {parsedItems.map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="flex justify-between items-center bg-slate-900 p-2.5 rounded text-xs"
-                          >
-                            <span className="font-medium">{item.title}</span>
-                            <span className="text-slate-400">
-                              Due: {item.dueDate} | Weight: {item.weight}%
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                      {parsedItems.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3 bg-slate-800/40 rounded-lg text-xs flex justify-between"
+                        >
+                          <span>{item.title}</span>
+                          <span className="text-slate-400">
+                            Due {item.dueDate} • Weight {item.weight}%
+                          </span>
+                        </div>
+                      ))}
                       <button
                         onClick={importParsedTasks}
-                        className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-semibold text-white"
+                        className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold rounded-lg mt-2"
                       >
-                        Import Tasks to Course
+                        Import Parsed Tasks
                       </button>
                     </div>
                   )}
