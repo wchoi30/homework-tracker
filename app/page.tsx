@@ -60,7 +60,6 @@ type Task = {
   estimatedHours: number;
   actualHours: number;
   completed: boolean;
-  weight?: number;
   score?: number;
 };
 
@@ -97,7 +96,6 @@ export default function Home() {
       estimatedHours: 4,
       actualHours: 1.5,
       completed: false,
-      weight: 25,
       score: 98,
     },
     {
@@ -108,7 +106,6 @@ export default function Home() {
       estimatedHours: 1,
       actualHours: 1,
       completed: true,
-      weight: 0,
     },
   ]);
 
@@ -128,7 +125,6 @@ export default function Home() {
   const [taskClassId, setTaskClassId] = useState("1");
   const [taskDueDate, setTaskDueDate] = useState("");
   const [taskHours, setTaskHours] = useState("1");
-  const [taskWeight, setTaskWeight] = useState("");
 
   // Pomodoro Timer State
   const [selectedTimerTaskId, setSelectedTimerTaskId] = useState<string>("");
@@ -238,27 +234,6 @@ export default function Home() {
     if (avgGpa >= 0.50)
       return { letter: "D", label: "Beginning", gpa: avgGpa };
     return { letter: "F", label: "Not Yet Evident", gpa: avgGpa };
-  };
-
-  // Weighted Percentage Grade Calculation
-  const getClassGradePercentage = (cls: ClassItem): number | null => {
-    if (cls.manualGrade !== undefined && !isNaN(cls.manualGrade)) {
-      return cls.manualGrade;
-    }
-    const classTasks = tasks.filter((t) => t.classId === cls.id);
-    const gradedTasks = classTasks.filter(
-      (t) => t.score !== undefined && (t.weight || 0) > 0
-    );
-
-    const totalWeight = gradedTasks.reduce((sum, t) => sum + (t.weight || 0), 0);
-    if (totalWeight === 0) return null;
-
-    const weightedPoints = gradedTasks.reduce(
-      (sum, t) => sum + ((t.score || 0) * (t.weight || 0)) / 100,
-      0
-    );
-
-    return parseFloat(((weightedPoints / totalWeight) * 100).toFixed(1));
   };
 
   const updateManualGrade = (classId: string, grade: string) => {
@@ -389,12 +364,10 @@ export default function Home() {
       estimatedHours: parseFloat(taskHours) || 1,
       actualHours: 0,
       completed: false,
-      weight: taskWeight !== "" ? parseFloat(taskWeight) : 0,
     };
     setTasks([...tasks, newTask]);
     setTaskTitle("");
     setTaskDueDate("");
-    setTaskWeight("");
   };
 
   const toggleTask = (id: string) => {
@@ -432,7 +405,6 @@ export default function Home() {
       else score += 20;
     }
 
-    score += (task.weight || 0) * 1.5;
     if (task.estimatedHours > 0) {
       score += Math.min(20, 30 / task.estimatedHours);
     }
@@ -456,19 +428,16 @@ export default function Home() {
           title: "Syllabus Quiz",
           dueDate: "2026-09-24",
           estimatedHours: 1,
-          weight: 5,
         },
         {
           title: "Research Paper Draft",
           dueDate: "2026-10-10",
           estimatedHours: 5,
-          weight: 20,
         },
         {
           title: "Final Presentation",
           dueDate: "2026-11-15",
           estimatedHours: 6,
-          weight: 30,
         },
       ];
       setParsedItems(mockExtracted);
@@ -485,7 +454,6 @@ export default function Home() {
       estimatedHours: item.estimatedHours || 2,
       actualHours: 0,
       completed: false,
-      weight: item.weight || 0,
     }));
     setTasks([...tasks, ...imported]);
     setParsedItems([]);
@@ -571,7 +539,6 @@ export default function Home() {
                   Work on: <span className="underline">{topPriorityTask.title}</span>
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Calculated based on deadline urgency, weight impact ({topPriorityTask.weight || 0}%), and effort.
                 </p>
               </div>
             </div>
@@ -614,7 +581,6 @@ export default function Home() {
               <div className="space-y-3">
                 {classes.map((cls) => {
                   const sbgGrade = calculateOverallGrade(cls.standards);
-                  const gradePercent = getClassGradePercentage(cls);
 
                   return (
                     <div
@@ -647,7 +613,6 @@ export default function Home() {
                           <input
                             type="number"
                             placeholder="Auto"
-                            value={cls.manualGrade ?? (gradePercent ?? "")}
                             onChange={(e) =>
                               updateManualGrade(cls.id, e.target.value)
                             }
@@ -740,9 +705,6 @@ export default function Home() {
 
                   <input
                     type="number"
-                    placeholder="Weight % (Opt.)"
-                    value={taskWeight}
-                    onChange={(e) => setTaskWeight(e.target.value)}
                     className="bg-slate-800 border border-slate-700 px-3 py-2 rounded-lg text-sm focus:outline-none"
                   />
                 </div>
@@ -963,7 +925,6 @@ export default function Home() {
                                 </span>
                               )}
                               {task.dueDate && <span>• Due {task.dueDate}</span>}
-                              {task.weight ? <span>• {task.weight}% Weight</span> : null}
                             </div>
                           </div>
                         </div>
@@ -1045,7 +1006,6 @@ export default function Home() {
               {activeTab === "grades" && (
                 <div className="space-y-4 pt-2">
                   <p className="text-xs text-slate-400">
-                    Input scores to simulate your hypothetical weighted average percentage for each class.
                   </p>
                   <div className="space-y-3">
                     {tasks.map((task) => {
@@ -1058,7 +1018,6 @@ export default function Home() {
                           <div>
                             <span className="font-semibold">{task.title}</span>
                             <div className="text-slate-400">
-                              {cls?.name} • Weight: {task.weight || 0}%
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -1093,7 +1052,6 @@ export default function Home() {
                         Upload Syllabus PDF / Document
                       </h3>
                       <p className="text-xs text-slate-400 mt-1">
-                        Extract key dates, weights, and assignments automatically.
                       </p>
                     </div>
                     <label className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-medium rounded-lg cursor-pointer">
@@ -1124,7 +1082,6 @@ export default function Home() {
                         >
                           <span>{item.title}</span>
                           <span className="text-slate-400">
-                            Due {item.dueDate} • Weight {item.weight}%
                           </span>
                         </div>
                       ))}
