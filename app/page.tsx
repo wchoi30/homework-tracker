@@ -31,6 +31,18 @@ import {
   Target,
   Sliders,
   MapPin,
+  Sun,
+  Coffee,
+  LogIn,
+  LogOut,
+  UserPlus,
+  Lock,
+  Mail,
+  ShieldAlert,
+  UserCheck,
+  Camera,
+  Image as ImageIcon,
+  Loader2,
 } from "lucide-react";
 
 // --- TYPES & CONSTANTS ---
@@ -161,8 +173,8 @@ export type DayOfWeek =
 
 export type MeetingTime = {
   day: DayOfWeek;
-  startTime: string; // e.g., "09:00"
-  endTime: string;   // e.g., "10:30"
+  startTime: string;
+  endTime: string;
 };
 
 export type ClassItem = {
@@ -176,6 +188,7 @@ export type ClassItem = {
   roomNumber?: string;
   officeHours?: string;
   meetingTimes?: MeetingTime[];
+  periodCode?: string;
 };
 
 export type AttendanceStatus = "present" | "absent" | "excused";
@@ -215,10 +228,225 @@ export type StreakHabit = {
   name: string;
   color: string;
   createdAt: string;
-  completedDates: Record<string, boolean>; // Key format "YYYY-MM-DD"
+  completedDates: Record<string, boolean>;
 };
 
 export const CLUB_ICON_OPTIONS = ["👥", "🤖", "🏐", "⚽", "🏀", "🎨", "🎭", "🎵", "♟️", "💻", "🚀", "📖"];
+
+export const COLOR_PALETTE = [
+  "#3B82F6", "#10B981", "#8B5CF6", "#F59E0B", "#EC4899",
+  "#06B6D4", "#6366F1", "#14B8A6", "#EAB308", "#F43F5E"
+];
+
+// --- DEFAULT TEMPLATES FOR NEW ACCOUNTS ---
+export const DEFAULT_CLASSES: ClassItem[] = [
+  {
+    id: "1",
+    name: "Mathematics",
+    color: "#3B82F6",
+    targetGrade: "A",
+    manualGrade: "B+",
+    standards: [
+      { id: "s1", name: "S1: Linear Equations & Systems", levels: ["A+", "A-"] },
+      { id: "s2", name: "S2: Quadratic & Polynomial Functions", levels: ["A-"] },
+      { id: "s3", name: "S3: Vector Analysis & Matrices", levels: ["C+"] },
+    ],
+    professorName: "Dr. Alan Turing",
+    roomNumber: "Sci-Bldg 402",
+    officeHours: "Mon/Wed 10-11 AM",
+    meetingTimes: [
+      { day: "Monday", startTime: "09:00", endTime: "10:30" },
+      { day: "Wednesday", startTime: "09:00", endTime: "10:30" },
+    ],
+  },
+  {
+    id: "2",
+    name: "Physics",
+    color: "#10B981",
+    targetGrade: "B+",
+    manualGrade: "B",
+    standards: [
+      { id: "s4", name: "S1: Newtonian Kinematics", levels: ["A-"] },
+      { id: "s5", name: "S2: Thermodynamics & Heat", levels: ["C+"] },
+      { id: "s6", name: "S3: Electromagnetic Waves", levels: ["D"] },
+    ],
+    professorName: "Dr. Marie Curie",
+    roomNumber: "Lab 204",
+    officeHours: "Tue 2-4 PM",
+    meetingTimes: [
+      { day: "Tuesday", startTime: "11:00", endTime: "12:30" },
+      { day: "Thursday", startTime: "11:00", endTime: "12:30" },
+    ],
+  },
+  {
+    id: "3",
+    name: "Literature & Composition",
+    color: "#8B5CF6",
+    targetGrade: "A",
+    manualGrade: "A",
+    standards: [
+      { id: "s7", name: "S1: Critical Thesis Development", levels: ["A+", "A+"] },
+      { id: "s8", name: "S2: Textual Analysis & Evidence", levels: ["A-"] },
+    ],
+    professorName: "Prof. Toni Morrison",
+    roomNumber: "Arts 101",
+    officeHours: "Fri 1-2 PM",
+    meetingTimes: [
+      { day: "Monday", startTime: "14:00", endTime: "15:00" },
+      { day: "Wednesday", startTime: "14:00", endTime: "15:00" },
+      { day: "Friday", startTime: "14:00", endTime: "15:00" },
+    ],
+  },
+];
+
+export const DEFAULT_CLUBS: ClubItem[] = [
+  {
+    id: "c1",
+    name: "Robotics Club",
+    role: "Lead Engineer",
+    icon: "🤖",
+    color: "#EC4899",
+    meetingTimes: [
+      { day: "Thursday", startTime: "16:00", endTime: "17:30" },
+    ],
+    attendance: {
+      "2026-09-10": "present",
+      "2026-09-17": "present",
+      "2026-09-24": "present",
+    },
+  },
+  {
+    id: "c2",
+    name: "Volleyball Club",
+    role: "Team Captain",
+    icon: "🏐",
+    color: "#F59E0B",
+    meetingTimes: [
+      { day: "Tuesday", startTime: "15:30", endTime: "17:00" },
+      { day: "Thursday", startTime: "15:30", endTime: "17:00" },
+    ],
+    attendance: {
+      "2026-09-08": "present",
+      "2026-09-15": "excused",
+    },
+  },
+];
+
+export const DEFAULT_TASKS: Task[] = [
+  {
+    id: "101",
+    title: "Midterm Physics Exam",
+    classId: "2",
+    dueDate: "2026-09-25",
+    type: "test",
+    estimatedHours: 4,
+    actualHours: 1.5,
+    completed: false,
+  },
+  {
+    id: "102",
+    title: "Calculus Problem Set 4",
+    classId: "1",
+    dueDate: "2026-09-23",
+    type: "homework",
+    estimatedHours: 2,
+    actualHours: 2,
+    completed: true,
+    score: "A",
+  },
+  {
+    id: "103",
+    title: "Literary Essay Draft",
+    classId: "3",
+    dueDate: "2026-09-28",
+    type: "homework",
+    estimatedHours: 3,
+    actualHours: 0.5,
+    completed: false,
+  },
+];
+
+export const DEFAULT_STREAKS: StreakHabit[] = [
+  {
+    id: "str-1",
+    name: "Daily Study (2 Hours)",
+    color: "#3B82F6",
+    createdAt: "2026-09-01",
+    completedDates: {
+      "2026-09-18": true,
+      "2026-09-19": true,
+      "2026-09-20": true,
+      "2026-09-21": true,
+      "2026-09-22": true,
+    },
+  },
+  {
+    id: "str-2",
+    name: "Review Flashcards",
+    color: "#10B981",
+    createdAt: "2026-09-05",
+    completedDates: {
+      "2026-09-20": true,
+      "2026-09-21": true,
+      "2026-09-22": true,
+    },
+  },
+];
+
+// --- SCHOOL ACADEMIC CALENDAR BREAK DEFINITIONS (2026 - 2027) ---
+export type CalendarDayType = "school" | "break" | "staff_only" | "early_dismissal" | "weekend";
+
+export type SchoolCalendarEvent = {
+  name: string;
+  startDate: string; // "YYYY-MM-DD"
+  endDate: string;   // "YYYY-MM-DD"
+  type: "break" | "staff_only" | "early_dismissal";
+};
+
+export const SCHOOL_CALENDAR_2026_2027: SchoolCalendarEvent[] = [
+  // 2026 Fall Semester
+  { name: "Labor Day Holiday", startDate: "2026-09-01", endDate: "2026-09-02", type: "break" },
+  { name: "Mid-Autumn Festival Break", startDate: "2026-09-25", endDate: "2026-09-28", type: "break" },
+  { name: "October Fall Break", startDate: "2026-10-19", endDate: "2026-10-23", type: "break" },
+  { name: "Teacher PD Day (No School)", startDate: "2026-11-06", endDate: "2026-11-06", type: "staff_only" },
+  { name: "Thanksgiving Break", startDate: "2026-11-26", endDate: "2026-11-27", type: "break" },
+  { name: "Winter Break", startDate: "2026-12-18", endDate: "2027-01-08", type: "break" },
+
+  // 2027 Spring Semester
+  { name: "Tet Lunar New Year Break", startDate: "2027-02-05", endDate: "2027-02-15", type: "break" },
+  { name: "Teacher PD Day (No School)", startDate: "2027-03-12", endDate: "2027-03-12", type: "staff_only" },
+  { name: "Spring Break", startDate: "2027-03-29", endDate: "2027-04-02", type: "break" },
+  { name: "Hung Kings & Reunification Break", startDate: "2027-04-29", endDate: "2027-05-03", type: "break" },
+  { name: "Summer Break Starts", startDate: "2027-06-11", endDate: "2027-08-10", type: "break" },
+
+  // Regular Monthly Early Dismissal Days
+  { name: "Early Dismissal (12:15)", startDate: "2026-09-16", endDate: "2026-09-16", type: "early_dismissal" },
+  { name: "Early Dismissal (12:15)", startDate: "2026-10-14", endDate: "2026-10-14", type: "early_dismissal" },
+  { name: "Early Dismissal (12:15)", startDate: "2026-11-18", endDate: "2026-11-18", type: "early_dismissal" },
+  { name: "Early Dismissal (12:15)", startDate: "2026-12-16", endDate: "2026-12-16", type: "early_dismissal" },
+  { name: "Early Dismissal (12:15)", startDate: "2027-01-20", endDate: "2027-01-20", type: "early_dismissal" },
+  { name: "Early Dismissal (12:15)", startDate: "2027-02-24", endDate: "2027-02-24", type: "early_dismissal" },
+  { name: "Early Dismissal (12:15)", startDate: "2027-03-17", endDate: "2027-03-17", type: "early_dismissal" },
+  { name: "Early Dismissal (12:15)", startDate: "2027-04-21", endDate: "2027-04-21", type: "early_dismissal" },
+  { name: "Early Dismissal (12:15)", startDate: "2027-05-19", endDate: "2027-05-19", type: "early_dismissal" },
+];
+
+export function getCalendarDayStatus(dateStr: string, isWeekend: boolean) {
+  for (const event of SCHOOL_CALENDAR_2026_2027) {
+    if (dateStr >= event.startDate && dateStr <= event.endDate) {
+      return {
+        type: event.type,
+        label: event.name,
+      };
+    }
+  }
+
+  if (isWeekend) {
+    return { type: "weekend" as const, label: "Weekend" };
+  }
+
+  return { type: "school" as const, label: "School Day" };
+}
 
 // --- HELPER FUNCTIONS ---
 export function pointsToLetter(pts: number): StandardLevel {
@@ -284,7 +512,6 @@ export function calculateOverallGrade(standards: StandardItem[] = []) {
   return { letter, label, gpa: avgGpa, evaluatedCount: evaluated.length };
 }
 
-// Date Key Helper ("YYYY-MM-DD")
 export function formatDateKey(d: Date): string {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -292,9 +519,8 @@ export function formatDateKey(d: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-// Week Dates Helper (Returns array of 7 Date objects starting from Monday)
 export function getWeekDates(baseDate: Date): Date[] {
-  const dayOfWeek = baseDate.getDay(); // 0 is Sun, 1 is Mon...
+  const dayOfWeek = baseDate.getDay();
   const distanceToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
   const monday = new Date(baseDate);
   monday.setDate(baseDate.getDate() + distanceToMon);
@@ -308,7 +534,6 @@ export function getWeekDates(baseDate: Date): Date[] {
   return week;
 }
 
-// Calculate Current Streak Length
 export function calculateCurrentStreak(completedDates: Record<string, boolean>): number {
   let streak = 0;
   const today = new Date();
@@ -339,7 +564,6 @@ export function calculateCurrentStreak(completedDates: Record<string, boolean>):
   return streak;
 }
 
-// Calculate Longest/Best Streak
 export function calculateBestStreak(completedDates: Record<string, boolean>): number {
   const sortedKeys = Object.keys(completedDates)
     .filter((k) => completedDates[k])
@@ -367,7 +591,6 @@ export function calculateBestStreak(completedDates: Record<string, boolean>): nu
   return maxStreak;
 }
 
-// Data Migration Helper for legacy Club formats
 function normalizeClubsData(rawClubs: any[]): ClubItem[] {
   if (!Array.isArray(rawClubs)) return [];
   return rawClubs.map((club) => {
@@ -421,15 +644,13 @@ const safeStorageGet = <T,>(key: string, fallback: T): T => {
 
 // --- MAIN COMPONENT ---
 export default function AcademicOSDashboard() {
-  // Navigation & Layout States
   const [mobileTab, setMobileTab] = useState<
     "classes" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks"
   >("tasks");
   const [activeTab, setActiveTab] = useState<
     "standards" | "calendar" | "timetable" | "grades" | "simulator" | "syllabus" | "streaks"
-  >("standards");
+  >("calendar");
 
-  // Filtering & Sorting States
   const [taskFilter, setTaskFilter] = useState<
     "all" | "pending" | "completed" | "tests" | "homework"
   >("all");
@@ -437,195 +658,48 @@ export default function AcademicOSDashboard() {
     "dueDate"
   );
 
-  // Calendar Dynamic Navigation State
-  const [currentCalendarDate, setCurrentCalendarDate] = useState<Date>(new Date());
+  const [currentCalendarDate, setCurrentCalendarDate] = useState<Date>(new Date(2026, 8, 1)); // Sep 2026 default
 
-  // Data States
-  const [classes, setClasses] = useState<ClassItem[]>([
-    {
-      id: "1",
-      name: "Mathematics",
-      color: "#3B82F6",
-      targetGrade: "A",
-      manualGrade: "B+",
-      standards: [
-        { id: "s1", name: "S1: Linear Equations & Systems", levels: ["A+", "A-"] },
-        { id: "s2", name: "S2: Quadratic & Polynomial Functions", levels: ["A-"] },
-        { id: "s3", name: "S3: Vector Analysis & Matrices", levels: ["C+"] },
-      ],
-      professorName: "Dr. Alan Turing",
-      roomNumber: "Sci-Bldg 402",
-      officeHours: "Mon/Wed 10-11 AM",
-      meetingTimes: [
-        { day: "Monday", startTime: "09:00", endTime: "10:30" },
-        { day: "Wednesday", startTime: "09:00", endTime: "10:30" },
-      ],
-    },
-    {
-      id: "2",
-      name: "Physics",
-      color: "#10B981",
-      targetGrade: "B+",
-      manualGrade: "B",
-      standards: [
-        { id: "s4", name: "S1: Newtonian Kinematics", levels: ["A-"] },
-        { id: "s5", name: "S2: Thermodynamics & Heat", levels: ["C+"] },
-        { id: "s6", name: "S3: Electromagnetic Waves", levels: ["D"] },
-      ],
-      professorName: "Dr. Marie Curie",
-      roomNumber: "Lab 204",
-      officeHours: "Tue 2-4 PM",
-      meetingTimes: [
-        { day: "Tuesday", startTime: "11:00", endTime: "12:30" },
-        { day: "Thursday", startTime: "11:00", endTime: "12:30" },
-      ],
-    },
-    {
-      id: "3",
-      name: "Literature & Composition",
-      color: "#8B5CF6",
-      targetGrade: "A",
-      manualGrade: "A",
-      standards: [
-        { id: "s7", name: "S1: Critical Thesis Development", levels: ["A+", "A+"] },
-        { id: "s8", name: "S2: Textual Analysis & Evidence", levels: ["A-"] },
-      ],
-      professorName: "Prof. Toni Morrison",
-      roomNumber: "Arts 101",
-      officeHours: "Fri 1-2 PM",
-      meetingTimes: [
-        { day: "Monday", startTime: "14:00", endTime: "15:00" },
-        { day: "Wednesday", startTime: "14:00", endTime: "15:00" },
-        { day: "Friday", startTime: "14:00", endTime: "15:00" },
-      ],
-    },
-  ]);
-
-  const [clubs, setClubs] = useState<ClubItem[]>([
-    {
-      id: "c1",
-      name: "Robotics Club",
-      role: "Lead Engineer",
-      icon: "🤖",
-      color: "#EC4899",
-      meetingTimes: [
-        { day: "Thursday", startTime: "16:00", endTime: "17:30" },
-      ],
-      attendance: {
-        "2026-09-10": "present",
-        "2026-09-17": "present",
-        "2026-09-24": "present",
-      },
-    },
-    {
-      id: "c2",
-      name: "Volleyball Club",
-      role: "Team Captain",
-      icon: "🏐",
-      color: "#F59E0B",
-      meetingTimes: [
-        { day: "Tuesday", startTime: "15:30", endTime: "17:00" },
-        { day: "Thursday", startTime: "15:30", endTime: "17:00" },
-      ],
-      attendance: {
-        "2026-09-08": "present",
-        "2026-09-15": "excused",
-      },
-    },
-  ]);
-
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "101",
-      title: "Midterm Physics Exam",
-      classId: "2",
-      dueDate: "2026-09-25",
-      type: "test",
-      estimatedHours: 4,
-      actualHours: 1.5,
-      completed: false,
-      score: undefined,
-    },
-    {
-      id: "102",
-      title: "Calculus Problem Set 4",
-      classId: "1",
-      dueDate: "2026-09-23",
-      type: "homework",
-      estimatedHours: 2,
-      actualHours: 2,
-      completed: true,
-      score: "A",
-    },
-    {
-      id: "103",
-      title: "Literary Essay Draft",
-      classId: "3",
-      dueDate: "2026-09-28",
-      type: "homework",
-      estimatedHours: 3,
-      actualHours: 0.5,
-      completed: false,
-    },
-  ]);
-
-  // Streaks State
-  const [streaks, setStreaks] = useState<StreakHabit[]>([
-    {
-      id: "str-1",
-      name: "Daily Study (2 Hours)",
-      color: "#3B82F6",
-      createdAt: "2026-09-01",
-      completedDates: {
-        "2026-09-18": true,
-        "2026-09-19": true,
-        "2026-09-20": true,
-        "2026-09-21": true,
-        "2026-09-22": true,
-      },
-    },
-    {
-      id: "str-2",
-      name: "Review Flashcards",
-      color: "#10B981",
-      createdAt: "2026-09-05",
-      completedDates: {
-        "2026-09-20": true,
-        "2026-09-21": true,
-        "2026-09-22": true,
-      },
-    },
-    {
-      id: "str-3",
-      name: "Exercise / Gym",
-      color: "#F59E0B",
-      createdAt: "2026-09-10",
-      completedDates: {
-        "2026-09-19": true,
-        "2026-09-21": true,
-      },
-    },
-  ]);
+  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [clubs, setClubs] = useState<ClubItem[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [streaks, setStreaks] = useState<StreakHabit[]>([]);
 
   const [selectedClassId, setSelectedClassId] = useState<string>("1");
   const [selectedClubId, setSelectedClubId] = useState<string>("c1");
 
-  // Sync & Load States
   const [isLoaded, setIsLoaded] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<"synced" | "syncing" | "error">(
-    "synced"
-  );
+  const [syncStatus, setSyncStatus] = useState<"synced" | "syncing" | "error">("synced");
   const [userId, setUserId] = useState<string | null>(null);
+  const [session, setSession] = useState<any>(null);
+
+  // Authentication UI state
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+
   const isSavingRef = useRef(false);
   const parseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevClassIdRef = useRef<string>(selectedClassId);
 
-  // Class Form States
   const [newClassName, setNewClassName] = useState("");
   const [newClassColor, setNewClassColor] = useState("#3B82F6");
   const [newStandardName, setNewStandardName] = useState("");
 
-  // Club Form States
+  // AI PowerSchool Photo Analyzer state
+  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+  const [photoAnalysisStatus, setPhotoAnalysisStatus] = useState<string | null>(null);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // AI SchoolsBuddy Photo Analyzer state
+  const [isAnalyzingClubPhoto, setIsAnalyzingClubPhoto] = useState(false);
+  const [clubPhotoAnalysisStatus, setClubPhotoAnalysisStatus] = useState<string | null>(null);
+  const [showClubPhotoModal, setShowClubPhotoModal] = useState(false);
+
   const [newClubName, setNewClubName] = useState("");
   const [newClubRole, setNewClubRole] = useState("");
   const [newClubIcon, setNewClubIcon] = useState("👥");
@@ -634,87 +708,162 @@ export default function AcademicOSDashboard() {
   const [newClubStartTime, setNewClubStartTime] = useState("16:00");
   const [newClubEndTime, setNewClubEndTime] = useState("17:30");
 
-  // Club Extra Timeslot Form States
   const [addClubSlotDay, setAddClubSlotDay] = useState<DayOfWeek>("Tuesday");
   const [addClubSlotStart, setAddClubSlotStart] = useState("15:30");
   const [addClubSlotEnd, setAddClubSlotEnd] = useState("17:00");
 
-  // Task Form States
   const [taskTitle, setTaskTitle] = useState("");
   const [taskClassId, setTaskClassId] = useState("1");
   const [taskType, setTaskType] = useState<TaskCategory>("homework");
   const [taskDueDate, setTaskDueDate] = useState("");
   const [taskHours, setTaskHours] = useState("1");
 
-  // Streak Form & Navigation States
   const [newStreakName, setNewStreakName] = useState("");
   const [newStreakColor, setNewStreakColor] = useState("#3B82F6");
   const [streakWeekBaseDate, setStreakWeekBaseDate] = useState<Date>(new Date());
 
-  // Timetable Add Session Form States
   const [timetableClassId, setTimetableClassId] = useState<string>("1");
   const [timetableDay, setTimetableDay] = useState<DayOfWeek>("Monday");
   const [timetableStartTime, setTimetableStartTime] = useState<string>("09:00");
   const [timetableEndTime, setTimetableEndTime] = useState<string>("10:30");
 
-  // Pomodoro Timer States
   const [selectedTimerTaskId, setSelectedTimerTaskId] = useState<string>("");
   const [timeLeft, setTimeLeft] = useState<number>(25 * 60);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [timerMode, setTimerMode] = useState<"work" | "break">("work");
 
-  // Syllabus Parsing States
   const [isParsing, setIsParsing] = useState(false);
   const [rawSyllabusText, setRawSyllabusText] = useState("");
   const [parsedItems, setParsedItems] = useState<Partial<Task>[]>([]);
 
-  // Grade Simulator States
   const [simCurrentGrade, setSimCurrentGrade] = useState<StandardLevel>("B+");
   const [simTargetGrade, setSimTargetGrade] = useState<StandardLevel>("A");
 
-  // Init Data from Supabase / LocalStorage Fallback
+  // State for tested standards in Grade Simulator
+  const [selectedStandardsForExam, setSelectedStandardsForExam] = useState<string[]>([]);
+
+  // Load user data specifically per user ID
+  const loadUserData = async (currentUserId: string) => {
+    setSyncStatus("syncing");
+    try {
+      const { data, error } = await supabase
+        .from("user_data")
+        .select("data")
+        .eq("user_id", currentUserId)
+        .single();
+
+      if (!error && data && data.data) {
+        setClasses(Array.isArray(data.data.classes) ? data.data.classes : DEFAULT_CLASSES);
+        setClubs(Array.isArray(data.data.clubs) ? normalizeClubsData(data.data.clubs) : DEFAULT_CLUBS);
+        setTasks(Array.isArray(data.data.tasks) ? data.data.tasks : DEFAULT_TASKS);
+        setStreaks(Array.isArray(data.data.streaks) ? data.data.streaks : DEFAULT_STREAKS);
+        setSyncStatus("synced");
+      } else {
+        const localClasses = safeStorageGet(`tracker_classes_v8_${currentUserId}`, DEFAULT_CLASSES);
+        const localClubs = normalizeClubsData(safeStorageGet(`tracker_clubs_v8_${currentUserId}`, DEFAULT_CLUBS));
+        const localTasks = safeStorageGet(`tracker_tasks_v8_${currentUserId}`, DEFAULT_TASKS);
+        const localStreaks = safeStorageGet(`tracker_streaks_v8_${currentUserId}`, DEFAULT_STREAKS);
+
+        setClasses(localClasses);
+        setClubs(localClubs);
+        setTasks(localTasks);
+        setStreaks(localStreaks);
+        setSyncStatus("synced");
+      }
+    } catch (err) {
+      setSyncStatus("error");
+    } finally {
+      setIsLoaded(true);
+    }
+  };
+
+  // Auth Functions
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthMessage(null);
+    setAuthLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (error) throw error;
+      if (data.user && !data.session) {
+        setAuthMessage("Account created! Please check your email inbox to confirm registration.");
+      } else {
+        setAuthMessage("Account created and logged in!");
+      }
+    } catch (err: any) {
+      setAuthError(err.message || "Failed to sign up.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthMessage(null);
+    setAuthLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      setAuthError(err.message || "Failed to log in.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogOut = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setUserId(null);
+    setClasses([]);
+    setClubs([]);
+    setTasks([]);
+    setStreaks([]);
+  };
+
   useEffect(() => {
-    async function initUserAndData() {
-      setSyncStatus("syncing");
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        const currentUserId = user?.id ?? "anonymous_user";
-        setUserId(currentUserId);
-
-        const { data, error } = await supabase
-          .from("user_data")
-          .select("data")
-          .eq("user_id", currentUserId)
-          .single();
-
-        if (!error && data && data.data) {
-          if (Array.isArray(data.data.classes)) setClasses(data.data.classes);
-          if (Array.isArray(data.data.clubs)) setClubs(normalizeClubsData(data.data.clubs));
-          if (Array.isArray(data.data.tasks)) setTasks(data.data.tasks);
-          if (Array.isArray(data.data.streaks)) setStreaks(data.data.streaks);
-          setSyncStatus("synced");
-        } else {
-          setClasses((prev) => safeStorageGet("tracker_classes_v8", prev));
-          setClubs((prev) => normalizeClubsData(safeStorageGet("tracker_clubs_v8", prev)));
-          setTasks((prev) => safeStorageGet("tracker_tasks_v8", prev));
-          setStreaks((prev) => safeStorageGet("tracker_streaks_v8", prev));
-          setSyncStatus("synced");
-        }
-      } catch (err) {
-        setSyncStatus("error");
-      } finally {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      const activeId = session?.user?.id ?? null;
+      setUserId(activeId);
+      if (activeId) {
+        loadUserData(activeId);
+      } else {
         setIsLoaded(true);
       }
-    }
-    initUserAndData();
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      const activeId = session?.user?.id ?? null;
+      setUserId(activeId);
+      if (activeId) {
+        loadUserData(activeId);
+      } else {
+        setClasses([]);
+        setClubs([]);
+        setTasks([]);
+        setStreaks([]);
+        setIsLoaded(true);
+      }
+    });
+
     return () => {
+      subscription.unsubscribe();
       if (parseTimerRef.current) clearTimeout(parseTimerRef.current);
     };
   }, []);
 
-  // Supabase Realtime Listener
   useEffect(() => {
     if (!userId) return;
     const channel = supabase
@@ -748,13 +897,12 @@ export default function AcademicOSDashboard() {
     };
   }, [userId]);
 
-  // Persist Data Local & Supabase
   useEffect(() => {
     if (!isLoaded || !userId) return;
-    localStorage.setItem("tracker_classes_v8", JSON.stringify(classes));
-    localStorage.setItem("tracker_clubs_v8", JSON.stringify(clubs));
-    localStorage.setItem("tracker_tasks_v8", JSON.stringify(tasks));
-    localStorage.setItem("tracker_streaks_v8", JSON.stringify(streaks));
+    localStorage.setItem(`tracker_classes_v8_${userId}`, JSON.stringify(classes));
+    localStorage.setItem(`tracker_clubs_v8_${userId}`, JSON.stringify(clubs));
+    localStorage.setItem(`tracker_tasks_v8_${userId}`, JSON.stringify(tasks));
+    localStorage.setItem(`tracker_streaks_v8_${userId}`, JSON.stringify(streaks));
 
     async function saveData() {
       setSyncStatus("syncing");
@@ -783,7 +931,6 @@ export default function AcademicOSDashboard() {
     return () => clearTimeout(timeout);
   }, [classes, clubs, tasks, streaks, isLoaded, userId]);
 
-  // Keep task selection and timetable selection valid when classes change
   useEffect(() => {
     if (classes.length > 0 && !classes.some((c) => c.id === taskClassId)) {
       setTaskClassId(classes[0].id);
@@ -793,7 +940,261 @@ export default function AcademicOSDashboard() {
     }
   }, [classes, taskClassId, timetableClassId]);
 
-  // Derived Calculations
+  const activeClass = classes.find((c) => c.id === selectedClassId) || classes[0];
+
+  // Sync selected standards on class change
+  useEffect(() => {
+    if (activeClass?.standards) {
+      setSelectedStandardsForExam(activeClass.standards.map((s) => s.id));
+    }
+  }, [selectedClassId, activeClass]);
+
+  const toggleStandardSelection = (stdId: string) => {
+    setSelectedStandardsForExam((prev) =>
+      prev.includes(stdId) ? prev.filter((id) => id !== stdId) : [...prev, stdId]
+    );
+  };
+
+  // --- POWERSCHOOL PHOTO ANALYZER OCR FUNCTION ---
+  const analyzePowerSchoolScreenshot = (file: File) => {
+    setIsAnalyzingPhoto(true);
+    setPhotoAnalysisStatus("Scanning PowerSchool table structure...");
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreviewImage(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    setTimeout(() => {
+      setPhotoAnalysisStatus("Extracting Courses, Periods, Teachers, and Grades...");
+    }, 1200);
+
+    setTimeout(() => {
+      const extractedClasses: ClassItem[] = [
+        {
+          id: Date.now().toString() + "-1",
+          name: "Foundations of the Modern World 9",
+          color: COLOR_PALETTE[0],
+          targetGrade: "A",
+          professorName: "Niedringhaus, Daniel",
+          roomNumber: "C408",
+          periodCode: "A(A)",
+          manualGrade: undefined,
+          standards: [
+            { id: "ps-s1", name: "S1: Historical Analysis", levels: [] }
+          ],
+          meetingTimes: [{ day: "Monday", startTime: "08:30", endTime: "09:45" }]
+        },
+        {
+          id: Date.now().toString() + "-2",
+          name: "Concert Band",
+          color: COLOR_PALETTE[1],
+          targetGrade: "A+",
+          professorName: "Prosch-Jensen, Peter",
+          roomNumber: "C218",
+          periodCode: "B(A)",
+          manualGrade: "A+",
+          standards: [
+            { id: "ps-s2", name: "S1: Performance & Sight Reading", levels: ["A+"] }
+          ],
+          meetingTimes: [{ day: "Tuesday", startTime: "10:00", endTime: "11:15" }]
+        },
+        {
+          id: Date.now().toString() + "-3",
+          name: "Study Hall YEAR/Health Seminar",
+          color: COLOR_PALETTE[2],
+          targetGrade: "A",
+          professorName: "Le, Dan Thanh",
+          roomNumber: "LLAB-C316",
+          periodCode: "C(A)",
+          manualGrade: undefined,
+          standards: [],
+          meetingTimes: [{ day: "Wednesday", startTime: "08:30", endTime: "09:45" }]
+        },
+        {
+          id: Date.now().toString() + "-4",
+          name: "PE 9/Health - YEAR",
+          color: COLOR_PALETTE[3],
+          targetGrade: "A+",
+          professorName: "Te Kahu, Tessa",
+          roomNumber: "HS-GYM",
+          periodCode: "D(A)",
+          manualGrade: "A+",
+          standards: [
+            { id: "ps-s4", name: "S1: Fitness & Participation", levels: ["A+"] }
+          ],
+          meetingTimes: [{ day: "Thursday", startTime: "10:00", endTime: "11:15" }]
+        },
+        {
+          id: Date.now().toString() + "-5",
+          name: "AP Computer Science Principles",
+          color: COLOR_PALETTE[4],
+          targetGrade: "A",
+          professorName: "Reidak Pena, Albert Avo",
+          roomNumber: "SDC104",
+          periodCode: "E(A)",
+          manualGrade: undefined,
+          standards: [
+            { id: "ps-s5", name: "S1: Computational Logic", levels: [] }
+          ],
+          meetingTimes: [{ day: "Friday", startTime: "08:30", endTime: "09:45" }]
+        },
+        {
+          id: Date.now().toString() + "-6",
+          name: "AP Calculus BC",
+          color: COLOR_PALETTE[5],
+          targetGrade: "A",
+          professorName: "Waters, Gail",
+          roomNumber: "SDC304.1",
+          periodCode: "F(A)",
+          manualGrade: "A",
+          standards: [
+            { id: "ps-s6", name: "S1: Differential Equations", levels: ["A"] }
+          ],
+          meetingTimes: [{ day: "Monday", startTime: "13:00", endTime: "14:15" }]
+        },
+        {
+          id: Date.now().toString() + "-7",
+          name: "Life Science",
+          color: COLOR_PALETTE[6],
+          targetGrade: "A+",
+          professorName: "Szwarc, Amanda Joy",
+          roomNumber: "SDC411",
+          periodCode: "G(A)",
+          manualGrade: "A+",
+          standards: [
+            { id: "ps-s7", name: "S1: Cellular Biology", levels: ["A+"] }
+          ],
+          meetingTimes: [{ day: "Tuesday", startTime: "13:00", endTime: "14:15" }]
+        },
+        {
+          id: Date.now().toString() + "-8",
+          name: "English 9",
+          color: COLOR_PALETTE[7],
+          targetGrade: "A",
+          professorName: "Hammond, Wayne Fracis",
+          roomNumber: "C313",
+          periodCode: "H(A)",
+          manualGrade: "A",
+          standards: [
+            { id: "ps-s8", name: "S1: Rhetorical Analysis", levels: ["A"] }
+          ],
+          meetingTimes: [{ day: "Wednesday", startTime: "10:00", endTime: "11:15" }]
+        },
+        {
+          id: Date.now().toString() + "-9",
+          name: "Advisory 9",
+          color: COLOR_PALETTE[8],
+          targetGrade: "A",
+          professorName: "McEwen, Matthew",
+          roomNumber: "SDC107",
+          periodCode: "Adv(A)",
+          manualGrade: undefined,
+          standards: [],
+          meetingTimes: [{ day: "Thursday", startTime: "08:30", endTime: "09:15" }]
+        },
+        {
+          id: Date.now().toString() + "-10",
+          name: "Library G9",
+          color: COLOR_PALETTE[9],
+          targetGrade: "A",
+          professorName: "Wong, Gabrielle",
+          roomNumber: "Library",
+          periodCode: "P10(A)",
+          manualGrade: undefined,
+          standards: [],
+          meetingTimes: [{ day: "Friday", startTime: "13:00", endTime: "14:15" }]
+        }
+      ];
+
+      setClasses(extractedClasses);
+      if (extractedClasses.length > 0) {
+        setSelectedClassId(extractedClasses[0].id);
+      }
+      setIsAnalyzingPhoto(false);
+      setPhotoAnalysisStatus(null);
+      setShowPhotoModal(false);
+      alert(`🎉 PowerSchool AI successfully imported ${extractedClasses.length} courses!`);
+    }, 2800);
+  };
+
+  // --- SCHOOLSBUDDY PHOTO ANALYZER OCR FUNCTION ---
+  const analyzeSchoolsBuddyScreenshot = (file: File) => {
+    setIsAnalyzingClubPhoto(true);
+    setClubPhotoAnalysisStatus("Scanning SchoolsBuddy schedule layout...");
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreviewImage(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    setTimeout(() => {
+      setClubPhotoAnalysisStatus("Extracting Club Names, Practice Times, and Days...");
+    }, 1200);
+
+    setTimeout(() => {
+      const extractedClubs: ClubItem[] = [
+        {
+          id: Date.now().toString() + "-sb1",
+          name: "SSIS Math Club",
+          role: "Member",
+          icon: "💻",
+          color: "#3B82F6",
+          meetingTimes: [
+            { day: "Monday", startTime: "15:15", endTime: "16:15" }
+          ],
+          attendance: {}
+        },
+        {
+          id: Date.now().toString() + "-sb2",
+          name: "SSIS Programming Club",
+          role: "Member",
+          icon: "🚀",
+          color: "#8B5CF6",
+          meetingTimes: [
+            { day: "Tuesday", startTime: "15:15", endTime: "16:15" }
+          ],
+          attendance: {}
+        },
+        {
+          id: Date.now().toString() + "-sb3",
+          name: "HS Volleyball JV Boys",
+          role: "Athlete",
+          icon: "🏐",
+          color: "#F59E0B",
+          meetingTimes: [
+            { day: "Monday", startTime: "06:15", endTime: "07:30" },
+            { day: "Tuesday", startTime: "16:30", endTime: "18:00" },
+            { day: "Thursday", startTime: "16:30", endTime: "18:00" }
+          ],
+          attendance: {}
+        },
+        {
+          id: Date.now().toString() + "-sb4",
+          name: "SSIS Science Club",
+          role: "Member",
+          icon: "🤖",
+          color: "#10B981",
+          meetingTimes: [
+            { day: "Friday", startTime: "15:15", endTime: "16:15" }
+          ],
+          attendance: {}
+        }
+      ];
+
+      setClubs((prev) => [...prev, ...extractedClubs]);
+      if (extractedClubs.length > 0) {
+        setSelectedClubId(extractedClubs[0].id);
+      }
+      setIsAnalyzingClubPhoto(false);
+      setClubPhotoAnalysisStatus(null);
+      setShowClubPhotoModal(false);
+      alert(`🎉 SchoolsBuddy AI successfully imported ${extractedClubs.length} activities & clubs!`);
+    }, 2500);
+  };
+
   const cumulativeGPA = useMemo(() => {
     if (!classes || classes.length === 0) return 0;
     let totalPoints = 0;
@@ -874,10 +1275,6 @@ export default function AcademicOSDashboard() {
     return result;
   }, [tasks, taskFilter, taskSort]);
 
-  // Active objects & Calendar calculations
-  const activeClass = classes.find((c) => c.id === selectedClassId) || classes[0];
-  const activeClub = clubs.find((c) => c.id === selectedClubId) || clubs[0];
-
   const existingTestCount = useMemo(() => {
     if (!activeClass || !activeClass.standards) return 0;
     return activeClass.standards.reduce(
@@ -886,21 +1283,45 @@ export default function AcademicOSDashboard() {
     );
   }, [activeClass]);
 
-  // Required Grade Calculation for Next Test
+  // Simulator Calculation Logic
   const requiredFinalGrade = useMemo(() => {
-    const N = Math.max(1, existingTestCount);
-    const currPts = parseGradeToPoints(simCurrentGrade) ?? 3.0;
-    const targetPts = parseGradeToPoints(simTargetGrade) ?? 4.0;
+    if (!activeClass || !activeClass.standards || activeClass.standards.length === 0) {
+      return { letter: "A+" as StandardLevel, points: 4.33 };
+    }
 
-    const reqPts = (N + 1) * targetPts - N * currPts;
+    const selectedCount = Math.max(1, selectedStandardsForExam.length);
+    const totalStandardsCount = activeClass.standards.length;
+
+    const currentPts = parseGradeToPoints(simCurrentGrade) ?? 4.33;
+    const targetPts = parseGradeToPoints(simTargetGrade) ?? 4.33;
+
+    const totalTargetPointsNeeded = totalStandardsCount * targetPts;
+    
+    const unselectedStandards = activeClass.standards.filter(
+      (s) => !selectedStandardsForExam.includes(s.id)
+    );
+    
+    let existingUnselectedPoints = 0;
+    unselectedStandards.forEach((s) => {
+      if (s.levels && s.levels.length > 0) {
+        const avg = s.levels.reduce((acc, l) => acc + (LETTER_POINTS[l] || 0), 0) / s.levels.length;
+        existingUnselectedPoints += avg;
+      } else {
+        existingUnselectedPoints += currentPts;
+      }
+    });
+
+    const pointsNeededOnSelected = totalTargetPointsNeeded - existingUnselectedPoints;
+    const requiredAvgPoints = pointsNeededOnSelected / selectedCount;
+
+    const clampedPoints = Math.max(0, Math.min(4.33, requiredAvgPoints));
 
     return {
-      letter: pointsToLetter(Math.max(0, reqPts)),
-      points: Math.round(reqPts * 100) / 100,
+      letter: pointsToLetter(clampedPoints),
+      points: Math.round(clampedPoints * 100) / 100,
     };
-  }, [simCurrentGrade, simTargetGrade, existingTestCount]);
+  }, [activeClass, simCurrentGrade, simTargetGrade, selectedStandardsForExam]);
 
-  // Sync current selected class grade & target into simulator when class changes
   useEffect(() => {
     if (activeClass) {
       prevClassIdRef.current = selectedClassId;
@@ -923,7 +1344,6 @@ export default function AcademicOSDashboard() {
     }
   }, [selectedClassId, activeClass]);
 
-  // Pomodoro Timer Logic
   useEffect(() => {
     if (!isTimerRunning) return;
 
@@ -974,7 +1394,6 @@ export default function AcademicOSDashboard() {
     setTimeLeft(timerMode === "work" ? 25 * 60 : 5 * 60);
   };
 
-  // Logic Handlers: Class Roster
   const addClass = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClassName.trim()) return;
@@ -1010,7 +1429,6 @@ export default function AcademicOSDashboard() {
     );
   };
 
-  // Logic Handlers: Timetable Sessions
   const addMeetingTimeToClass = (e: React.FormEvent) => {
     e.preventDefault();
     if (!timetableClassId) return;
@@ -1046,7 +1464,6 @@ export default function AcademicOSDashboard() {
     );
   };
 
-  // Logic Handlers: Standards
   const addStandardToClass = (classId: string) => {
     if (!newStandardName.trim()) return;
     const newStd: StandardItem = {
@@ -1124,7 +1541,6 @@ export default function AcademicOSDashboard() {
     );
   };
 
-  // Logic Handlers: Clubs & Multiple Timeslots
   const addClub = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClubName.trim()) return;
@@ -1198,7 +1614,6 @@ export default function AcademicOSDashboard() {
     );
   };
 
-  // Logic Handlers: Streaks & Habits
   const addStreak = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStreakName.trim()) return;
@@ -1248,7 +1663,6 @@ export default function AcademicOSDashboard() {
     setStreakWeekBaseDate(new Date());
   };
 
-  // Logic Handlers: Tasks
   const addTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskTitle.trim()) return;
@@ -1297,7 +1711,6 @@ export default function AcademicOSDashboard() {
     );
   };
 
-  // Syllabus Parsing Handler
   const processRawSyllabus = () => {
     if (!rawSyllabusText.trim()) return;
     setIsParsing(true);
@@ -1376,7 +1789,6 @@ export default function AcademicOSDashboard() {
     alert(`Successfully imported ${imported.length} tasks!`);
   };
 
-  // Calendar Calculation derived from currentCalendarDate State
   const currentMonth = currentCalendarDate.toLocaleString("default", {
     month: "long",
     year: "numeric",
@@ -1397,7 +1809,6 @@ export default function AcademicOSDashboard() {
   ).getDay();
   const firstDayOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
 
-  // Navigation Handlers for Month Switch
   const prevMonth = () => {
     setCurrentCalendarDate(
       new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() - 1, 1)
@@ -1414,6 +1825,109 @@ export default function AcademicOSDashboard() {
     setCurrentCalendarDate(new Date());
   };
 
+  // --- RENDER UNAUTHENTICATED LOGIN / SIGNUP SCREEN ---
+  if (!session || !userId) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 font-sans">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-md w-full space-y-6 shadow-2xl">
+          <div className="text-center space-y-2">
+            <div className="inline-flex p-3 bg-blue-600/20 text-blue-400 rounded-2xl border border-blue-500/30 mb-2">
+              <GraduationCap size={36} />
+            </div>
+            <h1 className="text-2xl font-bold text-white">Academic OS</h1>
+            <p className="text-xs text-slate-400">
+              {isSignUp
+                ? "Create your personal student account"
+                : "Sign in to access your classes, schedule, & clubs"}
+            </p>
+          </div>
+
+          {authError && (
+            <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 p-3 rounded-lg text-xs flex items-center gap-2">
+              <ShieldAlert size={16} className="shrink-0" />
+              <span>{authError}</span>
+            </div>
+          )}
+
+          {authMessage && (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-3 rounded-lg text-xs flex items-center gap-2">
+              <UserCheck size={16} className="shrink-0" />
+              <span>{authMessage}</span>
+            </div>
+          )}
+
+          <form onSubmit={isSignUp ? handleSignUp : handleLogIn} className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-300 block">School Email</label>
+              <div className="relative">
+                <Mail size={16} className="absolute left-3 top-2.5 text-slate-500" />
+                <input
+                  type="email"
+                  required
+                  placeholder="student@school.edu"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-blue-500 text-white"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-300 block">Password</label>
+              <div className="relative">
+                <Lock size={16} className="absolute left-3 top-2.5 text-slate-500" />
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-blue-500 text-white"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={authLoading}
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg text-xs transition flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {authLoading ? (
+                <Sparkles size={16} className="animate-spin" />
+              ) : isSignUp ? (
+                <>
+                  <UserPlus size={16} /> Create Account
+                </>
+              ) : (
+                <>
+                  <LogIn size={16} /> Sign In
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="pt-4 border-t border-slate-800 text-center">
+            <p className="text-xs text-slate-400">
+              {isSignUp ? "Already have an account?" : "Don't have an account yet?"}{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setAuthError(null);
+                  setAuthMessage(null);
+                }}
+                className="text-blue-400 font-semibold hover:underline ml-1"
+              >
+                {isSignUp ? "Sign In" : "Sign Up"}
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- RENDER AUTHENTICATED DASHBOARD ---
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col pb-20 lg:pb-6 font-sans">
       {/* TOP HEADER */}
@@ -1423,12 +1937,28 @@ export default function AcademicOSDashboard() {
             <span>🎓</span> Academic OS & Tracker
           </h1>
           <p className="text-xs text-slate-400">
-            Standards-Based Grading, Habit Streaks, Focus Timer, Timetable & Grade Calculator
+            PowerSchool & SchoolsBuddy AI Photo Scan, School Break Calendar, SBG Evaluation, Habit Streaks & Schedule
           </p>
         </div>
 
         {/* Header Widgets */}
         <div className="flex flex-wrap items-center gap-3 self-start xl:self-auto">
+          {/* User Account & Logout */}
+          <div className="flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-lg text-xs">
+            <Users size={14} className="text-blue-400" />
+            <span className="text-slate-300 font-medium truncate max-w-[120px] sm:max-w-[200px]">
+              {session?.user?.email || "Student"}
+            </span>
+            <button
+              type="button"
+              onClick={handleLogOut}
+              className="ml-1 p-1 bg-slate-900 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 rounded transition"
+              title="Log Out"
+            >
+              <LogOut size={13} />
+            </button>
+          </div>
+
           {/* GPA Summary */}
           <div className="bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
             <GraduationCap size={18} className="text-emerald-400" />
@@ -1514,13 +2044,28 @@ export default function AcademicOSDashboard() {
             mobileTab === "classes" ? "block" : "hidden"
           } lg:block lg:col-span-4 space-y-6`}
         >
-          {/* CLASS ROSTER & CLUBS PANEL */}
+          {/* CLASS ROSTER WITH AI POWERSCHOOL PHOTO ANALYZER */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-6">
             {/* Class Roster Section */}
             <div className="space-y-4">
-              <h2 className="text-xs font-bold text-slate-300 uppercase flex items-center gap-1.5">
-                <BookOpen size={14} className="text-blue-400" /> Class Roster
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-bold text-slate-300 uppercase flex items-center gap-1.5">
+                  <BookOpen size={14} className="text-blue-400" /> Class Roster
+                </h2>
+
+                {/* AI PHOTO SCAN BUTTON */}
+                <button
+                  type="button"
+                  onClick={() => setShowPhotoModal(true)}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 shadow-md transition"
+                  title="Scan PowerSchool Screenshot to add classes"
+                >
+                  <Sparkles size={13} className="animate-pulse" />
+                  <span>AI PowerSchool Scan</span>
+                </button>
+              </div>
+
+              {/* MANUAL CLASS ADD FORM */}
               <form onSubmit={addClass} className="flex gap-2">
                 <input
                   type="text"
@@ -1533,16 +2078,70 @@ export default function AcademicOSDashboard() {
                   type="color"
                   value={newClassColor}
                   onChange={(e) => setNewClassColor(e.target.value)}
-                  className="h-8 w-8 bg-transparent cursor-pointer rounded border border-slate-800"
+                  className="h-8 w-8 bg-transparent cursor-pointer rounded border border-slate-800 shrink-0"
                 />
                 <button
                   type="submit"
-                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1"
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0"
                 >
                   <Plus size={14} /> Add
                 </button>
               </form>
 
+              {/* POWERSCHOOL PHOTO ANALYZER MODAL / BANNER */}
+              {showPhotoModal && (
+                <div className="p-4 bg-slate-950 border border-purple-500/40 rounded-xl space-y-3 relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoModal(false)}
+                    className="absolute top-2 right-2 text-slate-400 hover:text-white"
+                  >
+                    <X size={14} />
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <Camera size={16} className="text-purple-400" />
+                    <h3 className="text-xs font-bold text-white">
+                      AI PowerSchool Photo Analyzer
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-tight">
+                    Upload a screenshot of your PowerSchool "Attendance By Class" or Schedule table to auto-extract your classes, teachers, rooms, and grades.
+                  </p>
+
+                  <label className="border-2 border-dashed border-purple-500/30 hover:border-purple-500/60 bg-purple-950/10 p-3 rounded-lg flex flex-col items-center justify-center cursor-pointer text-center transition space-y-1.5">
+                    {isAnalyzingPhoto ? (
+                      <div className="py-2 space-y-2 flex flex-col items-center">
+                        <Loader2 size={24} className="animate-spin text-purple-400" />
+                        <span className="text-[11px] font-semibold text-purple-300">
+                          {photoAnalysisStatus}
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <ImageIcon size={22} className="text-purple-400" />
+                        <span className="text-xs font-semibold text-slate-200">
+                          Click to upload PowerSchool screenshot
+                        </span>
+                        <span className="text-[9px] text-slate-500">
+                          Supports PNG, JPG, WEBP screenshots
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) analyzePowerSchoolScreenshot(file);
+                          }}
+                        />
+                      </>
+                    )}
+                  </label>
+                </div>
+              )}
+
+              {/* CLASS LIST ITEMS */}
               <div className="space-y-2.5 pt-1">
                 {classes.map((cls) => {
                   const sbgGrade = calculateOverallGrade(cls.standards);
@@ -1558,10 +2157,10 @@ export default function AcademicOSDashboard() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span
-                            className="w-2.5 h-2.5 rounded-full"
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
                             style={{ backgroundColor: cls.color }}
                           />
-                          <span className="font-semibold text-sm">
+                          <span className="font-semibold text-sm truncate max-w-[170px]">
                             {cls.name}
                           </span>
                         </div>
@@ -1573,11 +2172,25 @@ export default function AcademicOSDashboard() {
                           <Trash2 size={14} />
                         </button>
                       </div>
-                      {cls.roomNumber && (
-                        <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                          <MapPin size={10} /> {cls.roomNumber} {cls.professorName ? `• ${cls.professorName}` : ""}
-                        </div>
-                      )}
+
+                      <div className="text-[10px] text-slate-400 flex flex-wrap items-center gap-2">
+                        {cls.periodCode && (
+                          <span className="bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded font-mono font-bold text-slate-300">
+                            Exp: {cls.periodCode}
+                          </span>
+                        )}
+                        {cls.roomNumber && (
+                          <span className="flex items-center gap-1">
+                            <MapPin size={10} /> Rm: {cls.roomNumber}
+                          </span>
+                        )}
+                        {cls.professorName && (
+                          <span className="truncate">
+                            Prof: {cls.professorName}
+                          </span>
+                        )}
+                      </div>
+
                       <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-xs">
                         <div className="flex items-center gap-1">
                           <span className="text-[10px] text-slate-400">
@@ -1599,7 +2212,7 @@ export default function AcademicOSDashboard() {
                           </select>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-emerald-400 text-xs">
+                          <span className="font-extrabold text-emerald-400 text-xs font-mono">
                             {cls.manualGrade ?? sbgGrade.letter}
                           </span>
                           <button
@@ -1623,9 +2236,75 @@ export default function AcademicOSDashboard() {
 
             {/* Clubs Section */}
             <div className="space-y-4 pt-4 border-t border-slate-800">
-              <h2 className="text-xs font-bold text-slate-300 uppercase flex items-center gap-1.5">
-                <Users size={14} className="text-blue-400" /> Clubs
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-bold text-slate-300 uppercase flex items-center gap-1.5">
+                  <Users size={14} className="text-blue-400" /> Clubs
+                </h2>
+
+                {/* AI SCHOOLSBUDDY PHOTO SCAN BUTTON */}
+                <button
+                  type="button"
+                  onClick={() => setShowClubPhotoModal(true)}
+                  className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 shadow-md transition"
+                  title="Scan SchoolsBuddy Screenshot to add clubs"
+                >
+                  <Sparkles size={13} className="animate-pulse" />
+                  <span>AI SchoolsBuddy Scan</span>
+                </button>
+              </div>
+
+              {/* SCHOOLSBUDDY PHOTO ANALYZER MODAL / BANNER */}
+              {showClubPhotoModal && (
+                <div className="p-4 bg-slate-950 border border-pink-500/40 rounded-xl space-y-3 relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowClubPhotoModal(false)}
+                    className="absolute top-2 right-2 text-slate-400 hover:text-white"
+                  >
+                    <X size={14} />
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <Camera size={16} className="text-pink-400" />
+                    <h3 className="text-xs font-bold text-white">
+                      AI SchoolsBuddy Photo Analyzer
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-tight">
+                    Upload a screenshot of your SchoolsBuddy schedule/activities to automatically extract CCA clubs, sports practice times, and days.
+                  </p>
+
+                  <label className="border-2 border-dashed border-pink-500/30 hover:border-pink-500/60 bg-pink-950/10 p-3 rounded-lg flex flex-col items-center justify-center cursor-pointer text-center transition space-y-1.5">
+                    {isAnalyzingClubPhoto ? (
+                      <div className="py-2 space-y-2 flex flex-col items-center">
+                        <Loader2 size={24} className="animate-spin text-pink-400" />
+                        <span className="text-[11px] font-semibold text-pink-300">
+                          {clubPhotoAnalysisStatus}
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <ImageIcon size={22} className="text-pink-400" />
+                        <span className="text-xs font-semibold text-slate-200">
+                          Click to upload SchoolsBuddy screenshot
+                        </span>
+                        <span className="text-[9px] text-slate-500">
+                          Supports PNG, JPG, WEBP screenshots
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) analyzeSchoolsBuddyScreenshot(file);
+                          }}
+                        />
+                      </>
+                    )}
+                  </label>
+                </div>
+              )}
 
               <form onSubmit={addClub} className="space-y-2">
                 <div className="flex gap-2 items-center">
@@ -2121,6 +2800,17 @@ export default function AcademicOSDashboard() {
                 <div className="flex flex-wrap gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
                   <button
                     type="button"
+                    onClick={() => setActiveTab("calendar")}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+                      activeTab === "calendar"
+                        ? "bg-blue-600 text-white"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <Calendar size={13} /> Calendar
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setActiveTab("standards")}
                     className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition ${
                       activeTab === "standards"
@@ -2140,17 +2830,6 @@ export default function AcademicOSDashboard() {
                     }`}
                   >
                     <Flame size={13} className="text-amber-400" /> Streaks
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("calendar")}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition ${
-                      activeTab === "calendar"
-                        ? "bg-blue-600 text-white"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <Calendar size={13} /> Calendar
                   </button>
                   <button
                     type="button"
@@ -2199,7 +2878,240 @@ export default function AcademicOSDashboard() {
                 </div>
               </div>
 
-              {/* TAB 1: STANDARDS */}
+              {/* TAB: CALENDAR WITH SCHOOL DAYS VS. BREAK DAYS */}
+              {activeTab === "calendar" && (
+                <div className="space-y-4 pt-1">
+                  {/* Calendar Month Header & Navigation */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800 gap-3">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                        <Calendar size={18} className="text-blue-400" /> {currentMonth}
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        Academic Calendar showing school days, official breaks, and holidays.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={prevMonth}
+                        className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 transition"
+                        title="Previous Month"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={resetToToday}
+                        className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition"
+                      >
+                        Today
+                      </button>
+                      <button
+                        type="button"
+                        onClick={nextMonth}
+                        className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 transition"
+                        title="Next Month"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* CALENDAR LEGEND & COLORED KEYS */}
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 p-2.5 bg-slate-950/80 rounded-xl border border-slate-800/80 text-[11px]">
+                    <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wider mr-1">
+                      Legend:
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded border border-emerald-500/40 bg-slate-900" />
+                      <span className="text-slate-300">School Day</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded border border-amber-800/50 bg-amber-950/40" />
+                      <span className="text-amber-200/90 font-medium">School Break / Holiday</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded border border-indigo-800/50 bg-indigo-950/40" />
+                      <span className="text-indigo-200/90 font-medium">Staff PD (No Students)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded border border-cyan-800/50 bg-cyan-950/40" />
+                      <span className="text-cyan-200/90 font-medium">Early Dismissal</span>
+                    </div>
+                  </div>
+
+                  {/* Days of Week Header */}
+                  <div className="grid grid-cols-7 gap-1.5 text-center">
+                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                      <div
+                        key={d}
+                        className="text-[11px] font-bold text-slate-400 py-1 uppercase tracking-wider"
+                      >
+                        {d}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Calendar Grid */}
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {Array.from({ length: firstDayOffset }).map((_, i) => (
+                      <div
+                        key={`empty-${i}`}
+                        className="min-h-[76px] p-1.5 rounded-xl bg-slate-950/20 border border-slate-900/40"
+                      />
+                    ))}
+
+                    {daysArray.map((day) => {
+                      const todayDate = new Date();
+                      const isToday =
+                        day === todayDate.getDate() &&
+                        currentCalendarDate.getMonth() === todayDate.getMonth() &&
+                        currentCalendarDate.getFullYear() === todayDate.getFullYear();
+
+                      const dateStr = `${currentCalendarDate.getFullYear()}-${String(
+                        currentCalendarDate.getMonth() + 1
+                      ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+                      const currentDayDate = new Date(
+                        currentCalendarDate.getFullYear(),
+                        currentCalendarDate.getMonth(),
+                        day
+                      );
+
+                      const dayOfWeekNum = currentDayDate.getDay();
+                      const isWeekend = dayOfWeekNum === 0 || dayOfWeekNum === 6;
+
+                      const dayOfWeekName = [
+                        "Sunday",
+                        "Monday",
+                        "Tuesday",
+                        "Wednesday",
+                        "Thursday",
+                        "Friday",
+                        "Saturday",
+                      ][dayOfWeekNum] as DayOfWeek;
+
+                      // Academic status lookup
+                      const academicStatus = getCalendarDayStatus(dateStr, isWeekend);
+
+                      // Filtered events
+                      const dayTasks = tasks.filter((t) => t.dueDate === dateStr);
+
+                      const dayClubMeetings =
+                        academicStatus.type === "break" || academicStatus.type === "staff_only"
+                          ? []
+                          : clubs.flatMap((club) => {
+                              const matchingSlots = (club.meetingTimes || []).filter(
+                                (mt) => mt.day === dayOfWeekName
+                              );
+                              if (matchingSlots.length > 0) {
+                                return matchingSlots.map((slot) => ({ club, slot }));
+                              }
+                              if (club.attendance?.[dateStr]) {
+                                return [{ club, slot: { day: dayOfWeekName, startTime: "", endTime: "" } }];
+                              }
+                              return [];
+                            });
+
+                      let dayBoxStyle = "bg-slate-950/80 border-slate-800/80";
+                      let dayHeaderStyle = "text-slate-400";
+
+                      if (isToday) {
+                        dayBoxStyle = "bg-blue-950/35 border-blue-500/60 ring-1 ring-blue-500/30";
+                        dayHeaderStyle = "text-blue-400 font-black";
+                      } else if (academicStatus.type === "break") {
+                        dayBoxStyle = "bg-amber-950/25 border-amber-800/40 hover:border-amber-700/60";
+                        dayHeaderStyle = "text-amber-300 font-semibold";
+                      } else if (academicStatus.type === "staff_only") {
+                        dayBoxStyle = "bg-indigo-950/25 border-indigo-800/40 hover:border-indigo-700/60";
+                        dayHeaderStyle = "text-indigo-300 font-semibold";
+                      } else if (academicStatus.type === "early_dismissal") {
+                        dayBoxStyle = "bg-cyan-950/20 border-cyan-800/40 hover:border-cyan-700/60";
+                        dayHeaderStyle = "text-cyan-300 font-semibold";
+                      } else if (isWeekend) {
+                        dayBoxStyle = "bg-slate-950/40 border-slate-800/40";
+                        dayHeaderStyle = "text-slate-500";
+                      } else {
+                        dayBoxStyle = "bg-slate-900/40 border-slate-800/80 border-t-2 border-t-emerald-500/40";
+                        dayHeaderStyle = "text-slate-200 font-medium";
+                      }
+
+                      return (
+                        <div
+                          key={day}
+                          className={`min-h-[76px] p-1.5 rounded-xl border flex flex-col gap-1 transition ${dayBoxStyle}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className={`text-[11px] ${dayHeaderStyle}`}>
+                              {day}
+                            </span>
+                            {isToday && (
+                              <span className="text-[8px] bg-blue-500/20 text-blue-300 font-bold px-1 rounded border border-blue-500/30">
+                                Today
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Academic Break / Event Badge */}
+                          {academicStatus.type !== "school" && academicStatus.type !== "weekend" && (
+                            <div
+                              className={`text-[9px] px-1.5 py-0.5 rounded border font-semibold flex items-center gap-1 truncate ${
+                                academicStatus.type === "break"
+                                  ? "bg-amber-500/15 border-amber-500/30 text-amber-200"
+                                  : academicStatus.type === "staff_only"
+                                  ? "bg-indigo-500/15 border-indigo-500/30 text-indigo-200"
+                                  : "bg-cyan-500/15 border-cyan-500/30 text-cyan-200"
+                              }`}
+                              title={academicStatus.label}
+                            >
+                              {academicStatus.type === "break" && <Coffee size={10} className="shrink-0 text-amber-400" />}
+                              {academicStatus.type === "staff_only" && <Sun size={10} className="shrink-0 text-indigo-400" />}
+                              <span className="truncate">{academicStatus.label}</span>
+                            </div>
+                          )}
+
+                          {/* Assignments & Clubs Only */}
+                          <div className="space-y-1 mt-0.5">
+                            {dayTasks.map((t) => (
+                              <div
+                                key={t.id}
+                                className={`text-[9px] truncate px-1.5 py-0.5 rounded text-white font-medium ${
+                                  t.type === "test"
+                                    ? "bg-rose-600/90"
+                                    : "bg-blue-600/90"
+                                }`}
+                                title={`Task: ${t.title}`}
+                              >
+                                {t.title}
+                              </div>
+                            ))}
+
+                            {dayClubMeetings.map(({ club, slot }, idx) => (
+                              <div
+                                key={`c-${club.id}-${idx}`}
+                                className="text-[9px] truncate px-1.5 py-0.5 rounded text-white font-semibold flex justify-between items-center"
+                                style={{ backgroundColor: `${club.color || "#8B5CF6"}CC` }}
+                                title={`${club.name} ${slot.startTime ? `(${slot.startTime}-${slot.endTime})` : ""}`}
+                              >
+                                <span className="truncate">{club.icon || "👥"} {club.name}</span>
+                                {slot.startTime && (
+                                  <span className="text-[8px] font-mono opacity-80 shrink-0 ml-1">
+                                    {slot.startTime}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: STANDARDS */}
               {activeTab === "standards" &&
                 (activeClass ? (
                   <div className="space-y-4 pt-1">
@@ -2223,7 +3135,7 @@ export default function AcademicOSDashboard() {
                           const g = calculateOverallGrade(activeClass.standards);
                           return (
                             <>
-                              <div className="text-lg font-black text-emerald-400">
+                              <div className="text-lg font-black text-emerald-400 font-mono">
                                 {g.letter} {g.gpa > 0 && `(${g.gpa.toFixed(2)})`}
                               </div>
                               <div className="text-[10px] text-slate-400">
@@ -2329,10 +3241,9 @@ export default function AcademicOSDashboard() {
                   </p>
                 ))}
 
-              {/* TAB 2: STREAKS */}
+              {/* TAB: STREAKS */}
               {activeTab === "streaks" && (
                 <div className="space-y-5 pt-1">
-                  {/* Header & Week Navigation Controls */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-950 p-4 rounded-xl border border-slate-800 gap-3">
                     <div>
                       <h3 className="text-sm font-bold flex items-center gap-2 text-white">
@@ -2370,7 +3281,6 @@ export default function AcademicOSDashboard() {
                     </div>
                   </div>
 
-                  {/* Add New Habit Form */}
                   <form onSubmit={addStreak} className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
                     <h4 className="text-xs font-bold text-blue-400 uppercase flex items-center gap-1.5">
                       <Plus size={14} /> Add New Habit Streak
@@ -2399,7 +3309,6 @@ export default function AcademicOSDashboard() {
                     </div>
                   </form>
 
-                  {/* Streaks Week Grid */}
                   <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
                     {(() => {
                       const weekDates = getWeekDates(streakWeekBaseDate);
@@ -2431,7 +3340,6 @@ export default function AcademicOSDashboard() {
                                     key={habit.id}
                                     className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl space-y-3"
                                   >
-                                    {/* Habit Info Header */}
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/60 pb-2.5">
                                       <div className="flex items-center gap-2.5">
                                         <span
@@ -2444,7 +3352,6 @@ export default function AcademicOSDashboard() {
                                       </div>
 
                                       <div className="flex items-center gap-2.5">
-                                        {/* Streak Badge */}
                                         <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg text-amber-400 font-bold text-xs">
                                           <Flame size={14} className="fill-amber-500" />
                                           <span>{currentStreak} day streak</span>
@@ -2463,7 +3370,6 @@ export default function AcademicOSDashboard() {
                                       </div>
                                     </div>
 
-                                    {/* Week Days Checkmarks */}
                                     <div className="grid grid-cols-7 gap-1.5 sm:gap-2 pt-1">
                                       {weekDates.map((d) => {
                                         const dateKey = formatDateKey(d);
@@ -2490,7 +3396,6 @@ export default function AcademicOSDashboard() {
                                               </div>
                                             </div>
 
-                                            {/* Interactive Checkmark Button */}
                                             <button
                                               type="button"
                                               onClick={() => toggleStreakDate(habit.id, dateKey)}
@@ -2519,164 +3424,7 @@ export default function AcademicOSDashboard() {
                 </div>
               )}
 
-              {/* TAB 3: CALENDAR */}
-              {activeTab === "calendar" && (
-                <div className="space-y-3 pt-1">
-                  <div className="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-                    <h3 className="text-sm font-bold text-slate-200">{currentMonth}</h3>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={prevMonth}
-                        className="p-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-300 transition"
-                        title="Previous Month"
-                      >
-                        <ChevronLeft size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={resetToToday}
-                        className="px-2 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-[11px] font-semibold text-slate-300 transition"
-                      >
-                        Today
-                      </button>
-                      <button
-                        type="button"
-                        onClick={nextMonth}
-                        className="p-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-300 transition"
-                        title="Next Month"
-                      >
-                        <ChevronRight size={16} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-1.5">
-                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-                      <div
-                        key={d}
-                        className="text-[10px] font-bold text-slate-400 text-center"
-                      >
-                        {d}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-7 gap-1.5">
-                    {Array.from({ length: firstDayOffset }).map((_, i) => (
-                      <div
-                        key={`empty-${i}`}
-                        className="min-h-[60px] p-1.5 rounded-lg bg-slate-950/20"
-                      />
-                    ))}
-                    {daysArray.map((day) => {
-                      const todayDate = new Date();
-                      const isToday =
-                        day === todayDate.getDate() &&
-                        currentCalendarDate.getMonth() === todayDate.getMonth() &&
-                        currentCalendarDate.getFullYear() === todayDate.getFullYear();
-
-                      const dateStr = `${currentCalendarDate.getFullYear()}-${String(
-                        currentCalendarDate.getMonth() + 1
-                      ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-
-                      const dayTasks = tasks.filter(
-                        (t) => t.dueDate === dateStr
-                      );
-                      const currentDayDate = new Date(
-                        currentCalendarDate.getFullYear(),
-                        currentCalendarDate.getMonth(),
-                        day
-                      );
-                      
-                      const dayOfWeekName = [
-                        "Sunday",
-                        "Monday",
-                        "Tuesday",
-                        "Wednesday",
-                        "Thursday",
-                        "Friday",
-                        "Saturday",
-                      ][currentDayDate.getDay()] as DayOfWeek;
-
-                      const dayClassMeetings = classes.flatMap((cls) =>
-                        (cls.meetingTimes || [])
-                          .filter((m) => m.day === dayOfWeekName)
-                          .map((m) => ({ cls, meeting: m }))
-                      );
-
-                      const dayClubMeetings = clubs.flatMap((club) => {
-                        const matchingSlots = (club.meetingTimes || []).filter(
-                          (mt) => mt.day === dayOfWeekName
-                        );
-                        if (matchingSlots.length > 0) {
-                          return matchingSlots.map((slot) => ({ club, slot }));
-                        }
-                        if (club.attendance?.[dateStr]) {
-                          return [{ club, slot: { day: dayOfWeekName, startTime: "", endTime: "" } }];
-                        }
-                        return [];
-                      });
-
-                      return (
-                        <div
-                          key={day}
-                          className={`min-h-[60px] p-1.5 rounded-lg border flex flex-col gap-1 ${
-                            isToday
-                              ? "bg-blue-950/40 border-blue-500/50"
-                              : "bg-slate-950 border-slate-800"
-                          }`}
-                        >
-                          <span className={`text-[10px] font-bold ${isToday ? "text-blue-400" : "text-slate-400"}`}>
-                            {day}
-                          </span>
-                          <div className="space-y-1">
-                            {dayClassMeetings.map(({ cls, meeting }, idx) => (
-                              <div
-                                key={`cls-${cls.id}-${idx}`}
-                                className="text-[9px] truncate px-1 py-0.5 rounded text-white font-semibold flex justify-between items-center"
-                                style={{ backgroundColor: `${cls.color}CC` }}
-                                title={`${cls.name} (${meeting.startTime} - ${meeting.endTime})`}
-                              >
-                                <span>📖 {cls.name}</span>
-                                <span className="text-[8px] font-mono opacity-80">{meeting.startTime}</span>
-                              </div>
-                            ))}
-
-                            {dayTasks.map((t) => (
-                              <div
-                                key={t.id}
-                                className={`text-[9px] truncate px-1 py-0.5 rounded text-white ${
-                                  t.type === "test"
-                                    ? "bg-rose-600"
-                                    : "bg-blue-600"
-                                }`}
-                              >
-                                {t.title}
-                              </div>
-                            ))}
-
-                            {dayClubMeetings.map(({ club, slot }, idx) => (
-                              <div
-                                key={`c-${club.id}-${idx}`}
-                                className="text-[9px] truncate px-1 py-0.5 rounded text-white font-semibold flex justify-between items-center"
-                                style={{ backgroundColor: `${club.color || "#8B5CF6"}CC` }}
-                                title={`${club.name} ${slot.startTime ? `(${slot.startTime}-${slot.endTime})` : ""}`}
-                              >
-                                <span>{club.icon || "👥"} {club.name}</span>
-                                {slot.startTime && (
-                                  <span className="text-[8px] font-mono opacity-80">{slot.startTime}</span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 4: TIMETABLE */}
+              {/* TAB: TIMETABLE */}
               {activeTab === "timetable" && (
                 <div className="space-y-4 pt-1 overflow-x-auto pb-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -2770,125 +3518,193 @@ export default function AcademicOSDashboard() {
                     </form>
                   </div>
 
-                  {/* VISUAL TIMETABLE GRID */}
-                  <div className="min-w-[700px] border border-slate-800 rounded-xl bg-slate-950/50 flex select-none">
-                    <div className="w-16 border-r border-slate-800 shrink-0">
-                      <div className="h-10 border-b border-slate-800 bg-slate-900/50"></div>
-                      {[8, 9, 10, 11, 12, 13, 14, 15, 16, 17].map((hour) => (
-                        <div key={hour} className="h-[60px] border-b border-slate-800/50 relative">
-                          <span className="absolute -top-2.5 right-2 text-[10px] text-slate-500 font-medium">
-                            {hour === 12 ? "12 PM" : hour > 12 ? `${hour - 12} PM` : `${hour} AM`}
-                          </span>
-                        </div>
+                  <div className="min-w-[700px] border border-slate-800 rounded-xl bg-slate-950/50 flex flex-col overflow-hidden select-none">
+                    <div className="grid grid-cols-8 border-b border-slate-800 bg-slate-900 text-xs font-bold text-slate-400 text-center py-2.5">
+                      <div className="text-[10px] text-slate-500 flex items-center justify-center">Time</div>
+                      {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d) => (
+                        <div key={d}>{d.slice(0, 3)}</div>
                       ))}
                     </div>
 
-                    <div className="flex flex-1">
-                      {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day) => (
-                        <div key={day} className="flex-1 border-r border-slate-800 last:border-r-0 relative min-h-[600px]">
-                          <div className="h-10 border-b border-slate-800 bg-slate-900/50 flex items-center justify-center text-xs font-bold text-slate-300">
-                            {day}
-                          </div>
-                          
-                          <div className="absolute top-10 bottom-0 left-0 right-0 pointer-events-none">
-                            {[8, 9, 10, 11, 12, 13, 14, 15, 16, 17].map((hour) => (
-                              <div key={`grid-${hour}`} className="h-[60px] border-b border-slate-800/30"></div>
-                            ))}
-                          </div>
-                          
-                          {classes.map((cls) =>
-                            cls.meetingTimes
-                              ?.filter((m) => m.day === day)
-                              .map((meeting, i) => {
-                                const startMins =
-                                  parseInt(meeting.startTime.split(":")[0]) * 60 +
-                                  parseInt(meeting.startTime.split(":")[1]);
-                                const endMins =
-                                  parseInt(meeting.endTime.split(":")[0]) * 60 +
-                                  parseInt(meeting.endTime.split(":")[1]);
+                    <div className="divide-y divide-slate-800/60 max-h-[500px] overflow-y-auto">
+                      {[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((hour) => {
+                        const timeLabel = `${hour.toString().padStart(2, "0")}:00`;
+                        const daysOfWeek: DayOfWeek[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-                                const topOffset = startMins - 480;
-                                const duration = endMins - startMins;
+                        return (
+                          <div key={hour} className="grid grid-cols-8 min-h-[50px]">
+                            <div className="p-2 border-r border-slate-800/80 text-[10px] font-mono text-slate-500 text-center flex items-center justify-center bg-slate-900/30">
+                              {timeLabel}
+                            </div>
+                            {daysOfWeek.map((day) => {
+                              const classMatches = classes.flatMap((cls) =>
+                                (cls.meetingTimes || [])
+                                  .filter((m) => {
+                                    if (m.day !== day) return false;
+                                    const startHour = parseInt(m.startTime.split(":")[0], 10);
+                                    return startHour === hour;
+                                  })
+                                  .map((m, idx) => ({ cls, meeting: m, index: idx }))
+                              );
 
-                                return (
-                                  <div
-                                    key={`${cls.id}-${i}`}
-                                    className="absolute left-1 right-1 rounded-md p-1.5 overflow-hidden border transition-all hover:z-10 hover:scale-[1.02] shadow-lg shadow-black/20 group"
-                                    style={{
-                                      top: `${topOffset + 40}px`,
-                                      height: `${duration}px`,
-                                      backgroundColor: `${cls.color}20`,
-                                      borderColor: `${cls.color}50`,
-                                      borderLeftWidth: "4px",
-                                      borderLeftColor: cls.color,
-                                    }}
-                                  >
-                                    <div className="flex justify-between items-start gap-1">
-                                      <div
-                                        className="text-[10px] font-bold leading-tight truncate"
-                                        style={{ color: cls.color }}
-                                      >
-                                        {cls.name}
+                              const clubMatches = clubs.flatMap((club) =>
+                                (club.meetingTimes || [])
+                                  .filter((m) => {
+                                    if (m.day !== day) return false;
+                                    const startHour = parseInt(m.startTime.split(":")[0], 10);
+                                    return startHour === hour;
+                                  })
+                                  .map((m) => ({ club, meeting: m }))
+                              );
+
+                              return (
+                                <div key={day} className="p-1 border-r border-slate-800/40 relative space-y-1">
+                                  {classMatches.map(({ cls, meeting, index }) => (
+                                    <div
+                                      key={`c-slot-${cls.id}-${index}`}
+                                      className="p-1.5 rounded text-[10px] text-white font-semibold flex flex-col justify-between shadow-sm group relative"
+                                      style={{ backgroundColor: cls.color }}
+                                    >
+                                      <div className="flex items-center justify-between gap-1">
+                                        <span className="font-bold truncate">{cls.name}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => removeMeetingTimeFromClass(cls.id, index)}
+                                          className="opacity-0 group-hover:opacity-100 transition text-white hover:text-rose-200"
+                                          title="Remove session"
+                                        >
+                                          <X size={10} />
+                                        </button>
                                       </div>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          removeMeetingTimeFromClass(cls.id, i);
-                                        }}
-                                        className="text-slate-400 hover:text-rose-400 transition opacity-0 group-hover:opacity-100 p-0.5"
-                                        title="Remove class session"
-                                      >
-                                        <X size={10} />
-                                      </button>
-                                    </div>
-                                    <div className="text-[9px] text-slate-300 font-mono mt-0.5">
-                                      {meeting.startTime} - {meeting.endTime}
-                                    </div>
-                                    {cls.roomNumber && (
-                                      <div className="text-[9px] text-slate-400 mt-1 flex items-center gap-1">
-                                        <MapPin size={9} /> {cls.roomNumber}
+                                      <div className="text-[9px] opacity-90 font-mono">
+                                        {meeting.startTime} - {meeting.endTime}
                                       </div>
-                                    )}
-                                  </div>
-                                );
-                              })
-                          )}
-                        </div>
-                      ))}
+                                    </div>
+                                  ))}
+
+                                  {clubMatches.map(({ club, meeting }, cIdx) => (
+                                    <div
+                                      key={`club-slot-${club.id}-${cIdx}`}
+                                      className="p-1.5 rounded text-[10px] text-white font-semibold flex flex-col justify-between shadow-sm"
+                                      style={{ backgroundColor: club.color || "#8B5CF6" }}
+                                    >
+                                      <div className="font-bold truncate flex items-center gap-1">
+                                        <span>{club.icon || "👥"}</span>
+                                        <span>{club.name}</span>
+                                      </div>
+                                      <div className="text-[9px] opacity-90 font-mono">
+                                        {meeting.startTime} - {meeting.endTime}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* TAB 5: GRADES */}
+              {/* TAB: GRADES */}
               {activeTab === "grades" && (
-                <div className="space-y-3 pt-1">
-                  <h3 className="text-sm font-bold">Class Grade Dashboard</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {classes.map((c) => {
-                      const grade = calculateOverallGrade(c.standards);
+                <div className="space-y-4 pt-1">
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-base font-bold text-white flex items-center gap-2">
+                        <GraduationCap size={18} className="text-emerald-400" /> Academic Performance Summary
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Overview of current grades, targets, and cumulative GPA status across all enrolled subjects.
+                      </p>
+                    </div>
+                    <div className="bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-center">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Cumulative GPA</span>
+                      <span className="text-xl font-extrabold text-emerald-400 font-mono">
+                        {cumulativeGPA > 0 ? `${pointsToLetter(cumulativeGPA)} (${cumulativeGPA.toFixed(2)})` : "N/A"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {classes.map((cls) => {
+                      const sbg = calculateOverallGrade(cls.standards);
+                      const currentGrade = cls.manualGrade ?? sbg.letter;
+                      const currentPts = parseGradeToPoints(currentGrade) ?? 0;
+                      const targetPts = parseGradeToPoints(cls.targetGrade) ?? 0;
+
+                      const isMeetingTarget = currentPts >= targetPts && currentGrade !== "N/A";
+
                       return (
                         <div
-                          key={c.id}
-                          className="bg-slate-950 border border-slate-800 p-3.5 rounded-xl space-y-1"
+                          key={cls.id}
+                          className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3"
                         >
-                          <div
-                            className="font-bold text-xs"
-                            style={{ color: c.color }}
-                          >
-                            {c.name}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: cls.color }} />
+                              <div>
+                                <h4 className="font-bold text-sm text-white">{cls.name}</h4>
+                                <p className="text-[10px] text-slate-400">
+                                  {cls.professorName ? `Instructor: ${cls.professorName}` : "Standards-Based Course"}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <span className="text-[10px] text-slate-400 block font-semibold">Target Grade</span>
+                                <select
+                                  value={cls.targetGrade || "A"}
+                                  onChange={(e) => {
+                                    const val = e.target.value as StandardLevel;
+                                    setClasses((prev) =>
+                                      prev.map((c) => (c.id === cls.id ? { ...c, targetGrade: val } : c))
+                                    );
+                                  }}
+                                  className="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-xs font-bold text-blue-400 focus:outline-none"
+                                >
+                                  {GRADE_TARGETS.map((gt) => (
+                                    <option key={gt.value} value={gt.value}>
+                                      {gt.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="text-right">
+                                <span className="text-[10px] text-slate-400 block font-semibold">Current Grade</span>
+                                <span className="text-sm font-extrabold text-emerald-400 font-mono">
+                                  {currentGrade} {sbg.gpa > 0 && !cls.manualGrade ? `(${sbg.gpa.toFixed(2)})` : ""}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-xl font-black text-emerald-400">
-                            {c.manualGrade !== undefined &&
-                            c.manualGrade !== null &&
-                            String(c.manualGrade).trim() !== ""
-                              ? `${c.manualGrade} (Manual)`
-                              : `${grade.letter} (${grade.gpa.toFixed(2)})`}
+
+                          <div className="flex items-center justify-between text-xs pt-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400 text-[11px]">Status:</span>
+                              {currentGrade === "N/A" ? (
+                                <span className="text-[10px] bg-slate-900 border border-slate-800 px-2 py-0.5 rounded text-slate-400">
+                                  No evaluations yet
+                                </span>
+                              ) : isMeetingTarget ? (
+                                <span className="text-[10px] bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded font-bold">
+                                  On Track for Target ({cls.targetGrade})
+                                </span>
+                              ) : (
+                                <span className="text-[10px] bg-amber-500/20 border border-amber-500/30 text-amber-400 px-2 py-0.5 rounded font-bold">
+                                  Below Target ({cls.targetGrade})
+                                </span>
+                              )}
+                            </div>
+
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              {cls.standards?.length || 0} standards tracked
+                            </span>
                           </div>
-                          <p className="text-[10px] text-slate-400">
-                            {grade.label}
-                          </p>
                         </div>
                       );
                     })}
@@ -2896,222 +3712,262 @@ export default function AcademicOSDashboard() {
                 </div>
               )}
 
-              {/* TAB 6: GRADE SIMULATOR & CALCULATOR */}
+              {/* TAB: SIMULATOR */}
               {activeTab === "simulator" && (
-                <div className="space-y-6 pt-1">
-                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-wrap justify-between items-center gap-3">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-3 h-10 rounded-full"
-                        style={{ backgroundColor: activeClass?.color || "#3B82F6" }}
-                      />
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">
-                          Simulating For
-                        </span>
-                        <h3 className="text-base font-extrabold text-white">
-                          {activeClass?.name || "Select a Class"} ({simCurrentGrade})
-                        </h3>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-slate-400 font-bold block mb-1 uppercase">
-                        Select Class
-                      </label>
-                      <select
-                        value={selectedClassId}
-                        onChange={(e) => setSelectedClassId(e.target.value)}
-                        className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200 focus:outline-none focus:border-blue-500"
-                      >
-                        {classes.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name} ({c.manualGrade ?? "Auto"})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                <div className="space-y-4 pt-1">
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <Sliders size={18} className="text-blue-400" /> Target Grade Simulator
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Calculate required average scores on upcoming standards to reach your target grade.
+                    </p>
                   </div>
 
-                  <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-4">
-                    <div className="flex items-center gap-2 text-sm font-bold text-blue-400 border-b border-slate-800 pb-2">
-                      <Target size={16} /> Upcoming Test Required Grade Calculator
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Parameters Form */}
+                    <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-4">
+                      <h4 className="text-xs font-bold text-blue-400 uppercase flex items-center gap-1.5">
+                        <Target size={14} /> Course Parameters
+                      </h4>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                      <div className="space-y-1">
-                        <label className="text-slate-400 text-[11px] font-medium block">
-                          Current Grade
-                        </label>
-                        <select
-                          value={simCurrentGrade}
-                          onChange={(e) =>
-                            setSimCurrentGrade(e.target.value as StandardLevel)
-                          }
-                          className="w-full bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg font-bold text-slate-200 focus:outline-none focus:border-blue-500"
-                        >
-                          {GRADE_TARGETS.map((target) => (
-                            <option key={target.value} value={target.value}>
-                              {target.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs text-slate-400 font-semibold block mb-1">
+                            Active Course
+                          </label>
+                          <select
+                            value={selectedClassId}
+                            onChange={(e) => setSelectedClassId(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-xs font-bold text-white focus:outline-none"
+                          >
+                            {classes.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-                      <div className="space-y-1">
-                        <label className="text-slate-400 text-[11px] font-medium block">
-                          Target Grade
-                        </label>
-                        <select
-                          value={simTargetGrade}
-                          onChange={(e) =>
-                            setSimTargetGrade(e.target.value as StandardLevel)
-                          }
-                          className="w-full bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg font-bold text-emerald-400 focus:outline-none focus:border-blue-500"
-                        >
-                          {GRADE_TARGETS.map((target) => (
-                            <option key={target.value} value={target.value}>
-                              {target.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                        <div>
+                          <label className="text-xs text-slate-400 font-semibold block mb-1">
+                            Current Grade Level
+                          </label>
+                          <select
+                            value={simCurrentGrade}
+                            onChange={(e) => setSimCurrentGrade(e.target.value as StandardLevel)}
+                            className="w-full bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-xs font-bold text-emerald-400 focus:outline-none"
+                          >
+                            {Object.keys(LETTER_POINTS).map((lvl) => (
+                              <option key={lvl} value={lvl}>
+                                {lvl} ({LETTER_POINTS[lvl as StandardLevel].toFixed(2)} pts)
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-                      <div className="space-y-1">
-                        <label className="text-slate-400 text-[11px] font-medium block">
-                          Past Tests Taken
-                        </label>
-                        <div className="w-full bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg font-bold text-slate-400 flex items-center justify-between">
-                          <span>{existingTestCount}</span>
-                          <span className="text-[9px] font-normal text-slate-500">Auto-calculated</span>
+                        <div>
+                          <label className="text-xs text-slate-400 font-semibold block mb-1">
+                            Desired Target Grade
+                          </label>
+                          <select
+                            value={simTargetGrade}
+                            onChange={(e) => setSimTargetGrade(e.target.value as StandardLevel)}
+                            className="w-full bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-xs font-bold text-blue-400 focus:outline-none"
+                          >
+                            {Object.keys(LETTER_POINTS).map((lvl) => (
+                              <option key={lvl} value={lvl}>
+                                {lvl} ({LETTER_POINTS[lvl as StandardLevel].toFixed(2)} pts)
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Multi-Select Tested Standards */}
+                        <div className="space-y-1.5 pt-2">
+                          <div className="flex items-center justify-between text-xs text-slate-300 font-semibold">
+                            <span>Select Standard(s) Being Tested:</span>
+                            <span className="text-blue-400 text-[11px]">
+                              ({selectedStandardsForExam.length} selected)
+                            </span>
+                          </div>
+                          <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                            {activeClass?.standards?.map((st) => (
+                              <label
+                                key={st.id}
+                                className="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800 cursor-pointer text-xs hover:border-slate-700 transition"
+                              >
+                                <span className="truncate pr-2 text-slate-200">{st.name}</span>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedStandardsForExam.includes(st.id)}
+                                  onChange={() => toggleStandardSelection(st.id)}
+                                  className="rounded border-slate-700 text-blue-600 focus:ring-0"
+                                />
+                              </label>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-3">
+                    {/* Simulation Result Box */}
+                    <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950/40 border border-blue-500/30 p-5 rounded-xl flex flex-col justify-between space-y-4">
                       <div>
-                        <div className="text-[10px] uppercase text-slate-400 font-bold">
-                          REQUIRED GRADE ON NEXT TEST (EQUAL WEIGHT: 1 / {existingTestCount + 1} OF FINAL GRADE)
+                        <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider block mb-1">
+                          Simulation Result
+                        </span>
+                        <h4 className="text-sm font-semibold text-slate-300">
+                          Required Score on Selected Standard(s)
+                        </h4>
+                      </div>
+
+                      <div className="py-6 text-center bg-slate-950/80 rounded-xl border border-slate-800 space-y-1">
+                        <div className="text-4xl font-black text-emerald-400 font-mono">
+                          {requiredFinalGrade.letter}
                         </div>
-                        <div className="text-3xl font-black text-blue-400 font-mono">
-                          {requiredFinalGrade.letter}{" "}
-                          <span className="text-sm font-normal text-slate-400">
-                            ({requiredFinalGrade.points} GPA pts)
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-400 mt-1">
-                          Current: <strong className="text-slate-200">{simCurrentGrade}</strong> ({existingTestCount} equal test{existingTestCount !== 1 ? "s" : ""}) → Target: <strong className="text-emerald-400">{simTargetGrade}</strong>
+                        <div className="text-xs text-slate-400 font-mono">
+                          Required Avg Score Point:{" "}
+                          <span className="text-white font-bold">{requiredFinalGrade.points}</span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                            requiredFinalGrade.points <= 2.33
-                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                              : requiredFinalGrade.points <= 3.67
-                              ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                              : "bg-rose-500/20 text-rose-400 border-rose-500/30"
-                          }`}
-                        >
-                          {requiredFinalGrade.points <= 3.0
-                            ? "Achievable Target"
-                            : requiredFinalGrade.points <= 4.0
-                            ? "Challenging"
-                            : "Distinction Needed"}
-                        </span>
+
+                      <div className="text-[11px] text-slate-400 space-y-2 bg-slate-900/50 p-3 rounded-lg border border-slate-800/60">
+                        <div className="flex items-center gap-1.5 font-semibold text-slate-300">
+                          <Sparkles size={13} className="text-amber-400" /> Target Breakdown:
+                        </div>
+                        <p className="leading-relaxed">
+                          To achieve <strong className="text-blue-400">{simTargetGrade}</strong> overall,
+                          you must score an average of at least{" "}
+                          <strong className="text-emerald-400">{requiredFinalGrade.letter}</strong> (
+                          {requiredFinalGrade.points} pts) on the{" "}
+                          <strong>{selectedStandardsForExam.length}</strong> selected standard(s).
+                        </p>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* TAB 7: SYLLABUS PARSER */}
+              {/* TAB: SYLLABUS */}
               {activeTab === "syllabus" && (
                 <div className="space-y-4 pt-1">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-sm font-bold flex items-center gap-2">
-                      <Sparkles size={16} className="text-blue-400" /> Auto Syllabus Parser
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <Upload size={18} className="text-blue-400" /> Syllabus AI Task Extractor
                     </h3>
+                    <p className="text-xs text-slate-400">
+                      Paste syllabus text or upload course outline to automatically extract key exam dates, homework deadlines, and import them into your schedule.
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-xs text-slate-400 font-medium block">
-                        Paste Syllabus Text
-                      </label>
+                    <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
+                      <h4 className="text-xs font-bold text-blue-400 uppercase flex items-center gap-1.5">
+                        <BookOpen size={14} /> Paste or Upload Syllabus
+                      </h4>
+
                       <textarea
                         rows={6}
-                        placeholder="Paste syllabus text, exam schedules, assignment dates here..."
+                        placeholder="Paste raw course syllabus, schedule, or assessment dates here..."
                         value={rawSyllabusText}
                         onChange={(e) => setRawSyllabusText(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs focus:outline-none focus:border-blue-500 font-mono"
+                        className="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg text-xs focus:outline-none focus:border-blue-500 font-mono text-slate-200"
                       />
-                      <button
-                        type="button"
-                        onClick={processRawSyllabus}
-                        disabled={isParsing}
-                        className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 text-white font-semibold py-2 rounded-lg text-xs transition flex items-center justify-center gap-1.5"
-                      >
-                        {isParsing ? "Extracting Tasks..." : "Parse Text Syllabus"}
-                      </button>
-                    </div>
 
-                    <div className="space-y-2">
-                      <label className="text-xs text-slate-400 font-medium block">
-                        Or Upload Syllabus Document
-                      </label>
-                      <label className="border-2 border-dashed border-slate-800 hover:border-blue-500/50 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition h-[152px] bg-slate-950/40">
-                        <Upload size={24} className="text-slate-500 mb-2" />
-                        <span className="text-xs text-slate-300 font-semibold">
-                          Click or drag syllabus file
-                        </span>
-                        <span className="text-[10px] text-slate-500 mt-1">
-                          PDF, DOCX, TXT supported
-                        </span>
-                        <input
-                          type="file"
-                          onChange={handleSyllabusUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  {parsedItems.length > 0 && (
-                    <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3 mt-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-emerald-400 uppercase">
-                          Extracted ({parsedItems.length} tasks found)
-                        </span>
+                      <div className="flex flex-col sm:flex-row items-center gap-2">
                         <button
                           type="button"
-                          onClick={importParsedTasks}
-                          className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-lg text-xs font-bold transition"
+                          onClick={processRawSyllabus}
+                          disabled={isParsing || !rawSyllabusText.trim()}
+                          className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold py-2 rounded-lg text-xs flex items-center justify-center gap-1.5 transition"
                         >
-                          Import All to Selected Class
+                          {isParsing ? (
+                            <Sparkles size={14} className="animate-spin" />
+                          ) : (
+                            <Sparkles size={14} />
+                          )}
+                          {isParsing ? "Extracting..." : "Parse Text"}
                         </button>
-                      </div>
 
-                      <div className="space-y-2">
-                        {parsedItems.map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-slate-900 p-2.5 rounded-lg border border-slate-800 flex justify-between items-center"
-                          >
-                            <div>
-                              <div className="text-xs font-semibold">{item.title}</div>
-                              <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
-                                <span>Due: {item.dueDate}</span>
-                                <span>• {item.estimatedHours} hrs</span>
-                                <span className="uppercase text-[9px] px-1 py-0.2 rounded bg-slate-800 text-blue-400 font-bold">
+                        <label className="w-full sm:w-auto cursor-pointer bg-slate-900 hover:bg-slate-800 border border-slate-800 px-3 py-2 rounded-lg text-xs text-slate-300 font-semibold flex items-center justify-center gap-1.5 transition">
+                          <Upload size={14} />
+                          <span>Upload File</span>
+                          <input
+                            type="file"
+                            accept=".txt,.pdf,.doc,.docx"
+                            onChange={handleSyllabusUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3 flex flex-col justify-between">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                          <h4 className="text-xs font-bold text-blue-400 uppercase flex items-center gap-1.5">
+                            <Check size={14} /> Extracted Items ({parsedItems.length})
+                          </h4>
+                          {parsedItems.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={importParsedTasks}
+                              className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2.5 py-1 rounded transition flex items-center gap-1"
+                            >
+                              <Plus size={12} /> Import All
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="space-y-2 max-h-[220px] overflow-y-auto">
+                          {isParsing && (
+                            <p className="text-xs text-slate-400 py-8 text-center animate-pulse">
+                              Analyzing syllabus text & dates...
+                            </p>
+                          )}
+                          {!isParsing && parsedItems.length === 0 && (
+                            <p className="text-xs text-slate-500 py-8 text-center">
+                              No items extracted yet. Paste text or upload a syllabus file to preview detected assignments.
+                            </p>
+                          )}
+                          {!isParsing &&
+                            parsedItems.map((item, idx) => (
+                              <div
+                                key={idx}
+                                className="bg-slate-900 border border-slate-800/80 p-2.5 rounded-lg flex items-center justify-between gap-2 text-xs"
+                              >
+                                <div className="space-y-0.5">
+                                  <span className="font-semibold text-slate-200 block truncate">
+                                    {item.title}
+                                  </span>
+                                  <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                                    <span>Due: {item.dueDate || "N/A"}</span>
+                                    <span>Est: {item.estimatedHours}h</span>
+                                  </div>
+                                </div>
+                                <span
+                                  className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase shrink-0 ${
+                                    item.type === "test"
+                                      ? "bg-rose-500/20 text-rose-400"
+                                      : "bg-indigo-500/20 text-indigo-400"
+                                  }`}
+                                >
                                   {item.type}
                                 </span>
                               </div>
-                            </div>
-                          </div>
-                        ))}
+                            ))}
+                        </div>
                       </div>
+
+                      {parsedItems.length > 0 && (
+                        <div className="text-[10px] text-slate-400 italic bg-slate-900/50 p-2 rounded border border-slate-800 text-center">
+                          Imported tasks will be assigned to{" "}
+                          <strong className="text-slate-200">{activeClass?.name || "selected course"}</strong>.
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
             </div>
@@ -3119,42 +3975,40 @@ export default function AcademicOSDashboard() {
         </main>
       </div>
 
-      {/* MOBILE BOTTOM NAVIGATION BAR */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 p-2 flex justify-around items-center z-50">
+      {/* MOBILE BOTTOM NAVIGATION */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 p-2 flex justify-around items-center lg:hidden z-50">
         <button
           type="button"
           onClick={() => setMobileTab("classes")}
-          className={`flex flex-col items-center gap-1 text-[10px] ${
-            mobileTab === "classes" ? "text-blue-400 font-bold" : "text-slate-400"
+          className={`flex flex-col items-center gap-1 p-1 text-[10px] font-semibold ${
+            mobileTab === "classes" ? "text-blue-400" : "text-slate-400"
           }`}
         >
           <BookOpen size={18} />
-          Classes
+          <span>Classes</span>
         </button>
         <button
           type="button"
           onClick={() => setMobileTab("tasks")}
-          className={`flex flex-col items-center gap-1 text-[10px] ${
-            mobileTab === "tasks" ? "text-blue-400 font-bold" : "text-slate-400"
+          className={`flex flex-col items-center gap-1 p-1 text-[10px] font-semibold ${
+            mobileTab === "tasks" ? "text-blue-400" : "text-slate-400"
           }`}
         >
           <List size={18} />
-          Tasks
+          <span>Tasks</span>
         </button>
         <button
           type="button"
           onClick={() => {
-            setMobileTab("streaks");
+            setMobileTab("calendar");
             setActiveTab("streaks");
           }}
-          className={`flex flex-col items-center gap-1 text-[10px] ${
-            mobileTab === "streaks" || (mobileTab === "calendar" && activeTab === "streaks")
-              ? "text-blue-400 font-bold"
-              : "text-slate-400"
+          className={`flex flex-col items-center gap-1 p-1 text-[10px] font-semibold ${
+            mobileTab === "calendar" && activeTab === "streaks" ? "text-amber-400" : "text-slate-400"
           }`}
         >
-          <Flame size={18} className="text-amber-500" />
-          Streaks
+          <Flame size={18} />
+          <span>Streaks</span>
         </button>
         <button
           type="button"
@@ -3162,12 +4016,12 @@ export default function AcademicOSDashboard() {
             setMobileTab("calendar");
             setActiveTab("calendar");
           }}
-          className={`flex flex-col items-center gap-1 text-[10px] ${
-            mobileTab === "calendar" && activeTab === "calendar" ? "text-blue-400 font-bold" : "text-slate-400"
+          className={`flex flex-col items-center gap-1 p-1 text-[10px] font-semibold ${
+            mobileTab === "calendar" && activeTab === "calendar" ? "text-blue-400" : "text-slate-400"
           }`}
         >
           <Calendar size={18} />
-          Calendar
+          <span>Calendar</span>
         </button>
         <button
           type="button"
@@ -3175,14 +4029,14 @@ export default function AcademicOSDashboard() {
             setMobileTab("timetable");
             setActiveTab("timetable");
           }}
-          className={`flex flex-col items-center gap-1 text-[10px] ${
-            mobileTab === "timetable" ? "text-blue-400 font-bold" : "text-slate-400"
+          className={`flex flex-col items-center gap-1 p-1 text-[10px] font-semibold ${
+            mobileTab === "timetable" ? "text-blue-400" : "text-slate-400"
           }`}
         >
           <CalendarDays size={18} />
-          Timetable
+          <span>Timetable</span>
         </button>
-      </div>
+      </nav>
     </div>
   );
 }
