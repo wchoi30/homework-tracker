@@ -238,7 +238,7 @@ export const COLOR_PALETTE = [
   "#06B6D4", "#6366F1", "#14B8A6", "#EAB308", "#F43F5E"
 ];
 
-// --- DEFAULT TEMPLATES FOR NEW ACCOUNTS ---
+// --- LEGACY DEMO DATA (never used for new accounts) ---
 export const DEFAULT_CLASSES: ClassItem[] = [
   {
     id: "1",
@@ -392,6 +392,22 @@ export const DEFAULT_STREAKS: StreakHabit[] = [
     },
   },
 ];
+
+// Every new account starts with a genuinely blank workspace. The legacy ID lists
+// also remove the sample records that older versions wrote to Supabase/localStorage.
+const EMPTY_CLASSES: ClassItem[] = [];
+const EMPTY_CLUBS: ClubItem[] = [];
+const EMPTY_TASKS: Task[] = [];
+const EMPTY_STREAKS: StreakHabit[] = [];
+
+const LEGACY_DEMO_CLASS_IDS = new Set(["1", "2", "3"]);
+const LEGACY_DEMO_CLUB_IDS = new Set(["c1", "c2"]);
+const LEGACY_DEMO_TASK_IDS = new Set(["101", "102", "103"]);
+const LEGACY_DEMO_STREAK_IDS = new Set(["str-1", "str-2"]);
+
+function withoutLegacyDemoItems<T extends { id: string }>(items: T[], legacyIds: Set<string>): T[] {
+  return items.filter((item) => !legacyIds.has(item.id));
+}
 
 // --- SCHOOL ACADEMIC CALENDAR BREAK DEFINITIONS (2026 - 2027) ---
 export type CalendarDayType = "school" | "break" | "staff_only" | "early_dismissal" | "weekend";
@@ -642,6 +658,102 @@ const safeStorageGet = <T,>(key: string, fallback: T): T => {
   }
 };
 
+type SyncedGoogleCalendarEvent = {
+  id: string;
+  title: string;
+  description: string;
+  color: string;
+  icon: string;
+  startDate: string;
+  startTime?: string;
+  endDate?: string;
+  endTime?: string;
+  allDay: boolean;
+};
+
+type GoogleCalendarApiEvent = {
+  id?: string;
+  status?: string;
+  summary?: string;
+  description?: string;
+  start?: { date?: string; dateTime?: string };
+  end?: { date?: string; dateTime?: string };
+};
+
+function isSyncedGoogleCalendarEvent(value: unknown): value is SyncedGoogleCalendarEvent {
+  if (!value || typeof value !== "object") return false;
+  const event = value as Partial<SyncedGoogleCalendarEvent>;
+  return (
+    typeof event.id === "string" &&
+    typeof event.title === "string" &&
+    typeof event.description === "string" &&
+    typeof event.startDate === "string" &&
+    typeof event.allDay === "boolean"
+  );
+}
+
+function normalizeGoogleCalendarEvents(value: unknown): SyncedGoogleCalendarEvent[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item) => {
+    if (isSyncedGoogleCalendarEvent(item)) {
+      return [{
+        ...item,
+        color: item.color || "#7C3AED",
+        icon: item.icon || "G",
+      }];
+    }
+    if (!item || typeof item !== "object") return [];
+    const event = item as GoogleCalendarApiEvent;
+    if (!event.id || event.status === "cancelled") return [];
+
+    const startRaw = event.start?.dateTime || event.start?.date;
+    if (!startRaw) return [];
+    const endRaw = event.end?.dateTime || event.end?.date;
+    const allDay = Boolean(event.start?.date && !event.start?.dateTime);
+
+    return [{
+      id: event.id,
+      title: event.summary?.trim() || "Untitled Google Calendar event",
+      description: event.description || "",
+      color: "#7C3AED",
+      icon: "G",
+      startDate: startRaw.slice(0, 10),
+      startTime: event.start?.dateTime?.slice(11, 16),
+      endDate: endRaw?.slice(0, 10),
+      endTime: event.end?.dateTime?.slice(11, 16),
+      allDay,
+    }];
+  });
+}
+
+function normalizeGoogleEventIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((id): id is string => typeof id === "string"))];
+}
+
+function addDaysToDateKey(dateKey: string, days: number): string {
+  const date = new Date(`${dateKey}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return formatDateKey(date);
+}
+
+function googleEventOccursOnDate(event: SyncedGoogleCalendarEvent, dateKey: string): boolean {
+  if (dateKey < event.startDate) return false;
+  if (!event.endDate) return dateKey === event.startDate;
+  const lastDate = event.allDay ? addDaysToDateKey(event.endDate, -1) : event.endDate;
+  return dateKey <= lastDate;
+}
+
+function googleEventError(message: string): Error {
+  try {
+    const body = JSON.parse(message) as { error?: { message?: string } };
+    return new Error(body.error?.message || "Google Calendar could not be read.");
+  } catch {
+    return new Error("Google Calendar could not be read.");
+  }
+}
+
 // --- MAIN COMPONENT ---
 export default function AcademicOSDashboard() {
   const [mobileTab, setMobileTab] = useState<
@@ -665,13 +777,19 @@ export default function AcademicOSDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [streaks, setStreaks] = useState<StreakHabit[]>([]);
 
-  const [selectedClassId, setSelectedClassId] = useState<string>("1");
-  const [selectedClubId, setSelectedClubId] = useState<string>("c1");
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [selectedClubId, setSelectedClubId] = useState<string>("");
 
   const [isLoaded, setIsLoaded] = useState(false);
   const [syncStatus, setSyncStatus] = useState<"synced" | "syncing" | "error">("synced");
   const [userId, setUserId] = useState<string | null>(null);
   const [session, setSession] = useState<any>(null);
+  const [googleCalendarEvents, setGoogleCalendarEvents] = useState<SyncedGoogleCalendarEvent[]>([]);
+  const [hiddenGoogleEventIds, setHiddenGoogleEventIds] = useState<string[]>([]);
+  const [calendarSyncState, setCalendarSyncState] = useState<"idle" | "syncing" | "success" | "error">("idle");
+  const [calendarSyncMessage, setCalendarSyncMessage] = useState<string | null>(null);
+  const [zoomedCalendarDate, setZoomedCalendarDate] = useState<string | null>(null);
+  const [editingGoogleEventId, setEditingGoogleEventId] = useState<string | null>(null);
 
   // Authentication UI state
   const [email, setEmail] = useState("");
@@ -713,7 +831,7 @@ export default function AcademicOSDashboard() {
   const [addClubSlotEnd, setAddClubSlotEnd] = useState("17:00");
 
   const [taskTitle, setTaskTitle] = useState("");
-  const [taskClassId, setTaskClassId] = useState("1");
+  const [taskClassId, setTaskClassId] = useState("");
   const [taskType, setTaskType] = useState<TaskCategory>("homework");
   const [taskDueDate, setTaskDueDate] = useState("");
   const [taskHours, setTaskHours] = useState("1");
@@ -722,7 +840,7 @@ export default function AcademicOSDashboard() {
   const [newStreakColor, setNewStreakColor] = useState("#3B82F6");
   const [streakWeekBaseDate, setStreakWeekBaseDate] = useState<Date>(new Date());
 
-  const [timetableClassId, setTimetableClassId] = useState<string>("1");
+  const [timetableClassId, setTimetableClassId] = useState<string>("");
   const [timetableDay, setTimetableDay] = useState<DayOfWeek>("Monday");
   const [timetableStartTime, setTimetableStartTime] = useState<string>("09:00");
   const [timetableEndTime, setTimetableEndTime] = useState<string>("10:30");
@@ -753,21 +871,80 @@ export default function AcademicOSDashboard() {
         .single();
 
       if (!error && data && data.data) {
-        setClasses(Array.isArray(data.data.classes) ? data.data.classes : DEFAULT_CLASSES);
-        setClubs(Array.isArray(data.data.clubs) ? normalizeClubsData(data.data.clubs) : DEFAULT_CLUBS);
-        setTasks(Array.isArray(data.data.tasks) ? data.data.tasks : DEFAULT_TASKS);
-        setStreaks(Array.isArray(data.data.streaks) ? data.data.streaks : DEFAULT_STREAKS);
+        setClasses(
+          withoutLegacyDemoItems(
+            Array.isArray(data.data.classes) ? data.data.classes : EMPTY_CLASSES,
+            LEGACY_DEMO_CLASS_IDS
+          )
+        );
+        setClubs(
+          normalizeClubsData(
+            withoutLegacyDemoItems(
+              Array.isArray(data.data.clubs) ? data.data.clubs : EMPTY_CLUBS,
+              LEGACY_DEMO_CLUB_IDS
+            )
+          )
+        );
+        setTasks(
+          withoutLegacyDemoItems(
+            Array.isArray(data.data.tasks) ? data.data.tasks : EMPTY_TASKS,
+            LEGACY_DEMO_TASK_IDS
+          )
+        );
+        setStreaks(
+          withoutLegacyDemoItems(
+            Array.isArray(data.data.streaks) ? data.data.streaks : EMPTY_STREAKS,
+            LEGACY_DEMO_STREAK_IDS
+          )
+        );
+        setGoogleCalendarEvents(normalizeGoogleCalendarEvents(data.data.googleCalendarEvents));
+        const savedHiddenGoogleEventIds = normalizeGoogleEventIds(
+          data.data.hiddenGoogleEventIds
+        );
+        setGoogleCalendarEvents(
+          normalizeGoogleCalendarEvents(data.data.googleCalendarEvents).filter(
+            (event) => !savedHiddenGoogleEventIds.includes(event.id)
+          )
+        );
+        setHiddenGoogleEventIds(savedHiddenGoogleEventIds);
         setSyncStatus("synced");
       } else {
-        const localClasses = safeStorageGet(`tracker_classes_v8_${currentUserId}`, DEFAULT_CLASSES);
-        const localClubs = normalizeClubsData(safeStorageGet(`tracker_clubs_v8_${currentUserId}`, DEFAULT_CLUBS));
-        const localTasks = safeStorageGet(`tracker_tasks_v8_${currentUserId}`, DEFAULT_TASKS);
-        const localStreaks = safeStorageGet(`tracker_streaks_v8_${currentUserId}`, DEFAULT_STREAKS);
+        const localClasses = withoutLegacyDemoItems(
+          safeStorageGet(`tracker_classes_v8_${currentUserId}`, EMPTY_CLASSES),
+          LEGACY_DEMO_CLASS_IDS
+        );
+        const localClubs = normalizeClubsData(
+          withoutLegacyDemoItems(
+            safeStorageGet(`tracker_clubs_v8_${currentUserId}`, EMPTY_CLUBS),
+            LEGACY_DEMO_CLUB_IDS
+          )
+        );
+        const localTasks = withoutLegacyDemoItems(
+          safeStorageGet(`tracker_tasks_v8_${currentUserId}`, EMPTY_TASKS),
+          LEGACY_DEMO_TASK_IDS
+        );
+        const localStreaks = withoutLegacyDemoItems(
+          safeStorageGet(`tracker_streaks_v8_${currentUserId}`, EMPTY_STREAKS),
+          LEGACY_DEMO_STREAK_IDS
+        );
+        const localGoogleCalendarEvents = normalizeGoogleCalendarEvents(
+          safeStorageGet(`tracker_google_calendar_events_v1_${currentUserId}`, [])
+        );
+        const localHiddenGoogleEventIds = normalizeGoogleEventIds(
+          safeStorageGet(`tracker_hidden_google_event_ids_v1_${currentUserId}`, [])
+        );
 
         setClasses(localClasses);
         setClubs(localClubs);
         setTasks(localTasks);
         setStreaks(localStreaks);
+        setGoogleCalendarEvents(localGoogleCalendarEvents);
+        setGoogleCalendarEvents(
+          localGoogleCalendarEvents.filter(
+            (event) => !localHiddenGoogleEventIds.includes(event.id)
+          )
+        );
+        setHiddenGoogleEventIds(localHiddenGoogleEventIds);
         setSyncStatus("synced");
       }
     } catch (err) {
@@ -819,6 +996,128 @@ export default function AcademicOSDashboard() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setAuthError(null);
+    setAuthMessage(null);
+    setAuthLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          // Keep users on the page they started from after Google completes OAuth.
+          redirectTo: `${window.location.origin}${window.location.pathname}`,
+          // Read-only access is used to show Google Calendar events in this app.
+          scopes: "https://www.googleapis.com/auth/calendar.readonly",
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      });
+
+      if (error) throw error;
+      setAuthMessage("Redirecting to Google to sign you in…");
+    } catch (err: unknown) {
+      setAuthError(err instanceof Error ? err.message : "Google sign-in could not be started.");
+      setAuthLoading(false);
+    }
+  };
+
+  const handleGoogleCalendarSync = async () => {
+    if (calendarSyncState === "syncing") return;
+
+    const accessToken = session?.provider_token as string | undefined;
+    if (!accessToken) {
+      setCalendarSyncState("error");
+      setCalendarSyncMessage("Sign out, then use Sign in with Google to grant Calendar permission before syncing.");
+      return;
+    }
+
+    setCalendarSyncState("syncing");
+    setCalendarSyncMessage("Importing events from your primary Google Calendar…");
+
+    try {
+      const timeMin = new Date();
+      timeMin.setMonth(timeMin.getMonth() - 12);
+      const timeMax = new Date();
+      timeMax.setMonth(timeMax.getMonth() + 12);
+      const allGoogleEvents: GoogleCalendarApiEvent[] = [];
+      let pageToken: string | undefined;
+
+      do {
+        const url = new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
+        url.searchParams.set("singleEvents", "true");
+        url.searchParams.set("orderBy", "startTime");
+        url.searchParams.set("showDeleted", "false");
+        url.searchParams.set("maxResults", "2500");
+        url.searchParams.set("timeMin", timeMin.toISOString());
+        url.searchParams.set("timeMax", timeMax.toISOString());
+        if (pageToken) url.searchParams.set("pageToken", pageToken);
+
+        const response = await fetch(url, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!response.ok) throw googleEventError(await response.text());
+
+        const payload = (await response.json()) as {
+          items?: GoogleCalendarApiEvent[];
+          nextPageToken?: string;
+        };
+        allGoogleEvents.push(...(payload.items || []));
+        pageToken = payload.nextPageToken;
+      } while (pageToken);
+
+      const importedEvents = normalizeGoogleCalendarEvents(allGoogleEvents).filter(
+        (event) => !hiddenGoogleEventIds.includes(event.id)
+      );
+      setGoogleCalendarEvents((currentEvents) => {
+        const savedById = new Map(currentEvents.map((event) => [event.id, event]));
+        return importedEvents.map((event) => {
+          const saved = savedById.get(event.id);
+          return saved
+            ? { ...event, title: saved.title, color: saved.color, icon: saved.icon }
+            : event;
+        });
+      });
+      setCalendarSyncState("success");
+      setCalendarSyncMessage(`${importedEvents.length} Google Calendar event${importedEvents.length === 1 ? "" : "s"} imported into this app.`);
+    } catch (err: unknown) {
+      setCalendarSyncState("error");
+      setCalendarSyncMessage(
+        err instanceof Error
+          ? err.message
+          : "Google Calendar import failed. Please try again."
+      );
+    }
+  };
+
+  const openCalendarDay = (date: string, googleEventId?: string) => {
+    setZoomedCalendarDate(date);
+    setEditingGoogleEventId(googleEventId || null);
+  };
+
+  const updateGoogleCalendarEvent = (
+    eventId: string,
+    updates: Partial<Pick<SyncedGoogleCalendarEvent, "title" | "color" | "icon">>
+  ) => {
+    setGoogleCalendarEvents((currentEvents) =>
+      currentEvents.map((event) =>
+        event.id === eventId ? { ...event, ...updates } : event
+      )
+    );
+  };
+
+  const deleteGoogleCalendarEvent = (eventId: string) => {
+    setGoogleCalendarEvents((currentEvents) =>
+      currentEvents.filter((event) => event.id !== eventId)
+    );
+    setHiddenGoogleEventIds((currentIds) =>
+      currentIds.includes(eventId) ? currentIds : [...currentIds, eventId]
+    );
+    setEditingGoogleEventId(null);
+  };
+
   const handleLogOut = async () => {
     await supabase.auth.signOut();
     setSession(null);
@@ -827,6 +1126,10 @@ export default function AcademicOSDashboard() {
     setClubs([]);
     setTasks([]);
     setStreaks([]);
+    setGoogleCalendarEvents([]);
+    setHiddenGoogleEventIds([]);
+    setCalendarSyncState("idle");
+    setCalendarSyncMessage(null);
   };
 
   useEffect(() => {
@@ -835,6 +1138,7 @@ export default function AcademicOSDashboard() {
       const activeId = session?.user?.id ?? null;
       setUserId(activeId);
       if (activeId) {
+        setIsLoaded(false);
         loadUserData(activeId);
       } else {
         setIsLoaded(true);
@@ -848,12 +1152,17 @@ export default function AcademicOSDashboard() {
       const activeId = session?.user?.id ?? null;
       setUserId(activeId);
       if (activeId) {
+        setIsLoaded(false);
         loadUserData(activeId);
       } else {
         setClasses([]);
         setClubs([]);
         setTasks([]);
         setStreaks([]);
+        setGoogleCalendarEvents([]);
+        setHiddenGoogleEventIds([]);
+        setCalendarSyncState("idle");
+        setCalendarSyncMessage(null);
         setIsLoaded(true);
       }
     });
@@ -880,13 +1189,44 @@ export default function AcademicOSDashboard() {
           if (isSavingRef.current) return;
           if (payload.new && payload.new.data) {
             if (Array.isArray(payload.new.data.classes))
-              setClasses(payload.new.data.classes);
+              setClasses(
+                withoutLegacyDemoItems(
+                  payload.new.data.classes,
+                  LEGACY_DEMO_CLASS_IDS
+                )
+              );
             if (Array.isArray(payload.new.data.clubs))
-              setClubs(normalizeClubsData(payload.new.data.clubs));
+              setClubs(
+                normalizeClubsData(
+                  withoutLegacyDemoItems(
+                    payload.new.data.clubs,
+                    LEGACY_DEMO_CLUB_IDS
+                  )
+                )
+              );
             if (Array.isArray(payload.new.data.tasks))
-              setTasks(payload.new.data.tasks);
+              setTasks(
+                withoutLegacyDemoItems(
+                  payload.new.data.tasks,
+                  LEGACY_DEMO_TASK_IDS
+                )
+              );
             if (Array.isArray(payload.new.data.streaks))
-              setStreaks(payload.new.data.streaks);
+              setStreaks(
+                withoutLegacyDemoItems(
+                  payload.new.data.streaks,
+                  LEGACY_DEMO_STREAK_IDS
+                )
+              );
+            const updatedHiddenGoogleEventIds = normalizeGoogleEventIds(
+              payload.new.data.hiddenGoogleEventIds
+            );
+            setGoogleCalendarEvents(
+              normalizeGoogleCalendarEvents(
+                payload.new.data.googleCalendarEvents
+              ).filter((event) => !updatedHiddenGoogleEventIds.includes(event.id))
+            );
+            setHiddenGoogleEventIds(updatedHiddenGoogleEventIds);
           }
         }
       )
@@ -903,6 +1243,14 @@ export default function AcademicOSDashboard() {
     localStorage.setItem(`tracker_clubs_v8_${userId}`, JSON.stringify(clubs));
     localStorage.setItem(`tracker_tasks_v8_${userId}`, JSON.stringify(tasks));
     localStorage.setItem(`tracker_streaks_v8_${userId}`, JSON.stringify(streaks));
+    localStorage.setItem(
+      `tracker_google_calendar_events_v1_${userId}`,
+      JSON.stringify(googleCalendarEvents)
+    );
+    localStorage.setItem(
+      `tracker_hidden_google_event_ids_v1_${userId}`,
+      JSON.stringify(hiddenGoogleEventIds)
+    );
 
     async function saveData() {
       setSyncStatus("syncing");
@@ -911,7 +1259,15 @@ export default function AcademicOSDashboard() {
         const { error } = await supabase.from("user_data").upsert(
           {
             user_id: userId,
-            data: { classes, clubs, tasks, streaks },
+            data: { classes, clubs, tasks, streaks, googleCalendarEvents },
+            data: {
+              classes,
+              clubs,
+              tasks,
+              streaks,
+              googleCalendarEvents,
+              hiddenGoogleEventIds,
+            },
             updated_at: new Date().toISOString(),
           },
           { onConflict: "user_id" }
@@ -927,18 +1283,36 @@ export default function AcademicOSDashboard() {
       }
     }
 
-    const timeout = setTimeout(saveData, 600);
+       const timeout = setTimeout(saveData, 600);
     return () => clearTimeout(timeout);
-  }, [classes, clubs, tasks, streaks, isLoaded, userId]);
+  }, [
+    classes,
+    clubs,
+    tasks,
+    streaks,
+    googleCalendarEvents,
+    hiddenGoogleEventIds,
+    isLoaded,
+    userId,
+  ]);
 
   useEffect(() => {
-    if (classes.length > 0 && !classes.some((c) => c.id === taskClassId)) {
+    if (classes.length === 0) {
+      setSelectedClassId("");
+      setTaskClassId("");
+      setTimetableClassId("");
+      return;
+    }
+    if (!classes.some((c) => c.id === selectedClassId)) {
+      setSelectedClassId(classes[0].id);
+    }
+    if (!classes.some((c) => c.id === taskClassId)) {
       setTaskClassId(classes[0].id);
     }
-    if (classes.length > 0 && !classes.some((c) => c.id === timetableClassId)) {
+    if (!classes.some((c) => c.id === timetableClassId)) {
       setTimetableClassId(classes[0].id);
     }
-  }, [classes, taskClassId, timetableClassId]);
+  }, [classes, selectedClassId, taskClassId, timetableClassId]);
 
   const activeClass = classes.find((c) => c.id === selectedClassId) || classes[0];
 
@@ -1665,10 +2039,10 @@ export default function AcademicOSDashboard() {
 
   const addTask = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!taskTitle.trim()) return;
+    if (!taskTitle.trim() || classes.length === 0) return;
     const validClassId = classes.some((c) => c.id === taskClassId)
       ? taskClassId
-      : classes[0]?.id ?? "1";
+      : classes[0].id;
     const newTask: Task = {
       id: Date.now().toString(),
       title: taskTitle.trim(),
@@ -1773,7 +2147,11 @@ export default function AcademicOSDashboard() {
 
   const importParsedTasks = () => {
     const targetClassId =
-      classes.find((c) => c.id === selectedClassId)?.id || classes[0]?.id || "1";
+      classes.find((c) => c.id === selectedClassId)?.id || classes[0]?.id;
+    if (!targetClassId) {
+      alert("Add a class before importing tasks from a syllabus.");
+      return;
+    }
     const imported: Task[] = parsedItems.map((item, i) => ({
       id: (Date.now() + i).toString(),
       title: item.title || "Imported Task",
@@ -1808,6 +2186,26 @@ export default function AcademicOSDashboard() {
     1
   ).getDay();
   const firstDayOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+  const zoomedGoogleEvents = useMemo(
+    () =>
+      zoomedCalendarDate
+        ? googleCalendarEvents.filter((event) =>
+            googleEventOccursOnDate(event, zoomedCalendarDate)
+          )
+        : [],
+    [googleCalendarEvents, zoomedCalendarDate]
+  );
+  const editingGoogleEvent = googleCalendarEvents.find(
+    (event) => event.id === editingGoogleEventId
+  );
+  const zoomedDateLabel = zoomedCalendarDate
+    ? new Intl.DateTimeFormat(undefined, {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }).format(new Date(`${zoomedCalendarDate}T12:00:00`))
+    : "";
 
   const prevMonth = () => {
     setCurrentCalendarDate(
@@ -1905,6 +2303,33 @@ export default function AcademicOSDashboard() {
               )}
             </button>
           </form>
+
+          {!isSignUp && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3" aria-hidden="true">
+                <div className="h-px flex-1 bg-slate-800" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  Or continue with
+                </span>
+                <div className="h-px flex-1 bg-slate-800" />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={authLoading}
+                className="w-full rounded-lg border border-slate-700 bg-white px-4 py-2.5 text-xs font-semibold text-slate-800 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <span
+                  aria-hidden="true"
+                  className="grid h-4 w-4 place-items-center rounded-full border border-slate-300 text-[10px] font-bold text-blue-600"
+                >
+                  G
+                </span>
+                Sign in with Google
+              </button>
+            </div>
+          )}
 
           <div className="pt-4 border-t border-slate-800 text-center">
             <p className="text-xs text-slate-400">
@@ -2597,8 +3022,12 @@ export default function AcademicOSDashboard() {
                   <select
                     value={taskClassId}
                     onChange={(e) => setTaskClassId(e.target.value)}
+                    disabled={classes.length === 0}
                     className="bg-slate-950 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none"
                   >
+                    {classes.length === 0 && (
+                      <option value="">Add a class first</option>
+                    )}
                     {classes.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -2635,6 +3064,7 @@ export default function AcademicOSDashboard() {
                 </div>
                 <button
                   type="submit"
+                  disabled={classes.length === 0}
                   className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 rounded-lg text-xs transition"
                 >
                   <Plus size={16} className="inline mr-2" /> Add Task
@@ -2892,32 +3322,69 @@ export default function AcademicOSDashboard() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                    <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
                       <button
                         type="button"
-                        onClick={prevMonth}
-                        className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 transition"
-                        title="Previous Month"
+                        onClick={handleGoogleCalendarSync}
+                        disabled={calendarSyncState === "syncing"}
+                        className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
+                        title="Import events from your primary Google Calendar"
                       >
-                        <ChevronLeft size={16} />
+                        {calendarSyncState === "syncing" ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <CalendarDays size={14} />
+                        )}
+                        Sync from Google
                       </button>
-                      <button
-                        type="button"
-                        onClick={resetToToday}
-                        className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition"
-                      >
-                        Today
-                      </button>
-                      <button
-                        type="button"
-                        onClick={nextMonth}
-                        className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 transition"
-                        title="Next Month"
-                      >
-                        <ChevronRight size={16} />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={prevMonth}
+                          className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 transition"
+                          title="Previous Month"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={resetToToday}
+                          className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition"
+                        >
+                          Today
+                        </button>
+                        <button
+                          type="button"
+                          onClick={nextMonth}
+                          className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 transition"
+                          title="Next Month"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
+
+                  {calendarSyncMessage && (
+                    <div
+                      className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-xs ${
+                        calendarSyncState === "error"
+                          ? "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                          : calendarSyncState === "success"
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                            : "border-blue-500/30 bg-blue-500/10 text-blue-200"
+                      }`}
+                    >
+                      {calendarSyncState === "syncing" ? (
+                        <Loader2 size={14} className="mt-0.5 shrink-0 animate-spin" />
+                      ) : calendarSyncState === "success" ? (
+                        <Check size={14} className="mt-0.5 shrink-0" />
+                      ) : (
+                        <ShieldAlert size={14} className="mt-0.5 shrink-0" />
+                      )}
+                      <span>{calendarSyncMessage}</span>
+                    </div>
+                  )}
 
                   {/* CALENDAR LEGEND & COLORED KEYS */}
                   <div className="flex flex-wrap items-center gap-2 sm:gap-4 p-2.5 bg-slate-950/80 rounded-xl border border-slate-800/80 text-[11px]">
@@ -2998,6 +3465,9 @@ export default function AcademicOSDashboard() {
 
                       // Filtered events
                       const dayTasks = tasks.filter((t) => t.dueDate === dateStr);
+                      const dayGoogleEvents = googleCalendarEvents.filter((event) =>
+                        googleEventOccursOnDate(event, dateStr)
+                      );
 
                       const dayClubMeetings =
                         academicStatus.type === "break" || academicStatus.type === "staff_only"
@@ -3041,7 +3511,9 @@ export default function AcademicOSDashboard() {
                       return (
                         <div
                           key={day}
-                          className={`min-h-[76px] p-1.5 rounded-xl border flex flex-col gap-1 transition ${dayBoxStyle}`}
+                          onClick={() => openCalendarDay(dateStr)}
+                          className={`min-h-[76px] p-1.5 rounded-xl border flex flex-col gap-1 cursor-pointer transition ${dayBoxStyle}`}
+                          title="Open day view"
                         >
                           <div className="flex items-center justify-between">
                             <span className={`text-[11px] ${dayHeaderStyle}`}>
@@ -3074,6 +3546,25 @@ export default function AcademicOSDashboard() {
 
                           {/* Assignments & Clubs Only */}
                           <div className="space-y-1 mt-0.5">
+                            {dayGoogleEvents.map((event) => (
+                              <button
+                                type="button"
+                                key={event.id}
+                                onClick={(clickEvent) => {
+                                  clickEvent.stopPropagation();
+                                  openCalendarDay(dateStr, event.id);
+                                }}
+                                className="w-full text-left text-[9px] truncate px-1.5 py-0.5 rounded text-white font-medium transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/70"
+                                style={{ backgroundColor: event.color }}
+                                title={`${event.title}${event.startTime ? ` (${event.startTime}${event.endTime ? `–${event.endTime}` : ""})` : ""}${event.description ? `\n${event.description}` : ""}`}
+                              >
+                                <span className="mr-1 opacity-80">{event.icon}</span>
+                                {event.title}
+                                {event.startTime && (
+                                  <span className="ml-1 font-mono opacity-80">{event.startTime}</span>
+                                )}
+                              </button>
+                            ))}
                             {dayTasks.map((t) => (
                               <div
                                 key={t.id}
@@ -3446,8 +3937,12 @@ export default function AcademicOSDashboard() {
                         <select
                           value={timetableClassId}
                           onChange={(e) => setTimetableClassId(e.target.value)}
+                          disabled={classes.length === 0}
                           className="w-full bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:border-blue-500"
                         >
+                          {classes.length === 0 && (
+                            <option value="">Add a class first</option>
+                          )}
                           {classes.map((c) => (
                             <option key={c.id} value={c.id}>
                               {c.name}
@@ -3511,6 +4006,7 @@ export default function AcademicOSDashboard() {
 
                       <button
                         type="submit"
+                        disabled={classes.length === 0}
                         className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition"
                       >
                         <Plus size={14} /> Add Slot
@@ -3974,6 +4470,177 @@ export default function AcademicOSDashboard() {
           </div>
         </main>
       </div>
+
+      {zoomedCalendarDate && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+          onClick={() => {
+            setZoomedCalendarDate(null);
+            setEditingGoogleEventId(null);
+          }}
+          role="presentation"
+        >
+          <section
+            className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-t-2xl border border-slate-700 bg-slate-900 p-5 shadow-2xl sm:rounded-2xl"
+            onClick={(clickEvent) => clickEvent.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="calendar-day-title"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-violet-400">Day view</p>
+                <h2 id="calendar-day-title" className="mt-1 text-xl font-bold text-white">
+                  {zoomedDateLabel}
+                </h2>
+                <p className="mt-1 text-xs text-slate-400">
+                  {zoomedGoogleEvents.length} Google Calendar event{zoomedGoogleEvents.length === 1 ? "" : "s"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setZoomedCalendarDate(null);
+                  setEditingGoogleEventId(null);
+                }}
+                className="rounded-lg border border-slate-700 p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                aria-label="Close day view"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {zoomedGoogleEvents.length === 0 ? (
+              <p className="py-12 text-center text-sm text-slate-500">
+                No imported Google Calendar events are scheduled for this day.
+              </p>
+            ) : (
+              <div className="mt-5 grid gap-5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Events</h3>
+                  {zoomedGoogleEvents.map((event) => (
+                    <button
+                      key={event.id}
+                      type="button"
+                      onClick={() => setEditingGoogleEventId(event.id)}
+                      className={`w-full rounded-xl border p-3 text-left transition ${
+                        editingGoogleEventId === event.id
+                          ? "border-violet-400 bg-slate-800"
+                          : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <span
+                          className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white"
+                          style={{ backgroundColor: event.color }}
+                        >
+                          {event.icon}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-slate-100">{event.title}</span>
+                          <span className="mt-0.5 block text-xs text-slate-400">
+                            {event.allDay ? "All day" : `${event.startTime || "Time not set"}${event.endTime ? ` – ${event.endTime}` : ""}`}
+                          </span>
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {editingGoogleEvent ? (
+                  <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                    <div className="mb-4 flex items-center gap-2">
+                      <span
+                        className="grid h-8 w-8 place-items-center rounded-lg text-base font-bold text-white"
+                        style={{ backgroundColor: editingGoogleEvent.color }}
+                      >
+                        {editingGoogleEvent.icon}
+                      </span>
+                      <div>
+                        <h3 className="text-sm font-bold text-white">Customize event</h3>
+                        <p className="text-[11px] text-slate-400">Saved in this app only</p>
+                      </div>
+                    </div>
+
+                    <label className="block text-xs font-semibold text-slate-300">
+                      Name
+                      <input
+                        value={editingGoogleEvent.title}
+                        onChange={(changeEvent) =>
+                          updateGoogleCalendarEvent(editingGoogleEvent.id, {
+                            title: changeEvent.target.value,
+                          })
+                        }
+                        className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-violet-400"
+                      />
+                    </label>
+
+                    <div className="mt-3 grid grid-cols-[1fr_auto] gap-3">
+                      <label className="block text-xs font-semibold text-slate-300">
+                        Logo / icon
+                        <input
+                          value={editingGoogleEvent.icon}
+                          onChange={(changeEvent) =>
+                            updateGoogleCalendarEvent(editingGoogleEvent.id, {
+                              icon: changeEvent.target.value.slice(0, 4) || "G",
+                            })
+                          }
+                          maxLength={4}
+                          className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-violet-400"
+                        />
+                      </label>
+                      <label className="block text-xs font-semibold text-slate-300">
+                        Color
+                        <input
+                          type="color"
+                          value={editingGoogleEvent.color}
+                          onChange={(changeEvent) =>
+                            updateGoogleCalendarEvent(editingGoogleEvent.id, {
+                              color: changeEvent.target.value,
+                            })
+                          }
+                          className="mt-1.5 h-9 w-14 cursor-pointer rounded-lg border border-slate-700 bg-slate-900 p-1"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/70 p-3 text-xs text-slate-400">
+                      <p>
+                        {editingGoogleEvent.allDay
+                          ? "All-day event"
+                          : `${editingGoogleEvent.startTime || "Time not set"}${editingGoogleEvent.endTime ? ` – ${editingGoogleEvent.endTime}` : ""}`}
+                      </p>
+                      {editingGoogleEvent.description && (
+                        <p className="mt-2 whitespace-pre-wrap text-slate-300">{editingGoogleEvent.description}</p>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Delete “${editingGoogleEvent.title}” from this app? It will remain in Google Calendar.`
+                          )
+                        ) {
+                          deleteGoogleCalendarEvent(editingGoogleEvent.id);
+                        }
+                      }}
+                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
+                    >
+                      <Trash2 size={14} /> Delete from this app
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid place-items-center rounded-xl border border-dashed border-slate-700 p-6 text-center text-sm text-slate-500">
+                    Choose an event to customize it.
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
 
       {/* MOBILE BOTTOM NAVIGATION */}
       <nav className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 p-2 flex justify-around items-center lg:hidden z-50">
