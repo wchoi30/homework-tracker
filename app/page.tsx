@@ -1259,7 +1259,6 @@ export default function AcademicOSDashboard() {
         const { error } = await supabase.from("user_data").upsert(
           {
             user_id: userId,
-            data: { classes, clubs, tasks, streaks, googleCalendarEvents },
             data: {
               classes,
               clubs,
@@ -4707,3 +4706,4 @@ export default function AcademicOSDashboard() {
     </div>
   );
 }
+
