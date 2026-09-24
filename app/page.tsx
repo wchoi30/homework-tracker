@@ -1,5 +1,6 @@
 "use client";
 
+import { createWorker } from "tesseract.js";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "./supabase";
 import {
@@ -44,6 +45,74 @@ import {
   Image as ImageIcon,
   Loader2,
 } from "lucide-react";
+
+// Place right below imports, before: export default function Page() { ...
+
+function getLetterGradeFromPoints(points: number): string {
+  if (points >= 4.17) return "A+";
+  if (points >= 3.84) return "A";
+  if (points >= 3.50) return "A-";
+  if (points >= 3.17) return "B+";
+  if (points >= 2.84) return "B";
+  if (points >= 2.50) return "B-";
+  if (points >= 2.17) return "C+";
+  if (points >= 1.84) return "C";
+  if (points >= 1.50) return "C-";
+  if (points >= 1.17) return "D+";
+  if (points >= 0.84) return "D";
+  if (points >= 0.50) return "D-";
+  return "F";
+}
+
+function calculateRequiredGrade({
+  currentGradePts,
+  targetGradePts,
+  completedCount,
+  selectedCount,
+}: {
+  currentGradePts: number;
+  targetGradePts: number;
+  completedCount: number;
+  selectedCount: number;
+}) {
+  if (selectedCount === 0) {
+    return {
+      requiredScorePts: null,
+      letterGrade: "--",
+      message: "Please select at least one standard to simulate.",
+      isPossible: true,
+    };
+  }
+
+  if (completedCount === 0) {
+    return {
+      requiredScorePts: targetGradePts,
+      letterGrade: getLetterGradeFromPoints(targetGradePts),
+      message: `To achieve your target overall, you must score an average of at least ${getLetterGradeFromPoints(targetGradePts)} (${targetGradePts.toFixed(2)} pts) on the ${selectedCount} selected standard(s).`,
+      isPossible: true,
+    };
+  }
+
+  const totalStandardsAfter = completedCount + selectedCount;
+  const targetTotalPointsNeeded = targetGradePts * totalStandardsAfter;
+  const currentTotalPointsEarned = currentGradePts * completedCount;
+
+  const pointsNeededOnUpcoming = targetTotalPointsNeeded - currentTotalPointsEarned;
+  const requiredAvgScore = pointsNeededOnUpcoming / selectedCount;
+
+  const isPossible = requiredAvgScore <= 4.33;
+  const clampedScore = Math.max(0, requiredAvgScore);
+
+  return {
+    requiredScorePts: Number(clampedScore.toFixed(2)),
+    letterGrade: getLetterGradeFromPoints(clampedScore),
+    message: isPossible
+      ? `To achieve your target overall, you must score an average of at least ${getLetterGradeFromPoints(clampedScore)} (${clampedScore.toFixed(2)} pts) on the ${selectedCount} selected standard(s).`
+      : `Unachievable: You would need an average score of ${clampedScore.toFixed(2)} pts (above the 4.33 max limit) on upcoming standards.`,
+    isPossible,
+  };
+}
+
 
 // --- TYPES & CONSTANTS ---
 export type StandardLevel =
@@ -800,6 +869,7 @@ export default function AcademicOSDashboard() {
   const [authMessage, setAuthMessage] = useState<string | null>(null);
 
   const isSavingRef = useRef(false);
+  const loadedUserIdRef = useRef<string | null>(null); // <-- ADD THIS
   const parseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevClassIdRef = useRef<string>(selectedClassId);
 
@@ -1133,48 +1203,43 @@ export default function AcademicOSDashboard() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      const activeId = session?.user?.id ?? null;
-      setUserId(activeId);
-      if (activeId) {
-        setIsLoaded(false);
-        loadUserData(activeId);
-      } else {
-        setIsLoaded(true);
-      }
-    });
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((event, session) => {
+    setSession(session);
+    const activeId = session?.user?.id ?? null;
+    setUserId(activeId);
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      const activeId = session?.user?.id ?? null;
-      setUserId(activeId);
-      if (activeId) {
-        setIsLoaded(false);
-        loadUserData(activeId);
-      } else {
-        setClasses([]);
-        setClubs([]);
-        setTasks([]);
-        setStreaks([]);
-        setGoogleCalendarEvents([]);
-        setHiddenGoogleEventIds([]);
-        setCalendarSyncState("idle");
-        setCalendarSyncMessage(null);
-        setIsLoaded(true);
-      }
-    });
+    if (activeId) {
+      // Prevent re-fetching on background auth events or duplicate mounts
+      if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") return;
+      if (loadedUserIdRef.current === activeId) return;
 
-    return () => {
-      subscription.unsubscribe();
-      if (parseTimerRef.current) clearTimeout(parseTimerRef.current);
-    };
-  }, []);
+      loadedUserIdRef.current = activeId;
+      setIsLoaded(false);
+      loadUserData(activeId);
+    } else {
+      loadedUserIdRef.current = null;
+      setClasses([]);
+      setClubs([]);
+      setTasks([]);
+      setStreaks([]);
+      setGoogleCalendarEvents([]);
+      setHiddenGoogleEventIds([]);
+      setCalendarSyncState("idle");
+      setCalendarSyncMessage(null);
+      setIsLoaded(true);
+    }
+  });
 
-  useEffect(() => {
-    if (!userId) return;
+  return () => {
+    subscription.unsubscribe();
+    if (parseTimerRef.current) clearTimeout(parseTimerRef.current);
+  };
+}, []);
+
+useEffect(() => {
+  if (!userId) return;
     const channel = supabase
       .channel(`db-changes-${userId}`)
       .on(
@@ -1237,63 +1302,66 @@ export default function AcademicOSDashboard() {
     };
   }, [userId]);
 
-  useEffect(() => {
-    if (!isLoaded || !userId) return;
-    localStorage.setItem(`tracker_classes_v8_${userId}`, JSON.stringify(classes));
-    localStorage.setItem(`tracker_clubs_v8_${userId}`, JSON.stringify(clubs));
-    localStorage.setItem(`tracker_tasks_v8_${userId}`, JSON.stringify(tasks));
-    localStorage.setItem(`tracker_streaks_v8_${userId}`, JSON.stringify(streaks));
-    localStorage.setItem(
-      `tracker_google_calendar_events_v1_${userId}`,
-      JSON.stringify(googleCalendarEvents)
-    );
-    localStorage.setItem(
-      `tracker_hidden_google_event_ids_v1_${userId}`,
-      JSON.stringify(hiddenGoogleEventIds)
-    );
+useEffect(() => {
+  if (!isLoaded || !userId) return;
 
-    async function saveData() {
-      setSyncStatus("syncing");
-      isSavingRef.current = true;
-      try {
-        const { error } = await supabase.from("user_data").upsert(
-          {
-            user_id: userId,
-            data: {
-              classes,
-              clubs,
-              tasks,
-              streaks,
-              googleCalendarEvents,
-              hiddenGoogleEventIds,
-            },
-            updated_at: new Date().toISOString(),
+  // Immediately lock local state from Realtime overwrites during the 600ms debounce
+  isSavingRef.current = true;
+
+  localStorage.setItem(`tracker_classes_v8_${userId}`, JSON.stringify(classes));
+  localStorage.setItem(`tracker_clubs_v8_${userId}`, JSON.stringify(clubs));
+  localStorage.setItem(`tracker_tasks_v8_${userId}`, JSON.stringify(tasks));
+  localStorage.setItem(`tracker_streaks_v8_${userId}`, JSON.stringify(streaks));
+  localStorage.setItem(
+    `tracker_google_calendar_events_v1_${userId}`,
+    JSON.stringify(googleCalendarEvents)
+  );
+  localStorage.setItem(
+    `tracker_hidden_google_event_ids_v1_${userId}`,
+    JSON.stringify(hiddenGoogleEventIds)
+  );
+
+  async function saveData() {
+    setSyncStatus("syncing");
+    try {
+      const { error } = await supabase.from("user_data").upsert(
+        {
+          user_id: userId,
+          data: {
+            classes,
+            clubs,
+            tasks,
+            streaks,
+            googleCalendarEvents,
+            hiddenGoogleEventIds,
           },
-          { onConflict: "user_id" }
-        );
-        if (error) setSyncStatus("error");
-        else setSyncStatus("synced");
-      } catch (err) {
-        setSyncStatus("error");
-      } finally {
-        setTimeout(() => {
-          isSavingRef.current = false;
-        }, 500);
-      }
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+      if (error) setSyncStatus("error");
+      else setSyncStatus("synced");
+    } catch (err) {
+      setSyncStatus("error");
+    } finally {
+      setTimeout(() => {
+        isSavingRef.current = false;
+      }, 500);
     }
+  }
 
-       const timeout = setTimeout(saveData, 600);
-    return () => clearTimeout(timeout);
-  }, [
-    classes,
-    clubs,
-    tasks,
-    streaks,
-    googleCalendarEvents,
-    hiddenGoogleEventIds,
-    isLoaded,
-    userId,
-  ]);
+  const timeout = setTimeout(saveData, 600);
+  return () => clearTimeout(timeout);
+}, [
+  classes,
+  clubs,
+  tasks,
+  streaks,
+  googleCalendarEvents,
+  hiddenGoogleEventIds,
+  isLoaded,
+  userId,
+]);
 
   useEffect(() => {
     if (classes.length === 0) {
@@ -1329,244 +1397,101 @@ export default function AcademicOSDashboard() {
   };
 
   // --- POWERSCHOOL PHOTO ANALYZER OCR FUNCTION ---
-  const analyzePowerSchoolScreenshot = (file: File) => {
+  const analyzePowerSchoolScreenshot = async (file: File) => {
     setIsAnalyzingPhoto(true);
     setPhotoAnalysisStatus("Scanning PowerSchool table structure...");
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreviewImage(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    try {
+    // 1. Run OCR on the uploaded image
+    const worker = await createWorker("eng");
+    const ret = await worker.recognize(file);
+    await worker.terminate();
 
-    setTimeout(() => {
-      setPhotoAnalysisStatus("Extracting Courses, Periods, Teachers, and Grades...");
-    }, 1200);
+    const rawText = ret.data.text;
+    setPhotoAnalysisStatus("Parsing course names and schedules...");
 
-    setTimeout(() => {
-      const extractedClasses: ClassItem[] = [
-        {
-          id: Date.now().toString() + "-1",
-          name: "Foundations of the Modern World 9",
-          color: COLOR_PALETTE[0],
-          targetGrade: "A",
-          professorName: "Niedringhaus, Daniel",
-          roomNumber: "C408",
-          periodCode: "A(A)",
-          manualGrade: undefined,
-          standards: [
-            { id: "ps-s1", name: "S1: Historical Analysis", levels: [] }
-          ],
-          meetingTimes: [{ day: "Monday", startTime: "08:30", endTime: "09:45" }]
-        },
-        {
-          id: Date.now().toString() + "-2",
-          name: "Concert Band",
-          color: COLOR_PALETTE[1],
-          targetGrade: "A+",
-          professorName: "Prosch-Jensen, Peter",
-          roomNumber: "C218",
-          periodCode: "B(A)",
-          manualGrade: "A+",
-          standards: [
-            { id: "ps-s2", name: "S1: Performance & Sight Reading", levels: ["A+"] }
-          ],
-          meetingTimes: [{ day: "Tuesday", startTime: "10:00", endTime: "11:15" }]
-        },
-        {
-          id: Date.now().toString() + "-3",
-          name: "Study Hall YEAR/Health Seminar",
-          color: COLOR_PALETTE[2],
-          targetGrade: "A",
-          professorName: "Le, Dan Thanh",
-          roomNumber: "LLAB-C316",
-          periodCode: "C(A)",
-          manualGrade: undefined,
-          standards: [],
-          meetingTimes: [{ day: "Wednesday", startTime: "08:30", endTime: "09:45" }]
-        },
-        {
-          id: Date.now().toString() + "-4",
-          name: "PE 9/Health - YEAR",
-          color: COLOR_PALETTE[3],
-          targetGrade: "A+",
-          professorName: "Te Kahu, Tessa",
-          roomNumber: "HS-GYM",
-          periodCode: "D(A)",
-          manualGrade: "A+",
-          standards: [
-            { id: "ps-s4", name: "S1: Fitness & Participation", levels: ["A+"] }
-          ],
-          meetingTimes: [{ day: "Thursday", startTime: "10:00", endTime: "11:15" }]
-        },
-        {
-          id: Date.now().toString() + "-5",
-          name: "AP Computer Science Principles",
-          color: COLOR_PALETTE[4],
-          targetGrade: "A",
-          professorName: "Reidak Pena, Albert Avo",
-          roomNumber: "SDC104",
-          periodCode: "E(A)",
-          manualGrade: undefined,
-          standards: [
-            { id: "ps-s5", name: "S1: Computational Logic", levels: [] }
-          ],
-          meetingTimes: [{ day: "Friday", startTime: "08:30", endTime: "09:45" }]
-        },
-        {
-          id: Date.now().toString() + "-6",
-          name: "AP Calculus BC",
-          color: COLOR_PALETTE[5],
-          targetGrade: "A",
-          professorName: "Waters, Gail",
-          roomNumber: "SDC304.1",
-          periodCode: "F(A)",
-          manualGrade: "A",
-          standards: [
-            { id: "ps-s6", name: "S1: Differential Equations", levels: ["A"] }
-          ],
-          meetingTimes: [{ day: "Monday", startTime: "13:00", endTime: "14:15" }]
-        },
-        {
-          id: Date.now().toString() + "-7",
-          name: "Life Science",
-          color: COLOR_PALETTE[6],
-          targetGrade: "A+",
-          professorName: "Szwarc, Amanda Joy",
-          roomNumber: "SDC411",
-          periodCode: "G(A)",
-          manualGrade: "A+",
-          standards: [
-            { id: "ps-s7", name: "S1: Cellular Biology", levels: ["A+"] }
-          ],
-          meetingTimes: [{ day: "Tuesday", startTime: "13:00", endTime: "14:15" }]
-        },
-        {
-          id: Date.now().toString() + "-8",
-          name: "English 9",
-          color: COLOR_PALETTE[7],
-          targetGrade: "A",
-          professorName: "Hammond, Wayne Fracis",
-          roomNumber: "C313",
-          periodCode: "H(A)",
-          manualGrade: "A",
-          standards: [
-            { id: "ps-s8", name: "S1: Rhetorical Analysis", levels: ["A"] }
-          ],
-          meetingTimes: [{ day: "Wednesday", startTime: "10:00", endTime: "11:15" }]
-        },
-        {
-          id: Date.now().toString() + "-9",
-          name: "Advisory 9",
-          color: COLOR_PALETTE[8],
-          targetGrade: "A",
-          professorName: "McEwen, Matthew",
-          roomNumber: "SDC107",
-          periodCode: "Adv(A)",
-          manualGrade: undefined,
-          standards: [],
-          meetingTimes: [{ day: "Thursday", startTime: "08:30", endTime: "09:15" }]
-        },
-        {
-          id: Date.now().toString() + "-10",
-          name: "Library G9",
-          color: COLOR_PALETTE[9],
-          targetGrade: "A",
-          professorName: "Wong, Gabrielle",
-          roomNumber: "Library",
-          periodCode: "P10(A)",
-          manualGrade: undefined,
-          standards: [],
-          meetingTimes: [{ day: "Friday", startTime: "13:00", endTime: "14:15" }]
-        }
-      ];
+    // 2. Parse lines from the image text
+    const lines = rawText.split("\n").filter((l) => l.trim().length > 0);
+    const extractedClasses: ClassItem[] = [];
 
-      setClasses(extractedClasses);
-      if (extractedClasses.length > 0) {
-        setSelectedClassId(extractedClasses[0].id);
-      }
-      setIsAnalyzingPhoto(false);
-      setPhotoAnalysisStatus(null);
-      setShowPhotoModal(false);
-      alert(`🎉 PowerSchool AI successfully imported ${extractedClasses.length} courses!`);
-    }, 2800);
-  };
+    lines.forEach((line, index) => {
+      // Basic rule: filter out headers or empty text
+      if (line.toLowerCase().includes("attendance") || line.toLowerCase().includes("teacher")) return;
+
+      extractedClasses.push({
+        id: Date.now().toString() + "-" + index,
+        name: line.trim().slice(0, 40), // Extracted class name
+        color: COLOR_PALETTE[index % COLOR_PALETTE.length],
+        targetGrade: "A",
+        standards: [],
+        meetingTimes: [],
+      });
+    });
+
+    if (extractedClasses.length > 0) {
+      setClasses((prev) => [...prev, ...extractedClasses]);
+      setSelectedClassId(extractedClasses[0].id);
+      alert(`🎉 PowerSchool AI extracted ${extractedClasses.length} courses!`);
+    } else {
+      alert("No course text detected. Please try a clearer screenshot.");
+    }
+  } catch (err) {
+    alert("Error reading screenshot. Please try again.");
+  } finally {
+    setIsAnalyzingPhoto(false);
+    setPhotoAnalysisStatus(null);
+    setShowPhotoModal(false);
+  }
+};
 
   // --- SCHOOLSBUDDY PHOTO ANALYZER OCR FUNCTION ---
-  const analyzeSchoolsBuddyScreenshot = (file: File) => {
-    setIsAnalyzingClubPhoto(true);
-    setClubPhotoAnalysisStatus("Scanning SchoolsBuddy schedule layout...");
+const analyzeSchoolsBuddyScreenshot = async (file: File) => {
+  setIsAnalyzingPhoto(true);
+  setPhotoAnalysisStatus("Scanning SchoolsBuddy screenshot...");
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreviewImage(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+  try {
+    // 1. Run OCR on the image
+    const worker = await createWorker("eng");
+    const ret = await worker.recognize(file);
+    await worker.terminate();
 
-    setTimeout(() => {
-      setClubPhotoAnalysisStatus("Extracting Club Names, Practice Times, and Days...");
-    }, 1200);
+    const rawText = ret.data.text;
+    setPhotoAnalysisStatus("Parsing clubs and activities...");
 
-    setTimeout(() => {
-      const extractedClubs: ClubItem[] = [
-        {
-          id: Date.now().toString() + "-sb1",
-          name: "SSIS Math Club",
-          role: "Member",
-          icon: "💻",
-          color: "#3B82F6",
-          meetingTimes: [
-            { day: "Monday", startTime: "15:15", endTime: "16:15" }
-          ],
-          attendance: {}
-        },
-        {
-          id: Date.now().toString() + "-sb2",
-          name: "SSIS Programming Club",
-          role: "Member",
-          icon: "🚀",
-          color: "#8B5CF6",
-          meetingTimes: [
-            { day: "Tuesday", startTime: "15:15", endTime: "16:15" }
-          ],
-          attendance: {}
-        },
-        {
-          id: Date.now().toString() + "-sb3",
-          name: "HS Volleyball JV Boys",
-          role: "Athlete",
-          icon: "🏐",
-          color: "#F59E0B",
-          meetingTimes: [
-            { day: "Monday", startTime: "06:15", endTime: "07:30" },
-            { day: "Tuesday", startTime: "16:30", endTime: "18:00" },
-            { day: "Thursday", startTime: "16:30", endTime: "18:00" }
-          ],
-          attendance: {}
-        },
-        {
-          id: Date.now().toString() + "-sb4",
-          name: "SSIS Science Club",
-          role: "Member",
-          icon: "🤖",
-          color: "#10B981",
-          meetingTimes: [
-            { day: "Friday", startTime: "15:15", endTime: "16:15" }
-          ],
-          attendance: {}
-        }
-      ];
+    // 2. Parse lines from the image
+    const lines = rawText.split("\n").filter((l) => l.trim().length > 0);
+    const extractedClubs: ClubItem[] = [];
 
-      setClubs((prev) => [...prev, ...extractedClubs]);
-      if (extractedClubs.length > 0) {
-        setSelectedClubId(extractedClubs[0].id);
+    lines.forEach((line, index) => {
+      // Filter out navigation/header text commonly seen in SchoolsBuddy
+      const lower = line.toLowerCase();
+      if (lower.includes("schoolsbuddy") || lower.includes("sign out") || lower.includes("welcome")) {
+        return;
       }
-      setIsAnalyzingClubPhoto(false);
-      setClubPhotoAnalysisStatus(null);
-      setShowClubPhotoModal(false);
-      alert(`🎉 SchoolsBuddy AI successfully imported ${extractedClubs.length} activities & clubs!`);
-    }, 2500);
-  };
+
+      extractedClubs.push({
+        id: Date.now().toString() + "-" + index,
+        name: line.trim().slice(0, 40), // Extracted club name
+        role: "Member",
+        color: COLOR_PALETTE[index % COLOR_PALETTE.length],
+        meetingTimes: [],
+      });
+    });
+
+    if (extractedClubs.length > 0) {
+      setClubs((prev) => [...prev, ...extractedClubs]);
+      alert(`🎉 SchoolsBuddy AI extracted ${extractedClubs.length} clubs!`);
+    } else {
+      alert("No club text detected. Please try a clearer screenshot.");
+    }
+  } catch (err) {
+    alert("Error reading screenshot. Please try again.");
+  } finally {
+    setIsAnalyzingPhoto(false);
+    setPhotoAnalysisStatus(null);
+    setShowPhotoModal(false);
+  }
+};
 
   const cumulativeGPA = useMemo(() => {
     if (!classes || classes.length === 0) return 0;
@@ -1659,7 +1584,14 @@ export default function AcademicOSDashboard() {
   // Simulator Calculation Logic
   const requiredFinalGrade = useMemo(() => {
     if (!activeClass || !activeClass.standards || activeClass.standards.length === 0) {
-      return { letter: "A+" as StandardLevel, points: 4.33 };
+      return {
+        letter: "A+" as StandardLevel,
+        points: 4.33,
+        letterGrade: "--",
+        requiredScorePts: null as number | null,
+        message: "This class has no standards to simulate.",
+        isPossible: true,
+      };
     }
 
     const selectedCount = Math.max(1, selectedStandardsForExam.length);
@@ -1685,13 +1617,30 @@ export default function AcademicOSDashboard() {
     });
 
     const pointsNeededOnSelected = totalTargetPointsNeeded - existingUnselectedPoints;
-    const requiredAvgPoints = pointsNeededOnSelected / selectedCount;
+    // Standards NOT selected for the exam count as already completed.
+    // The "current grade" always represents at least one unit of finished work,
+    // otherwise the current grade would have zero weight and the result would
+    // just equal the target grade.
+    const completedStandardsCount = Math.max(1, unselectedStandards.length);
 
+    // Run the formula
+    const simResult = calculateRequiredGrade({
+      currentGradePts: currentPts,
+      targetGradePts: targetPts,
+      completedCount: completedStandardsCount,
+      selectedCount: selectedCount,
+    });
+
+    const requiredAvgPoints = simResult.requiredScorePts ?? targetPts;
     const clampedPoints = Math.max(0, Math.min(4.33, requiredAvgPoints));
 
     return {
       letter: pointsToLetter(clampedPoints),
       points: Math.round(clampedPoints * 100) / 100,
+      letterGrade: simResult.letterGrade,
+      requiredScorePts: simResult.requiredScorePts,
+      message: simResult.message,
+      isPossible: simResult.isPossible,
     };
   }, [activeClass, simCurrentGrade, simTargetGrade, selectedStandardsForExam]);
 
@@ -4306,42 +4255,54 @@ export default function AcademicOSDashboard() {
                       </div>
                     </div>
 
-                    {/* Simulation Result Box */}
-                    <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950/40 border border-blue-500/30 p-5 rounded-xl flex flex-col justify-between space-y-4">
-                      <div>
-                        <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider block mb-1">
-                          Simulation Result
-                        </span>
-                        <h4 className="text-sm font-semibold text-slate-300">
-                          Required Score on Selected Standard(s)
-                        </h4>
+                  {/* RIGHT COLUMN: SIMULATION RESULT */}
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-blue-400">
+                      SIMULATION RESULT
+                    </h3>
+                    <h2 className="mt-1 text-lg font-bold text-white">
+                      Required Score on Selected Standard(s)
+                    </h2>
+
+                    {/* ✅ PASTE YOUR SNIPPET HERE */}
+                    <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+                      <div className="text-center">
+                        <div className="text-6xl font-extrabold text-emerald-400">
+                          {requiredFinalGrade.letterGrade}
+                        </div>
+                        <p className="mt-2 text-sm text-slate-400">
+                          Required Avg Score Point:{" "}
+                          <span className="font-mono font-bold text-white">
+                           {requiredFinalGrade.requiredScorePts !== null ? requiredFinalGrade.requiredScorePts : "N/A"}
+                          </span>
+                        </p>
                       </div>
 
-                      <div className="py-6 text-center bg-slate-950/80 rounded-xl border border-slate-800 space-y-1">
-                        <div className="text-4xl font-black text-emerald-400 font-mono">
-                          {requiredFinalGrade.letter}
+                      {/* Target Breakdown */}
+                      <div className="mt-6 rounded-lg bg-slate-800/40 p-4 border border-slate-700/50">
+                        <div className="flex items-center gap-2 text-amber-400 font-semibold text-sm">
+                          <span>✨</span> Target Breakdown:
                         </div>
-                        <div className="text-xs text-slate-400 font-mono">
-                          Required Avg Score Point:{" "}
-                          <span className="text-white font-bold">{requiredFinalGrade.points}</span>
-                        </div>
+                        <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                          {requiredFinalGrade.message}
+                        </p>
                       </div>
+                    </div>
+                  </div>
 
                       <div className="text-[11px] text-slate-400 space-y-2 bg-slate-900/50 p-3 rounded-lg border border-slate-800/60">
                         <div className="flex items-center gap-1.5 font-semibold text-slate-300">
                           <Sparkles size={13} className="text-amber-400" /> Target Breakdown:
                         </div>
-                        <p className="leading-relaxed">
-                          To achieve <strong className="text-blue-400">{simTargetGrade}</strong> overall,
-                          you must score an average of at least{" "}
-                          <strong className="text-emerald-400">{requiredFinalGrade.letter}</strong> (
-                          {requiredFinalGrade.points} pts) on the{" "}
-                          <strong>{selectedStandardsForExam.length}</strong> selected standard(s).
-                        </p>
+                      <p className="leading-relaxed">
+                        To achieve <strong className="text-blue-400">{simTargetGrade}</strong>,
+                        you must score an average of at least{" "}
+                        <strong className="text-emerald-400">{requiredFinalGrade.letter}</strong> ({requiredFinalGrade.points} pts) on the{" "}
+                        <strong>{selectedStandardsForExam.length}</strong> selected standard(s).
+                      </p>
                       </div>
                     </div>
                   </div>
-                </div>
               )}
 
               {/* TAB: SYLLABUS */}
@@ -4706,4 +4667,3 @@ export default function AcademicOSDashboard() {
     </div>
   );
 }
-
