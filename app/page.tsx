@@ -1029,12 +1029,7 @@ function LandingPage({
       <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500 space-y-2">
         <div>© {new Date().getFullYear()} WJ Study</div>
         <div>
-          <a
-            href="https://homework-tracker-six-khaki.vercel.app/privacy"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-slate-300 hover:underline transition"
-          >
+          <a href="/privacy" className="hover:text-slate-300 hover:underline transition">
             Privacy Policy
           </a>
         </div>
