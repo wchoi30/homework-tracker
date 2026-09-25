@@ -824,6 +824,215 @@ function googleEventError(message: string): Error {
 }
 
 // --- MAIN COMPONENT ---
+// --- LANDING PAGE (shown before sign-in / sign-up) ---
+function LandingPage({
+  onSignIn,
+  onSignUp,
+}: {
+  onSignIn: () => void;
+  onSignUp: () => void;
+}) {
+  const features = [
+    {
+      icon: Camera,
+      title: "Photo scan import",
+      text: "Snap your PowerSchool or SchoolsBuddy page and let AI pull in your classes and standards.",
+    },
+    {
+      icon: Award,
+      title: "Standards-based grading",
+      text: "Track every standard and level, and see your overall grade update as you go.",
+    },
+    {
+      icon: Sliders,
+      title: "Target grade simulator",
+      text: "Pick the grade you want and see the average score you need on upcoming standards.",
+    },
+    {
+      icon: CalendarDays,
+      title: "Calendar & school breaks",
+      text: "One calendar for tasks, deadlines and school breaks, with Google Calendar sync.",
+    },
+    {
+      icon: Flame,
+      title: "Habit streaks",
+      text: "Build study routines and keep your streak alive day after day.",
+    },
+    {
+      icon: Upload,
+      title: "Syllabus task extractor",
+      text: "Upload a syllabus and turn it into tasks and due dates automatically.",
+    },
+  ];
+
+  const steps = [
+    { n: "1", title: "Create your account", text: "Sign up with email or Google in seconds." },
+    { n: "2", title: "Add your classes", text: "Scan a grade page or add classes and standards yourself." },
+    { n: "3", title: "Plan and improve", text: "Track deadlines, run what-if grade scenarios and stay on top of your streaks." },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+      {/* NAV */}
+      <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
+        <div className="flex items-center gap-2.5">
+          <div className="rounded-xl border border-blue-500/30 bg-blue-600/20 p-2 text-blue-400">
+            <GraduationCap size={22} />
+          </div>
+          <span className="text-lg font-bold tracking-tight text-white">WJ Study</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onSignIn}
+            className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-300 transition hover:text-white"
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            onClick={onSignUp}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
+          >
+            Sign up
+          </button>
+        </div>
+      </nav>
+
+      {/* HERO */}
+      <header className="mx-auto max-w-6xl px-5 pb-16 pt-10 md:pt-16">
+        <div className="grid items-center gap-12 md:grid-cols-2">
+          <div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-300">
+              <Sparkles size={13} /> Built for students
+            </span>
+            <h1 className="mt-5 text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">
+              Study smarter.
+              <br />
+              <span className="text-blue-400">Know exactly where you stand.</span>
+            </h1>
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-slate-400">
+              WJ Study puts your classes, standards, deadlines and study habits in one place, and
+              shows you the score you need to hit your target grade.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={onSignUp}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-500"
+              >
+                Get started free <ChevronRight size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={onSignIn}
+                className="rounded-lg border border-slate-700 bg-slate-900 px-6 py-3 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:bg-slate-800"
+              >
+                I already have an account
+              </button>
+            </div>
+          </div>
+
+          {/* Example preview card (illustrative numbers) */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                <Sliders size={16} className="text-blue-400" /> Target Grade Simulator
+              </div>
+              <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                Example
+              </span>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-3">
+                <div className="text-slate-500">Current grade</div>
+                <div className="mt-1 text-base font-bold text-emerald-400">B+</div>
+              </div>
+              <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-3">
+                <div className="text-slate-500">Target grade</div>
+                <div className="mt-1 text-base font-bold text-blue-400">A-</div>
+              </div>
+            </div>
+            <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/70 p-6 text-center">
+              <div className="text-xs uppercase tracking-wider text-slate-500">
+                Required average on upcoming standards
+              </div>
+              <div className="mt-2 text-6xl font-extrabold text-emerald-400">A</div>
+              <div className="mt-1 text-sm text-slate-400">
+                about <span className="font-mono font-bold text-white">4.01</span> pts
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* FEATURES */}
+      <section className="border-y border-slate-900 bg-slate-900/30">
+        <div className="mx-auto max-w-6xl px-5 py-16">
+          <h2 className="text-center text-2xl font-bold text-white md:text-3xl">
+            Everything you need to stay on top of school
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-center text-sm text-slate-400">
+            Grades, planning and habits in one dashboard, so you spend less time organizing and more
+            time learning.
+          </p>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {features.map(({ icon: Icon, title, text }) => (
+              <div
+                key={title}
+                className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 transition hover:border-slate-700"
+              >
+                <div className="inline-flex rounded-xl border border-blue-500/20 bg-blue-500/10 p-2.5 text-blue-400">
+                  <Icon size={20} />
+                </div>
+                <h3 className="mt-4 text-base font-semibold text-white">{title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="mx-auto max-w-6xl px-5 py-16">
+        <h2 className="text-center text-2xl font-bold text-white md:text-3xl">How it works</h2>
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
+          {steps.map((step) => (
+            <div key={step.n} className="text-center">
+              <div className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                {step.n}
+              </div>
+              <h3 className="mt-4 text-base font-semibold text-white">{step.title}</h3>
+              <p className="mx-auto mt-1.5 max-w-xs text-sm text-slate-400">{step.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="mx-auto max-w-4xl px-5 pb-20">
+        <div className="rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-600/20 to-slate-900 p-10 text-center">
+          <h2 className="text-2xl font-bold text-white md:text-3xl">Ready to level up your grades?</h2>
+          <p className="mx-auto mt-3 max-w-md text-sm text-slate-300">
+            Create your WJ Study account and set up your first class in minutes.
+          </p>
+          <button
+            type="button"
+            onClick={onSignUp}
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-500"
+          >
+            Create your account <ChevronRight size={16} />
+          </button>
+        </div>
+      </section>
+
+      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
+        © {new Date().getFullYear()} WJ Study
+      </footer>
+    </div>
+  );
+}
+
 export default function AcademicOSDashboard() {
   const [mobileTab, setMobileTab] = useState<
     "classes" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks"
@@ -867,6 +1076,7 @@ export default function AcademicOSDashboard() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [showAuth, setShowAuth] = useState(false); // false = show landing page first
 
   const isSavingRef = useRef(false);
   const loadedUserIdRef = useRef<string | null>(null); // <-- ADD THIS
@@ -1190,6 +1400,7 @@ export default function AcademicOSDashboard() {
 
   const handleLogOut = async () => {
     await supabase.auth.signOut();
+    setShowAuth(false);
     setSession(null);
     setUserId(null);
     setClasses([]);
@@ -2173,14 +2384,49 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
   // --- RENDER UNAUTHENTICATED LOGIN / SIGNUP SCREEN ---
   if (!session || !userId) {
+    // Wait for Supabase to report the session so the landing page doesn't flash for signed-in users
+    if (!isLoaded) {
+      return (
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+          <Loader2 size={28} className="animate-spin text-blue-400" />
+        </div>
+      );
+    }
+
+    if (!showAuth) {
+      return (
+        <LandingPage
+          onSignIn={() => {
+            setIsSignUp(false);
+            setShowAuth(true);
+          }}
+          onSignUp={() => {
+            setIsSignUp(true);
+            setShowAuth(true);
+          }}
+        />
+      );
+    }
+
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 font-sans">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-md w-full space-y-6 shadow-2xl">
+          <button
+            type="button"
+            onClick={() => {
+              setShowAuth(false);
+              setAuthError(null);
+              setAuthMessage(null);
+            }}
+            className="flex items-center gap-1 text-xs text-slate-400 hover:text-white transition"
+          >
+            <ChevronLeft size={14} /> Back to home
+          </button>
           <div className="text-center space-y-2">
             <div className="inline-flex p-3 bg-blue-600/20 text-blue-400 rounded-2xl border border-blue-500/30 mb-2">
               <GraduationCap size={36} />
             </div>
-            <h1 className="text-2xl font-bold text-white">Academic OS</h1>
+            <h1 className="text-2xl font-bold text-white">WJ Study</h1>
             <p className="text-xs text-slate-400">
               {isSignUp
                 ? "Create your personal student account"
@@ -2307,7 +2553,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       <header className="flex flex-col xl:flex-row xl:items-center justify-between p-4 bg-slate-900/80 border-b border-slate-800 gap-4">
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2">
-            <span>🎓</span> Academic OS & Tracker
+            <span>🎓</span> WJ Study
           </h1>
           <p className="text-xs text-slate-400">
             PowerSchool & SchoolsBuddy AI Photo Scan, School Break Calendar, SBG Evaluation, Habit Streaks & Schedule
