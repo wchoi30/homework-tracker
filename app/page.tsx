@@ -44,6 +44,7 @@ import {
   Camera,
   Image as ImageIcon,
   Loader2,
+  Pencil,
 } from "lucide-react";
 
 // Place right below imports, before: export default function Page() { ...
@@ -1090,6 +1091,15 @@ export default function AcademicOSDashboard() {
 
   const [newClassName, setNewClassName] = useState("");
   const [newClassColor, setNewClassColor] = useState("#3B82F6");
+  const [editingClassId, setEditingClassId] = useState<string | null>(null);
+  const [editClassDraft, setEditClassDraft] = useState<{
+    name: string;
+    color: string;
+    professorName: string;
+    roomNumber: string;
+    periodCode: string;
+    officeHours: string;
+  } | null>(null);
   const [newStandardName, setNewStandardName] = useState("");
 
   // AI PowerSchool Photo Analyzer state
@@ -1124,6 +1134,7 @@ export default function AcademicOSDashboard() {
   const [newStreakName, setNewStreakName] = useState("");
   const [newStreakColor, setNewStreakColor] = useState("#3B82F6");
   const [streakWeekBaseDate, setStreakWeekBaseDate] = useState<Date>(new Date());
+  const [timetableWeekBaseDate, setTimetableWeekBaseDate] = useState<Date>(new Date());
 
   const [timetableClassId, setTimetableClassId] = useState<string>("");
   const [timetableDay, setTimetableDay] = useState<DayOfWeek>("Monday");
@@ -1401,6 +1412,87 @@ export default function AcademicOSDashboard() {
       currentIds.includes(eventId) ? currentIds : [...currentIds, eventId]
     );
     setEditingGoogleEventId(null);
+  };
+
+  // --- ORGANIZE WITH AI: match synced Google events to your classes/clubs
+  // by name so they get the right color + icon, and clean up exact duplicates ---
+  const STOPWORDS = new Set([
+    "the", "a", "an", "of", "and", "or", "to", "year", "yr", "period",
+    "advisory", "class", "course", "block",
+  ]);
+
+  const normalizeWords = (text: string) =>
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .split(" ")
+      .filter((w) => w.length > 1 && !STOPWORDS.has(w));
+
+  const nameSimilarity = (a: string, b: string) => {
+    const wordsA = new Set(normalizeWords(a));
+    const wordsB = new Set(normalizeWords(b));
+    if (wordsA.size === 0 || wordsB.size === 0) return 0;
+    let shared = 0;
+    wordsA.forEach((w) => {
+      if (wordsB.has(w)) shared += 1;
+    });
+    return shared / Math.min(wordsA.size, wordsB.size);
+  };
+
+  const organizeCalendarWithAI = () => {
+    type MatchTarget = { name: string; color: string; icon?: string };
+    const targets: MatchTarget[] = [
+      ...classes.map((c) => ({ name: c.name, color: c.color, icon: "📘" })),
+      ...clubs.map((c) => ({ name: c.name, color: c.color || "#8B5CF6", icon: c.icon || "👥" })),
+    ];
+
+    let recoloredCount = 0;
+    let dedupedCount = 0;
+
+    setGoogleCalendarEvents((currentEvents) => {
+      // 1. De-duplicate exact repeats: same title + same start date/time
+      const seen = new Set<string>();
+      const deduped = currentEvents.filter((event) => {
+        const key = `${event.title.trim().toLowerCase()}|${event.startDate}|${event.startTime ?? ""}`;
+        if (seen.has(key)) {
+          dedupedCount += 1;
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+
+      // 2. Match remaining events to a class/club by name and recolor + re-icon
+      const recolored = deduped.map((event) => {
+        let best: MatchTarget | null = null;
+        let bestScore = 0;
+        targets.forEach((target) => {
+          const score = nameSimilarity(event.title, target.name);
+          if (score > bestScore) {
+            bestScore = score;
+            best = target;
+          }
+        });
+
+        if (best && bestScore >= 0.5 && (event.color !== best.color || event.icon !== best.icon)) {
+          recoloredCount += 1;
+          return { ...event, color: best.color, icon: best.icon ?? event.icon };
+        }
+        return event;
+      });
+
+      return recolored;
+    });
+
+    setTimeout(() => {
+      if (recoloredCount === 0 && dedupedCount === 0) {
+        alert("✨ Your calendar is already organized — no changes needed.");
+      } else {
+        alert(
+          `✨ Calendar organized!\n${recoloredCount} event${recoloredCount === 1 ? "" : "s"} matched to your classes/clubs and recolored.\n${dedupedCount} duplicate event${dedupedCount === 1 ? "" : "s"} removed.`
+        );
+      }
+    }, 0);
   };
 
   const handleLogOut = async () => {
@@ -1957,6 +2049,45 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     setTasks((prev) => prev.filter((t) => t.classId !== id));
   };
 
+  const startEditClass = (cls: ClassItem) => {
+    setEditingClassId(cls.id);
+    setEditClassDraft({
+      name: cls.name,
+      color: cls.color,
+      professorName: cls.professorName ?? "",
+      roomNumber: cls.roomNumber ?? "",
+      periodCode: cls.periodCode ?? "",
+      officeHours: cls.officeHours ?? "",
+    });
+  };
+
+  const cancelEditClass = () => {
+    setEditingClassId(null);
+    setEditClassDraft(null);
+  };
+
+  const saveEditClass = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClassId || !editClassDraft) return;
+    if (!editClassDraft.name.trim()) return;
+    setClasses((prev) =>
+      prev.map((c) =>
+        c.id === editingClassId
+          ? {
+              ...c,
+              name: editClassDraft.name.trim(),
+              color: editClassDraft.color,
+              professorName: editClassDraft.professorName.trim() || undefined,
+              roomNumber: editClassDraft.roomNumber.trim() || undefined,
+              periodCode: editClassDraft.periodCode.trim() || undefined,
+              officeHours: editClassDraft.officeHours.trim() || undefined,
+            }
+          : c
+      )
+    );
+    cancelEditClass();
+  };
+
   const updateManualGrade = (classId: string, grade: string) => {
     const val =
       grade.trim() === ""
@@ -2201,6 +2332,22 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     setStreakWeekBaseDate(new Date());
   };
 
+  const prevTimetableWeek = () => {
+    setTimetableWeekBaseDate(
+      new Date(timetableWeekBaseDate.getTime() - 7 * 24 * 3600 * 1000)
+    );
+  };
+
+  const nextTimetableWeek = () => {
+    setTimetableWeekBaseDate(
+      new Date(timetableWeekBaseDate.getTime() + 7 * 24 * 3600 * 1000)
+    );
+  };
+
+  const resetTimetableWeekToToday = () => {
+    setTimetableWeekBaseDate(new Date());
+  };
+
   const addTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskTitle.trim() || classes.length === 0) return;
@@ -2359,6 +2506,112 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         : [],
     [googleCalendarEvents, zoomedCalendarDate]
   );
+  // Day-of-week + academic status for the zoomed day, so we can pull in the
+  // same weekly Timetable class sessions and club meetings the month grid shows.
+  const zoomedDayInfo = useMemo(() => {
+    if (!zoomedCalendarDate) {
+      return {
+        dayOfWeekName: null as DayOfWeek | null,
+        academicStatus: null as ReturnType<typeof getCalendarDayStatus> | null,
+      };
+    }
+    const zoomedDate = new Date(`${zoomedCalendarDate}T12:00:00`);
+    const dayOfWeekNum = zoomedDate.getDay();
+    const isWeekend = dayOfWeekNum === 0 || dayOfWeekNum === 6;
+    const dayOfWeekName = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ][dayOfWeekNum] as DayOfWeek;
+    return {
+      dayOfWeekName,
+      academicStatus: getCalendarDayStatus(zoomedCalendarDate, isWeekend),
+    };
+  }, [zoomedCalendarDate]);
+
+  const zoomedTasks = useMemo(
+    () => (zoomedCalendarDate ? tasks.filter((t) => t.dueDate === zoomedCalendarDate) : []),
+    [tasks, zoomedCalendarDate]
+  );
+
+  // Same source of truth as the "Add Class Session to Timetable" form: each
+  // class's meetingTimes. This is what keeps the Calendar day view in sync
+  // with whatever has been added on the Timetable tab.
+  const zoomedClassMeetings = useMemo(() => {
+    const { dayOfWeekName, academicStatus } = zoomedDayInfo;
+    if (!dayOfWeekName || academicStatus?.type === "break" || academicStatus?.type === "staff_only") {
+      return [] as { cls: ClassItem; slot: MeetingTime }[];
+    }
+    return classes.flatMap((cls) =>
+      (cls.meetingTimes || [])
+        .filter((mt) => mt.day === dayOfWeekName)
+        .map((slot) => ({ cls, slot }))
+    );
+  }, [classes, zoomedDayInfo]);
+
+  const zoomedClubMeetings = useMemo(() => {
+    const { dayOfWeekName, academicStatus } = zoomedDayInfo;
+    if (!dayOfWeekName || academicStatus?.type === "break" || academicStatus?.type === "staff_only") {
+      return [] as { club: ClubItem; slot: ClubMeetingTime }[];
+    }
+    return clubs.flatMap((club) => {
+      const matchingSlots = (club.meetingTimes || []).filter((mt) => mt.day === dayOfWeekName);
+      if (matchingSlots.length > 0) {
+        return matchingSlots.map((slot) => ({ club, slot }));
+      }
+      if (zoomedCalendarDate && club.attendance?.[zoomedCalendarDate]) {
+        return [{ club, slot: { day: dayOfWeekName, startTime: "", endTime: "" } }];
+      }
+      return [];
+    });
+  }, [clubs, zoomedDayInfo, zoomedCalendarDate]);
+
+  type ZoomedDayItem =
+    | { kind: "google"; sortKey: string; id: string; event: SyncedGoogleCalendarEvent }
+    | { kind: "task"; sortKey: string; id: string; task: Task }
+    | { kind: "class"; sortKey: string; id: string; cls: ClassItem; slot: MeetingTime }
+    | { kind: "club"; sortKey: string; id: string; club: ClubItem; slot: ClubMeetingTime };
+
+  // Everything on the zoomed day — Google Calendar events, tasks, Timetable
+  // class sessions, and club meetings — merged into one time-ordered list.
+  const zoomedDayItems = useMemo<ZoomedDayItem[]>(() => {
+    const items: ZoomedDayItem[] = [];
+    zoomedGoogleEvents.forEach((event) => {
+      items.push({
+        kind: "google",
+        sortKey: event.allDay ? "0000" : event.startTime || "0000",
+        id: `g-${event.id}`,
+        event,
+      });
+    });
+    zoomedTasks.forEach((task) => {
+      items.push({ kind: "task", sortKey: "0000", id: `t-${task.id}`, task });
+    });
+    zoomedClassMeetings.forEach(({ cls, slot }, idx) => {
+      items.push({
+        kind: "class",
+        sortKey: slot.startTime || "0000",
+        id: `c-${cls.id}-${idx}`,
+        cls,
+        slot,
+      });
+    });
+    zoomedClubMeetings.forEach(({ club, slot }, idx) => {
+      items.push({
+        kind: "club",
+        sortKey: slot.startTime || "0000",
+        id: `cl-${club.id}-${idx}`,
+        club,
+        slot,
+      });
+    });
+    return items.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  }, [zoomedGoogleEvents, zoomedTasks, zoomedClassMeetings, zoomedClubMeetings]);
+
   const editingGoogleEvent = googleCalendarEvents.find(
     (event) => event.id === editingGoogleEventId
   );
@@ -2553,22 +2806,22 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
   // --- RENDER AUTHENTICATED DASHBOARD ---
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col pb-20 lg:pb-6 font-sans">
+    <div className="min-h-screen overflow-x-hidden bg-slate-950 text-slate-100 flex flex-col pb-24 lg:pb-6 font-sans">
       {/* TOP HEADER */}
-      <header className="flex flex-col xl:flex-row xl:items-center justify-between p-4 bg-slate-900/80 border-b border-slate-800 gap-4">
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between px-3 py-3 sm:p-4 bg-slate-900/80 border-b border-slate-800 gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
+          <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2">
             <span>🎓</span> WJ Study
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="hidden sm:block text-xs text-slate-400">
             PowerSchool & SchoolsBuddy AI Photo Scan, School Break Calendar, SBG Evaluation, Habit Streaks & Schedule
           </p>
         </div>
 
         {/* Header Widgets */}
-        <div className="flex flex-wrap items-center gap-3 self-start xl:self-auto">
+        <div className="flex w-full lg:w-auto flex-nowrap items-center gap-2.5 overflow-x-auto pb-1 self-start lg:self-auto">
           {/* User Account & Logout */}
-          <div className="flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-lg text-xs">
+          <div className="shrink-0 flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-3 py-2 rounded-lg text-xs min-h-10">
             <Users size={14} className="text-blue-400" />
             <span className="text-slate-300 font-medium truncate max-w-[120px] sm:max-w-[200px]">
               {session?.user?.email || "Student"}
@@ -2584,7 +2837,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           </div>
 
           {/* GPA Summary */}
-          <div className="bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
+          <div className="shrink-0 bg-slate-950/80 border border-slate-800 px-3 py-2 rounded-lg flex items-center gap-2">
             <GraduationCap size={18} className="text-emerald-400" />
             <div>
               <div className="text-[9px] text-slate-400 font-bold uppercase">
@@ -2599,7 +2852,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           </div>
 
           {/* Pomodoro Timer Widget */}
-          <div className="bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-3">
+          <div className="shrink-0 bg-slate-950/80 border border-slate-800 px-3 py-2 rounded-lg flex items-center gap-3">
             <div>
               <div className="text-[9px] text-slate-400 font-bold uppercase flex items-center gap-1">
                 <Flame size={12} className="text-amber-500" /> Focus ({timerMode})
@@ -2631,7 +2884,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           </div>
 
           {/* Cloud Sync Status */}
-          <div className="bg-slate-950/80 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
+          <div className="shrink-0 bg-slate-950/80 border border-slate-800 px-2.5 py-2 rounded-lg text-xs flex items-center gap-1.5 min-h-10">
             {syncStatus === "synced" && (
               <>
                 <Cloud size={14} className="text-emerald-400" />
@@ -2661,18 +2914,18 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       </header>
 
       {/* MAIN LAYOUT GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 max-w-7xl mx-auto w-full flex-1">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 p-3 sm:p-4 max-w-7xl mx-auto w-full flex-1">
         {/* LEFT PANEL */}
         <aside
           className={`${
             mobileTab === "classes" ? "block" : "hidden"
-          } lg:block lg:col-span-4 space-y-6`}
+          } lg:block lg:col-span-4 space-y-4 sm:space-y-6`}
         >
           {/* CLASS ROSTER WITH AI POWERSCHOOL PHOTO ANALYZER */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-5 space-y-4 sm:space-y-6 shadow-sm">
             {/* Class Roster Section */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-xs font-bold text-slate-300 uppercase flex items-center gap-1.5">
                   <BookOpen size={14} className="text-blue-400" /> Class Roster
                 </h2>
@@ -2681,16 +2934,16 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 <button
                   type="button"
                   onClick={() => setShowPhotoModal(true)}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 shadow-md transition"
+                  className="shrink-0 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white px-2.5 py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-md transition min-h-9"
                   title="Scan PowerSchool Screenshot to add classes"
                 >
                   <Sparkles size={13} className="animate-pulse" />
-                  <span>AI PowerSchool Scan</span>
+                  <span className="hidden sm:inline">AI PowerSchool Scan</span>
                 </button>
               </div>
 
               {/* MANUAL CLASS ADD FORM */}
-              <form onSubmit={addClass} className="flex gap-2">
+              <form onSubmit={addClass} className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   placeholder="Class name..."
@@ -2706,7 +2959,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 />
                 <button
                   type="submit"
-                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0"
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 shrink-0 min-h-10"
                 >
                   <Plus size={14} /> Add
                 </button>
@@ -2769,6 +3022,103 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               <div className="space-y-2.5 pt-1">
                 {classes.map((cls) => {
                   const sbgGrade = calculateOverallGrade(cls.standards);
+                  const isEditing = editingClassId === cls.id;
+
+                  if (isEditing && editClassDraft) {
+                    return (
+                      <form
+                        key={cls.id}
+                        onSubmit={saveEditClass}
+                        className="p-3 rounded-xl border border-blue-500/50 bg-slate-800/80 space-y-2.5"
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={editClassDraft.color}
+                            onChange={(e) =>
+                              setEditClassDraft((prev) =>
+                                prev ? { ...prev, color: e.target.value } : prev
+                              )
+                            }
+                            className="h-8 w-8 bg-transparent cursor-pointer rounded border border-slate-700 shrink-0"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Class name"
+                            value={editClassDraft.name}
+                            onChange={(e) =>
+                              setEditClassDraft((prev) =>
+                                prev ? { ...prev, name: e.target.value } : prev
+                              )
+                            }
+                            className="flex-1 bg-slate-950 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            placeholder="Professor"
+                            value={editClassDraft.professorName}
+                            onChange={(e) =>
+                              setEditClassDraft((prev) =>
+                                prev ? { ...prev, professorName: e.target.value } : prev
+                              )
+                            }
+                            className="bg-slate-950 border border-slate-700 px-2.5 py-1.5 rounded-lg text-[11px] focus:outline-none focus:border-blue-500"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Room #"
+                            value={editClassDraft.roomNumber}
+                            onChange={(e) =>
+                              setEditClassDraft((prev) =>
+                                prev ? { ...prev, roomNumber: e.target.value } : prev
+                              )
+                            }
+                            className="bg-slate-950 border border-slate-700 px-2.5 py-1.5 rounded-lg text-[11px] focus:outline-none focus:border-blue-500"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Period code"
+                            value={editClassDraft.periodCode}
+                            onChange={(e) =>
+                              setEditClassDraft((prev) =>
+                                prev ? { ...prev, periodCode: e.target.value } : prev
+                              )
+                            }
+                            className="bg-slate-950 border border-slate-700 px-2.5 py-1.5 rounded-lg text-[11px] focus:outline-none focus:border-blue-500"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Office hours"
+                            value={editClassDraft.officeHours}
+                            onChange={(e) =>
+                              setEditClassDraft((prev) =>
+                                prev ? { ...prev, officeHours: e.target.value } : prev
+                              )
+                            }
+                            className="bg-slate-950 border border-slate-700 px-2.5 py-1.5 rounded-lg text-[11px] focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={cancelEditClass}
+                            className="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-300 hover:text-white transition"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[11px] font-bold transition"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </form>
+                    );
+                  }
+
                   return (
                     <div
                       key={cls.id}
@@ -2788,13 +3138,24 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                             {cls.name}
                           </span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => deleteClass(cls.id)}
-                          className="text-slate-500 hover:text-rose-400"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <div className="flex items-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => startEditClass(cls)}
+                            className="text-slate-500 hover:text-blue-400"
+                            title="Edit class"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteClass(cls.id)}
+                            className="text-slate-500 hover:text-rose-400"
+                            title="Delete class"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
 
                       <div className="text-[10px] text-slate-400 flex flex-wrap items-center gap-2">
@@ -2860,7 +3221,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
             {/* Clubs Section */}
             <div className="space-y-4 pt-4 border-t border-slate-800">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-xs font-bold text-slate-300 uppercase flex items-center gap-1.5">
                   <Users size={14} className="text-blue-400" /> Clubs
                 </h2>
@@ -2869,11 +3230,11 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 <button
                   type="button"
                   onClick={() => setShowClubPhotoModal(true)}
-                  className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 shadow-md transition"
+                  className="shrink-0 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-2.5 py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-md transition min-h-9"
                   title="Scan SchoolsBuddy Screenshot to add clubs"
                 >
                   <Sparkles size={13} className="animate-pulse" />
-                  <span>AI SchoolsBuddy Scan</span>
+                  <span className="hidden sm:inline">AI SchoolsBuddy Scan</span>
                 </button>
               </div>
 
@@ -2931,7 +3292,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               )}
 
               <form onSubmit={addClub} className="space-y-2">
-                <div className="flex gap-2 items-center">
+                <div className="flex flex-wrap gap-2 items-center">
                   <select
                     value={newClubIcon}
                     onChange={(e) => setNewClubIcon(e.target.value)}
@@ -2956,7 +3317,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     placeholder="Role"
                     value={newClubRole}
                     onChange={(e) => setNewClubRole(e.target.value)}
-                    className="w-16 bg-slate-950 border border-slate-800 px-2 py-1.5 rounded-lg text-xs focus:outline-none"
+                    className="w-20 sm:w-16 bg-slate-950 border border-slate-800 px-2 py-2 rounded-lg text-xs focus:outline-none min-h-10"
                   />
                   <input
                     type="color"
@@ -2969,7 +3330,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                 <div className="space-y-1.5 bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
                   <span className="text-[10px] text-slate-400 font-semibold block">Add Timeslot:</span>
-                  <div className="flex gap-1.5 items-center">
+                  <div className="flex flex-wrap gap-1.5 items-center">
                     <select
                       value={newClubMeetingDay}
                       onChange={(e) => setNewClubMeetingDay(e.target.value as DayOfWeek)}
@@ -2987,7 +3348,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       type="time"
                       value={newClubStartTime}
                       onChange={(e) => setNewClubStartTime(e.target.value)}
-                      className="w-20 bg-slate-950 border border-slate-800 px-1 py-1 rounded text-[11px] focus:outline-none text-slate-200"
+                      className="w-20 bg-slate-950 border border-slate-800 px-1.5 py-2 rounded text-[11px] focus:outline-none text-slate-200 min-h-10"
                       title="Start Time"
                     />
                     <span className="text-slate-500 text-xs">-</span>
@@ -2995,7 +3356,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       type="time"
                       value={newClubEndTime}
                       onChange={(e) => setNewClubEndTime(e.target.value)}
-                      className="w-20 bg-slate-950 border border-slate-800 px-1 py-1 rounded text-[11px] focus:outline-none text-slate-200"
+                      className="w-20 bg-slate-950 border border-slate-800 px-1.5 py-2 rounded text-[11px] focus:outline-none text-slate-200 min-h-10"
                       title="End Time"
                     />
                   </div>
@@ -3003,7 +3364,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                 <button
                   type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition mt-1"
+                  className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition mt-1 min-h-10"
                 >
                   <Plus size={14} /> Add Club
                 </button>
@@ -3178,7 +3539,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           >
             {/* Priority Banner */}
             {topPriorityTask && (
-              <div className="bg-gradient-to-r from-blue-950/80 via-slate-900 to-indigo-950/80 border border-blue-500/30 p-4 rounded-xl flex items-center justify-between gap-4">
+              <div className="bg-gradient-to-r from-blue-950/80 via-slate-900 to-indigo-950/80 border border-blue-500/30 p-3 sm:p-4 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 bg-blue-600/20 text-blue-400 rounded-lg border border-blue-500/30">
                     <Sparkles size={20} />
@@ -3196,7 +3557,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 <button
                   type="button"
                   onClick={() => setSelectedTimerTaskId(topPriorityTask.id)}
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-xs font-semibold rounded-lg text-white whitespace-nowrap transition"
+                  className="w-full sm:w-auto px-3 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-semibold rounded-lg text-white whitespace-nowrap transition min-h-10"
                 >
                   Start Focus
                 </button>
@@ -3204,7 +3565,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             )}
 
             {/* Add Task Form */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5 space-y-4 shadow-sm">
               <h2 className="text-base font-bold flex items-center gap-2">
                 <Plus size={18} className="text-blue-400" /> Quick Add
                 Assignment
@@ -3272,13 +3633,13 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             </div>
 
             {/* Task List */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5 space-y-4 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-3">
                 <h2 className="text-base font-bold flex items-center gap-2">
                   <List size={18} className="text-blue-400" /> Schedule & Tasks
                 </h2>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg p-1 text-[11px]">
+                <div className="flex w-full sm:w-auto items-center gap-2 overflow-x-auto">
+                  <div className="flex min-w-max items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg p-1 text-[11px]">
                     <Filter size={12} className="text-slate-400 ml-1" />
                     <button
                       type="button"
@@ -3328,13 +3689,13 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   return (
                     <div
                       key={task.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border transition ${
+                      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-xl border transition ${
                         task.completed
                           ? "bg-slate-950/40 border-slate-800/50 opacity-60 line-through"
                           : "bg-slate-950/80 border-slate-800"
                       }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex min-w-0 w-full items-start gap-3">
                         <button
                           type="button"
                           onClick={() => toggleTask(task.id)}
@@ -3369,7 +3730,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               </span>
                             )}
                           </div>
-                          <div className="text-[10px] text-slate-400 flex items-center gap-3 mt-0.5">
+                          <div className="text-[10px] text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
                             {task.dueDate && <span>Due: {task.dueDate}</span>}
                             <span>
                               {task.actualHours || 0}/{task.estimatedHours} hrs
@@ -3378,7 +3739,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="w-full sm:w-auto flex items-center justify-end gap-2 pl-7 sm:pl-0">
                         <select
                           value={task.score ?? ""}
                           onChange={(e) =>
@@ -3420,17 +3781,17 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 : "hidden"
             } lg:block space-y-6`}
           >
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-              <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-2">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5 space-y-4 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-3">
                 <h2 className="text-base font-bold flex items-center gap-2">
                   <LayoutDashboard size={18} className="text-blue-400" /> Academic
                   Workspace
                 </h2>
-                <div className="flex flex-wrap gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 overflow-x-auto w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={() => setActiveTab("calendar")}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
                       activeTab === "calendar"
                         ? "bg-blue-600 text-white"
                         : "text-slate-400 hover:text-slate-200"
@@ -3441,7 +3802,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   <button
                     type="button"
                     onClick={() => setActiveTab("standards")}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
                       activeTab === "standards"
                         ? "bg-blue-600 text-white"
                         : "text-slate-400 hover:text-slate-200"
@@ -3452,7 +3813,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   <button
                     type="button"
                     onClick={() => setActiveTab("streaks")}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
                       activeTab === "streaks"
                         ? "bg-blue-600 text-white shadow-md"
                         : "text-slate-400 hover:text-slate-200"
@@ -3463,7 +3824,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   <button
                     type="button"
                     onClick={() => setActiveTab("timetable")}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
                       activeTab === "timetable"
                         ? "bg-blue-600 text-white shadow-md"
                         : "text-slate-400 hover:text-slate-200"
@@ -3474,7 +3835,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   <button
                     type="button"
                     onClick={() => setActiveTab("grades")}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
                       activeTab === "grades"
                         ? "bg-blue-600 text-white"
                         : "text-slate-400 hover:text-slate-200"
@@ -3485,7 +3846,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   <button
                     type="button"
                     onClick={() => setActiveTab("simulator")}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
                       activeTab === "simulator"
                         ? "bg-blue-600 text-white shadow-md"
                         : "text-slate-400 hover:text-slate-200"
@@ -3496,7 +3857,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   <button
                     type="button"
                     onClick={() => setActiveTab("syllabus")}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
                       activeTab === "syllabus"
                         ? "bg-blue-600 text-white"
                         : "text-slate-400 hover:text-slate-200"
@@ -3509,7 +3870,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
               {/* TAB: CALENDAR WITH SCHOOL DAYS VS. BREAK DAYS */}
               {activeTab === "calendar" && (
-                <div className="space-y-4 pt-1">
+                <div className="space-y-4 pt-1 overflow-x-auto pb-1">
                   {/* Calendar Month Header & Navigation */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800 gap-3">
                     <div>
@@ -3521,7 +3882,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                    <div className="flex w-full sm:w-auto flex-wrap items-center gap-2 self-start sm:self-auto">
                       <button
                         type="button"
                         onClick={handleGoogleCalendarSync}
@@ -3536,6 +3897,16 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         )}
                         Sync from Google
                       </button>
+                      <button
+                        type="button"
+                        onClick={organizeCalendarWithAI}
+                        disabled={googleCalendarEvents.length === 0}
+                        className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+                        title="Match synced events to your classes/clubs and clean up duplicates"
+                      >
+                        <Sparkles size={14} />
+                        Organize with AI
+                      </button>
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
@@ -3548,7 +3919,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         <button
                           type="button"
                           onClick={resetToToday}
-                          className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition"
+                          className="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition min-h-10"
                         >
                           Today
                         </button>
@@ -3621,7 +3992,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   </div>
 
                   {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-1.5">
+                  <div className="grid min-w-[620px] lg:min-w-0 grid-cols-7 gap-1.5">
                     {Array.from({ length: firstDayOffset }).map((_, i) => (
                       <div
                         key={`empty-${i}`}
@@ -3683,6 +4054,16 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               }
                               return [];
                             });
+
+                      // Weekly class sessions from the Timetable tab
+                      const dayClassMeetings =
+                        academicStatus.type === "break" || academicStatus.type === "staff_only"
+                          ? []
+                          : classes.flatMap((cls) =>
+                              (cls.meetingTimes || [])
+                                .filter((mt) => mt.day === dayOfWeekName)
+                                .map((slot) => ({ cls, slot }))
+                            );
 
                       let dayBoxStyle = "bg-slate-950/80 border-slate-800/80";
                       let dayHeaderStyle = "text-slate-400";
@@ -3775,6 +4156,22 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                 title={`Task: ${t.title}`}
                               >
                                 {t.title}
+                              </div>
+                            ))}
+
+                            {dayClassMeetings.map(({ cls, slot }, idx) => (
+                              <div
+                                key={`k-${cls.id}-${idx}`}
+                                className="text-[9px] truncate px-1.5 py-0.5 rounded text-white font-semibold flex justify-between items-center"
+                                style={{ backgroundColor: `${cls.color}CC` }}
+                                title={`${cls.name} ${slot.startTime ? `(${slot.startTime}-${slot.endTime})` : ""}`}
+                              >
+                                <span className="truncate">📘 {cls.name}</span>
+                                {slot.startTime && (
+                                  <span className="text-[8px] font-mono opacity-80 shrink-0 ml-1">
+                                    {slot.startTime}
+                                  </span>
+                                )}
                               </div>
                             ))}
 
@@ -3956,7 +4353,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       <button
                         type="button"
                         onClick={resetStreakWeekToToday}
-                        className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition"
+                        className="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition min-h-10"
                       >
                         This Week
                       </button>
@@ -4115,10 +4512,60 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               )}
 
               {/* TAB: TIMETABLE */}
-              {activeTab === "timetable" && (
+              {activeTab === "timetable" && (() => {
+                const weekDates = getWeekDates(timetableWeekBaseDate);
+                const weekDateKeys = weekDates.map(formatDateKey);
+                const todayKey = formatDateKey(new Date());
+                const daysOfWeek: DayOfWeek[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+                // Google Calendar events + tasks are date-specific, so they're
+                // resolved against the selected week (Mon–Sun) rather than
+                // repeating every week like classes/clubs do.
+                const weekGoogleEvents = weekDateKeys.map((dateKey) =>
+                  googleCalendarEvents.filter((event) => googleEventOccursOnDate(event, dateKey))
+                );
+                const weekAllDayGoogleEvents = weekGoogleEvents.map((events) =>
+                  events.filter((event) => event.allDay || !event.startTime)
+                );
+                const weekTimedGoogleEvents = weekGoogleEvents.map((events) =>
+                  events.filter((event) => !event.allDay && event.startTime)
+                );
+                const weekTasks = weekDateKeys.map((dateKey) => tasks.filter((t) => t.dueDate === dateKey));
+
+                return (
                 <div className="space-y-4 pt-1 overflow-x-auto pb-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <h3 className="text-sm font-bold">Weekly Class Schedule</h3>
+                    <div>
+                      <h3 className="text-sm font-bold">Weekly Class Schedule</h3>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Week of {weekDates[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })} – {weekDates[6].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · classes &amp; clubs repeat every week; Google Calendar events &amp; tasks shown are for this week
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={prevTimetableWeek}
+                        className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 transition"
+                        title="Previous Week"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={resetTimetableWeekToToday}
+                        className="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition min-h-10"
+                      >
+                        This Week
+                      </button>
+                      <button
+                        type="button"
+                        onClick={nextTimetableWeek}
+                        className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 transition"
+                        title="Next Week"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
@@ -4216,22 +4663,58 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   <div className="min-w-[700px] border border-slate-800 rounded-xl bg-slate-950/50 flex flex-col overflow-hidden select-none">
                     <div className="grid grid-cols-8 border-b border-slate-800 bg-slate-900 text-xs font-bold text-slate-400 text-center py-2.5">
                       <div className="text-[10px] text-slate-500 flex items-center justify-center">Time</div>
-                      {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d) => (
-                        <div key={d}>{d.slice(0, 3)}</div>
+                      {daysOfWeek.map((d, i) => (
+                        <div key={d} className="flex flex-col items-center gap-0.5">
+                          <span className={weekDateKeys[i] === todayKey ? "text-blue-400" : undefined}>{d.slice(0, 3)}</span>
+                          <span className={`text-[9px] font-mono font-normal ${weekDateKeys[i] === todayKey ? "text-blue-400" : "text-slate-600"}`}>
+                            {weekDates[i].getDate()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-8 border-b border-slate-800/80 bg-slate-950/70 min-h-[38px]">
+                      <div className="p-1.5 border-r border-slate-800/80 text-[9px] font-mono text-slate-500 text-center flex items-center justify-center uppercase tracking-wide">
+                        All day
+                      </div>
+                      {daysOfWeek.map((day, dayIndex) => (
+                        <div key={day} className="p-1 border-r border-slate-800/40 space-y-1">
+                          {weekAllDayGoogleEvents[dayIndex].map((event) => (
+                            <div
+                              key={`g-allday-${event.id}`}
+                              className="px-1.5 py-0.5 rounded text-[9px] text-white font-semibold truncate flex items-center gap-1"
+                              style={{ backgroundColor: event.color }}
+                              title={event.title}
+                            >
+                              <span className="opacity-80 shrink-0">{event.icon}</span>
+                              <span className="truncate">{event.title}</span>
+                            </div>
+                          ))}
+                          {weekTasks[dayIndex].map((task) => (
+                            <div
+                              key={`task-${task.id}`}
+                              className={`px-1.5 py-0.5 rounded text-[9px] text-white font-semibold truncate ${
+                                task.type === "test" ? "bg-rose-600/90" : "bg-blue-600/90"
+                              }`}
+                              title={`Task: ${task.title}`}
+                            >
+                              {task.title}
+                            </div>
+                          ))}
+                        </div>
                       ))}
                     </div>
 
                     <div className="divide-y divide-slate-800/60 max-h-[500px] overflow-y-auto">
                       {[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((hour) => {
                         const timeLabel = `${hour.toString().padStart(2, "0")}:00`;
-                        const daysOfWeek: DayOfWeek[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
                         return (
                           <div key={hour} className="grid grid-cols-8 min-h-[50px]">
                             <div className="p-2 border-r border-slate-800/80 text-[10px] font-mono text-slate-500 text-center flex items-center justify-center bg-slate-900/30">
                               {timeLabel}
                             </div>
-                            {daysOfWeek.map((day) => {
+                            {daysOfWeek.map((day, dayIndex) => {
                               const classMatches = classes.flatMap((cls) =>
                                 (cls.meetingTimes || [])
                                   .filter((m) => {
@@ -4251,6 +4734,11 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                   })
                                   .map((m) => ({ club, meeting: m }))
                               );
+
+                              const googleMatches = weekTimedGoogleEvents[dayIndex].filter((event) => {
+                                const startHour = parseInt((event.startTime as string).split(":")[0], 10);
+                                return startHour === hour;
+                              });
 
                               return (
                                 <div key={day} className="p-1 border-r border-slate-800/40 relative space-y-1">
@@ -4292,6 +4780,22 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                       </div>
                                     </div>
                                   ))}
+
+                                  {googleMatches.map((event) => (
+                                    <div
+                                      key={`g-slot-${event.id}`}
+                                      className="p-1.5 rounded text-[10px] text-white font-semibold flex flex-col justify-between shadow-sm"
+                                      style={{ backgroundColor: event.color }}
+                                    >
+                                      <div className="font-bold truncate flex items-center gap-1">
+                                        <span>{event.icon}</span>
+                                        <span className="truncate">{event.title}</span>
+                                      </div>
+                                      <div className="text-[9px] opacity-90 font-mono">
+                                        {event.startTime}{event.endTime ? ` - ${event.endTime}` : ""}
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               );
                             })}
@@ -4301,7 +4805,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     </div>
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               {/* TAB: GRADES */}
               {activeTab === "grades" && (
@@ -4705,7 +5210,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   {zoomedDateLabel}
                 </h2>
                 <p className="mt-1 text-xs text-slate-400">
-                  {zoomedGoogleEvents.length} Google Calendar event{zoomedGoogleEvents.length === 1 ? "" : "s"}
+                  {zoomedDayItems.length} event{zoomedDayItems.length === 1 ? "" : "s"} scheduled
                 </p>
               </div>
               <button
@@ -4721,41 +5226,121 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               </button>
             </div>
 
-            {zoomedGoogleEvents.length === 0 ? (
+            {zoomedDayItems.length === 0 ? (
               <p className="py-12 text-center text-sm text-slate-500">
-                No imported Google Calendar events are scheduled for this day.
+                Nothing scheduled for this day — no Google Calendar events, classes, tasks, or club meetings.
               </p>
             ) : (
               <div className="mt-5 grid gap-5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                 <div className="space-y-2">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Events</h3>
-                  {zoomedGoogleEvents.map((event) => (
-                    <button
-                      key={event.id}
-                      type="button"
-                      onClick={() => setEditingGoogleEventId(event.id)}
-                      className={`w-full rounded-xl border p-3 text-left transition ${
-                        editingGoogleEventId === event.id
-                          ? "border-violet-400 bg-slate-800"
-                          : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <span
-                          className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white"
-                          style={{ backgroundColor: event.color }}
+                  {zoomedDayItems.map((item) => {
+                    if (item.kind === "google") {
+                      const event = item.event;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setEditingGoogleEventId(event.id)}
+                          className={`w-full rounded-xl border p-3 text-left transition ${
+                            editingGoogleEventId === event.id
+                              ? "border-violet-400 bg-slate-800"
+                              : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+                          }`}
                         >
-                          {event.icon}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-slate-100">{event.title}</span>
-                          <span className="mt-0.5 block text-xs text-slate-400">
-                            {event.allDay ? "All day" : `${event.startTime || "Time not set"}${event.endTime ? ` – ${event.endTime}` : ""}`}
+                          <div className="flex items-start gap-2">
+                            <span
+                              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white"
+                              style={{ backgroundColor: event.color }}
+                            >
+                              {event.icon}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-semibold text-slate-100">{event.title}</span>
+                              <span className="mt-0.5 block text-xs text-slate-400">
+                                {event.allDay ? "All day" : `${event.startTime || "Time not set"}${event.endTime ? ` – ${event.endTime}` : ""}`}
+                              </span>
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    }
+
+                    if (item.kind === "task") {
+                      const task = item.task;
+                      const taskClass = classes.find((c) => c.id === task.classId);
+                      return (
+                        <div
+                          key={item.id}
+                          className="w-full rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-left"
+                        >
+                          <div className="flex items-start gap-2">
+                            <span
+                              className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white ${
+                                task.type === "test" ? "bg-rose-600" : "bg-blue-600"
+                              }`}
+                            >
+                              {task.type === "test" ? "📝" : "📚"}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-semibold text-slate-100">{task.title}</span>
+                              <span className="mt-0.5 block text-xs text-slate-400">
+                                {taskClass ? `${taskClass.name} · ` : ""}{task.type === "test" ? "Test" : "Homework"}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (item.kind === "class") {
+                      const { cls, slot } = item;
+                      return (
+                        <div
+                          key={item.id}
+                          className="w-full rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-left"
+                        >
+                          <div className="flex items-start gap-2">
+                            <span
+                              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white"
+                              style={{ backgroundColor: cls.color }}
+                            >
+                              📘
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-semibold text-slate-100">{cls.name}</span>
+                              <span className="mt-0.5 block text-xs text-slate-400">
+                                Class (Timetable){slot.startTime ? ` · ${slot.startTime}${slot.endTime ? ` – ${slot.endTime}` : ""}` : ""}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    const { club, slot } = item;
+                    return (
+                      <div
+                        key={item.id}
+                        className="w-full rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-left"
+                      >
+                        <div className="flex items-start gap-2">
+                          <span
+                            className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white"
+                            style={{ backgroundColor: club.color || "#8B5CF6" }}
+                          >
+                            {club.icon || "👥"}
                           </span>
-                        </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold text-slate-100">{club.name}</span>
+                            <span className="mt-0.5 block text-xs text-slate-400">
+                              Club{slot.startTime ? ` · ${slot.startTime}${slot.endTime ? ` – ${slot.endTime}` : ""}` : ""}
+                            </span>
+                          </span>
+                        </div>
                       </div>
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {editingGoogleEvent ? (
@@ -4844,7 +5429,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   </div>
                 ) : (
                   <div className="grid place-items-center rounded-xl border border-dashed border-slate-700 p-6 text-center text-sm text-slate-500">
-                    Choose an event to customize it.
+                    Select a Google Calendar event to customize it. Classes, tasks, and club meetings are managed from their own tabs.
                   </div>
                 )}
               </div>
@@ -4854,11 +5439,11 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       )}
 
       {/* MOBILE BOTTOM NAVIGATION */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 p-2 flex justify-around items-center lg:hidden z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex justify-around items-center lg:hidden z-50 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]" style={{ minHeight: "4.25rem" }}>
         <button
           type="button"
           onClick={() => setMobileTab("classes")}
-          className={`flex flex-col items-center gap-1 p-1 text-[10px] font-semibold ${
+          className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-semibold transition ${
             mobileTab === "classes" ? "text-blue-400" : "text-slate-400"
           }`}
         >
@@ -4868,7 +5453,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         <button
           type="button"
           onClick={() => setMobileTab("tasks")}
-          className={`flex flex-col items-center gap-1 p-1 text-[10px] font-semibold ${
+          className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-semibold transition ${
             mobileTab === "tasks" ? "text-blue-400" : "text-slate-400"
           }`}
         >
@@ -4881,7 +5466,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             setMobileTab("calendar");
             setActiveTab("streaks");
           }}
-          className={`flex flex-col items-center gap-1 p-1 text-[10px] font-semibold ${
+          className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-semibold transition ${
             mobileTab === "calendar" && activeTab === "streaks" ? "text-amber-400" : "text-slate-400"
           }`}
         >
@@ -4894,7 +5479,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             setMobileTab("calendar");
             setActiveTab("calendar");
           }}
-          className={`flex flex-col items-center gap-1 p-1 text-[10px] font-semibold ${
+          className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-semibold transition ${
             mobileTab === "calendar" && activeTab === "calendar" ? "text-blue-400" : "text-slate-400"
           }`}
         >
@@ -4907,7 +5492,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             setMobileTab("timetable");
             setActiveTab("timetable");
           }}
-          className={`flex flex-col items-center gap-1 p-1 text-[10px] font-semibold ${
+          className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-semibold transition ${
             mobileTab === "timetable" ? "text-blue-400" : "text-slate-400"
           }`}
         >
