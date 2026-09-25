@@ -1030,7 +1030,7 @@ function LandingPage({
         <div>© {new Date().getFullYear()} WJ Study</div>
         <div>
           <a
-            href="https://www.privacypolicies.com/live/03a8d09b-605b-4acd-927e-5ee3a2186e07"
+            href="https://homework-tracker-six-khaki.vercel.app/privacy"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-slate-300 hover:underline transition"
