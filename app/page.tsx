@@ -1464,15 +1464,17 @@ export default function AcademicOSDashboard() {
 
       // 2. Match remaining events to a class/club by name and recolor + re-icon
       const recolored = deduped.map((event) => {
-        let best: MatchTarget | null = null;
+        let best: MatchTarget | undefined;
         let bestScore = 0;
-        targets.forEach((target) => {
+
+        // Use a for...of loop so TypeScript can correctly narrow `best` below.
+        for (const target of targets) {
           const score = nameSimilarity(event.title, target.name);
           if (score > bestScore) {
             bestScore = score;
             best = target;
           }
-        });
+        }
 
         if (best && bestScore >= 0.5 && (event.color !== best.color || event.icon !== best.icon)) {
           recoloredCount += 1;
