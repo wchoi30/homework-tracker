@@ -45,6 +45,14 @@ import {
   Image as ImageIcon,
   Loader2,
   Pencil,
+  BarChart3,
+  Brain,
+  TrendingUp,
+  CheckCircle2,
+  AlertTriangle,
+  Trophy,
+  Copy,
+  RefreshCw,
 } from "lucide-react";
 
 // Place right below imports, before: export default function Page() { ...
@@ -290,7 +298,9 @@ export type Task = {
   estimatedHours: number;
   actualHours: number;
   completed: boolean;
+  completedAt?: string;
   score?: StandardLevel;
+  xpAwarded?: boolean;
 };
 
 export type StreakHabit = {
@@ -300,6 +310,49 @@ export type StreakHabit = {
   createdAt: string;
   completedDates: Record<string, boolean>;
 };
+
+export type StudySession = {
+  id: string;
+  date: string;
+  minutes: number;
+  taskId?: string;
+};
+
+// --- GAMIFICATION ---
+const XP_PER_COMPLETED_TASK = 50;
+const XP_PER_FOCUS_SESSION = 25;
+
+function xpRequiredForLevel(level: number): number {
+  if (level <= 1) return 0;
+  const n = level - 1;
+  return 100 * n + 25 * n * (n - 1);
+}
+
+function getGamificationProgress(totalXp: number) {
+  const safeXp = Math.max(0, Math.floor(totalXp));
+  let level = 1;
+
+  while (safeXp >= xpRequiredForLevel(level + 1)) {
+    level += 1;
+    if (level > 1000) break;
+  }
+
+  const currentLevelXp = xpRequiredForLevel(level);
+  const nextLevelXp = xpRequiredForLevel(level + 1);
+  const xpIntoLevel = safeXp - currentLevelXp;
+  const xpForThisLevel = Math.max(1, nextLevelXp - currentLevelXp);
+
+  return {
+    totalXp: safeXp,
+    level,
+    currentLevelXp,
+    nextLevelXp,
+    xpIntoLevel,
+    xpForThisLevel,
+    progressPercent: Math.min(100, Math.round((xpIntoLevel / xpForThisLevel) * 100)),
+    xpToNextLevel: Math.max(0, nextLevelXp - safeXp),
+  };
+}
 
 export const CLUB_ICON_OPTIONS = ["👥", "🤖", "🏐", "⚽", "🏀", "🎨", "🎭", "🎵", "♟️", "💻", "🚀", "📖"];
 
@@ -1041,10 +1094,10 @@ function LandingPage({
 
 export default function AcademicOSDashboard() {
   const [mobileTab, setMobileTab] = useState<
-    "classes" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks"
+    "classes" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks" | "planner" | "analytics" | "clan"
   >("tasks");
   const [activeTab, setActiveTab] = useState<
-    "standards" | "calendar" | "timetable" | "grades" | "simulator" | "syllabus" | "streaks"
+    "standards" | "calendar" | "timetable" | "grades" | "simulator" | "syllabus" | "streaks" | "planner" | "analytics" | "clan"
   >("calendar");
 
   const [taskFilter, setTaskFilter] = useState<
@@ -1060,6 +1113,33 @@ export default function AcademicOSDashboard() {
   const [clubs, setClubs] = useState<ClubItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [streaks, setStreaks] = useState<StreakHabit[]>([]);
+  const [studySessions, setStudySessions] = useState<StudySession[]>([]);
+  // Gamification starts at zero for a user and then increases from new actions.
+  // We do not derive XP from pre-existing completed tasks/sessions, so importing
+  // old data or adding existing work does not give a new user free XP.
+  const [gamificationXp, setGamificationXp] = useState(0);
+
+  type ClanInfo = {
+    id: string;
+    name: string;
+    join_code: string;
+    created_by: string;
+  };
+  type ClanMember = {
+    user_id: string;
+    display_name: string;
+    study_minutes: number;
+    joined_at: string;
+  };
+
+  const [clan, setClan] = useState<ClanInfo | null>(null);
+  const [clanMembers, setClanMembers] = useState<ClanMember[]>([]);
+  const [clanLoading, setClanLoading] = useState(false);
+  const [clanMessage, setClanMessage] = useState<string | null>(null);
+  const [clanError, setClanError] = useState<string | null>(null);
+  const [clanDisplayName, setClanDisplayName] = useState("");
+  const [newClanName, setNewClanName] = useState("");
+  const [joinClanCode, setJoinClanCode] = useState("");
 
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [selectedClubId, setSelectedClubId] = useState<string>("");
@@ -1158,6 +1238,9 @@ export default function AcademicOSDashboard() {
 
   // Load user data specifically per user ID
   const loadUserData = async (currentUserId: string) => {
+    // Always begin a user session at zero until persisted XP is loaded.
+    // This prevents a previous user's XP from flashing on screen during auth changes.
+    setGamificationXp(0);
     setSyncStatus("syncing");
     try {
       const { data, error } = await supabase
@@ -1193,6 +1276,22 @@ export default function AcademicOSDashboard() {
             LEGACY_DEMO_STREAK_IDS
           )
         );
+        setStudySessions(
+          Array.isArray(data.data.studySessions)
+            ? data.data.studySessions.filter(
+                (session: any) =>
+                  session &&
+                  typeof session.id === "string" &&
+                  typeof session.date === "string" &&
+                  typeof session.minutes === "number"
+              )
+            : []
+        );
+        setGamificationXp(
+          typeof data.data.gamificationXp === "number"
+            ? Math.max(0, Math.floor(data.data.gamificationXp))
+            : 0
+        );
         setGoogleCalendarEvents(normalizeGoogleCalendarEvents(data.data.googleCalendarEvents));
         const savedHiddenGoogleEventIds = normalizeGoogleEventIds(
           data.data.hiddenGoogleEventIds
@@ -1223,6 +1322,14 @@ export default function AcademicOSDashboard() {
           safeStorageGet(`tracker_streaks_v8_${currentUserId}`, EMPTY_STREAKS),
           LEGACY_DEMO_STREAK_IDS
         );
+        const localStudySessions = safeStorageGet<StudySession[]>(
+          `tracker_study_sessions_v1_${currentUserId}`,
+          []
+        );
+        const localGamificationXp = safeStorageGet<number>(
+          `tracker_gamification_xp_v1_${currentUserId}`,
+          0
+        );
         const localGoogleCalendarEvents = normalizeGoogleCalendarEvents(
           safeStorageGet(`tracker_google_calendar_events_v1_${currentUserId}`, [])
         );
@@ -1234,6 +1341,12 @@ export default function AcademicOSDashboard() {
         setClubs(localClubs);
         setTasks(localTasks);
         setStreaks(localStreaks);
+        setStudySessions(localStudySessions);
+        setGamificationXp(
+          typeof localGamificationXp === "number"
+            ? Math.max(0, Math.floor(localGamificationXp))
+            : 0
+        );
         setGoogleCalendarEvents(localGoogleCalendarEvents);
         setGoogleCalendarEvents(
           localGoogleCalendarEvents.filter(
@@ -1248,6 +1361,234 @@ export default function AcademicOSDashboard() {
     } finally {
       setIsLoaded(true);
     }
+  };
+
+  const loadClan = async (currentUserId: string) => {
+    setClanLoading(true);
+    setClanError(null);
+    try {
+      const { data: membership, error: membershipError } = await supabase
+        .from("study_clan_members")
+        .select("clan_id, display_name, study_clans(id, name, join_code, created_by)")
+        .eq("user_id", currentUserId)
+        .maybeSingle();
+
+      if (membershipError) throw membershipError;
+
+      const clanRelation = Array.isArray(membership?.study_clans)
+        ? membership?.study_clans[0]
+        : membership?.study_clans;
+
+      if (!membership || !clanRelation) {
+        setClan(null);
+        setClanMembers([]);
+        return;
+      }
+
+      setClanDisplayName(membership.display_name || "Student");
+      setClan(clanRelation as ClanInfo);
+
+      const { data: members, error: membersError } = await supabase
+        .from("study_clan_members")
+        .select("user_id, display_name, study_minutes, joined_at")
+        .eq("clan_id", clanRelation.id)
+        .order("study_minutes", { ascending: false })
+        .order("joined_at", { ascending: true });
+
+      if (membersError) throw membersError;
+      setClanMembers((members || []) as ClanMember[]);
+    } catch (err: any) {
+      setClanError(err?.message || "Could not load clan data. Run the clan SQL setup first.");
+    } finally {
+      setClanLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userId) void loadClan(userId);
+  }, [userId]);
+
+  // Keep the clan leaderboard live. Every completed Focus session updates
+  // the member's study_minutes row in study_clan_members, which emits a
+  // Postgres Realtime UPDATE for every clan member currently online.
+  useEffect(() => {
+    if (!userId || !clan?.id) return;
+
+    const channel = supabase
+      .channel(`study-clan-live-${clan.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "study_clan_members",
+          filter: `clan_id=eq.${clan.id}`,
+        },
+        (payload) => {
+          const member = payload.new as Partial<ClanMember>;
+          if (
+            typeof member.user_id !== "string" ||
+            typeof member.display_name !== "string" ||
+            typeof member.study_minutes !== "number" ||
+            typeof member.joined_at !== "string"
+          ) {
+            return;
+          }
+
+          setClanMembers((current) => {
+            const withoutExisting = current.filter(
+              (item) => item.user_id !== member.user_id
+            );
+            return [...withoutExisting, member as ClanMember].sort(
+              (a, b) =>
+                b.study_minutes - a.study_minutes ||
+                a.joined_at.localeCompare(b.joined_at)
+            );
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "study_clan_members",
+          filter: `clan_id=eq.${clan.id}`,
+        },
+        (payload) => {
+          const member = payload.new as Partial<ClanMember>;
+          if (
+            typeof member.user_id !== "string" ||
+            typeof member.display_name !== "string" ||
+            typeof member.study_minutes !== "number" ||
+            typeof member.joined_at !== "string"
+          ) {
+            return;
+          }
+
+          setClanMembers((current) =>
+            current
+              .map((item) =>
+                item.user_id === member.user_id
+                  ? { ...item, ...member, study_minutes: member.study_minutes as number }
+                  : item
+              )
+              .sort(
+                (a, b) =>
+                  b.study_minutes - a.study_minutes ||
+                  a.joined_at.localeCompare(b.joined_at)
+              )
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "study_clan_members",
+          filter: `clan_id=eq.${clan.id}`,
+        },
+        (payload) => {
+          const member = payload.old as Partial<ClanMember>;
+          if (typeof member.user_id !== "string") return;
+
+          setClanMembers((current) =>
+            current.filter((item) => item.user_id !== member.user_id)
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, clan?.id]);
+
+  const createClan = async () => {
+    if (!userId || !newClanName.trim() || !clanDisplayName.trim()) return;
+    setClanLoading(true);
+    setClanError(null);
+    setClanMessage(null);
+    try {
+      const { data, error } = await supabase.rpc("create_study_clan", {
+        p_name: newClanName.trim(),
+        p_display_name: clanDisplayName.trim(),
+      });
+      if (error) throw error;
+      setNewClanName("");
+      setClanMessage("Clan created! Share the join code with your friends.");
+      await loadClan(userId);
+      return data;
+    } catch (err: any) {
+      setClanError(err?.message || "Could not create the clan.");
+    } finally {
+      setClanLoading(false);
+    }
+  };
+
+  const joinClan = async () => {
+    if (!userId || !joinClanCode.trim() || !clanDisplayName.trim()) return;
+    setClanLoading(true);
+    setClanError(null);
+    setClanMessage(null);
+    try {
+      const { error } = await supabase.rpc("join_study_clan", {
+        p_join_code: joinClanCode.trim().toUpperCase(),
+        p_display_name: clanDisplayName.trim(),
+      });
+      if (error) throw error;
+      setJoinClanCode("");
+      setClanMessage("You joined the clan.");
+      await loadClan(userId);
+    } catch (err: any) {
+      setClanError(err?.message || "Could not join that clan.");
+    } finally {
+      setClanLoading(false);
+    }
+  };
+
+  const leaveClan = async () => {
+    if (!userId || !clan) return;
+    if (!window.confirm(`Leave “${clan.name}”?`)) return;
+    setClanLoading(true);
+    try {
+      const { error } = await supabase
+        .from("study_clan_members")
+        .delete()
+        .eq("clan_id", clan.id)
+        .eq("user_id", userId);
+      if (error) throw error;
+      setClan(null);
+      setClanMembers([]);
+      setClanMessage("You left the clan.");
+    } catch (err: any) {
+      setClanError(err?.message || "Could not leave the clan.");
+    } finally {
+      setClanLoading(false);
+    }
+  };
+
+  const copyClanCode = async () => {
+    if (!clan?.join_code) return;
+    try {
+      await navigator.clipboard.writeText(clan.join_code);
+      setClanMessage("Join code copied.");
+    } catch {
+      setClanMessage(`Join code: ${clan.join_code}`);
+    }
+  };
+
+  const recordClanStudySession = (sessionId: string, minutes: number) => {
+    if (!clan || !userId || minutes <= 0) return;
+    void (async () => {
+      const { error } = await supabase.rpc("record_clan_study_session", {
+        p_clan_id: clan.id,
+        p_session_id: sessionId,
+        p_minutes: Math.min(60, Math.round(minutes)),
+      });
+      if (!error) await loadClan(userId);
+    })();
   };
 
   // Auth Functions
@@ -1506,6 +1847,8 @@ export default function AcademicOSDashboard() {
     setClubs([]);
     setTasks([]);
     setStreaks([]);
+    setStudySessions([]);
+    setGamificationXp(0);
     setGoogleCalendarEvents([]);
     setHiddenGoogleEventIds([]);
     setCalendarSyncState("idle");
@@ -1534,6 +1877,8 @@ export default function AcademicOSDashboard() {
       setClubs([]);
       setTasks([]);
       setStreaks([]);
+      setStudySessions([]);
+      setGamificationXp(0);
       setGoogleCalendarEvents([]);
       setHiddenGoogleEventIds([]);
       setCalendarSyncState("idle");
@@ -1593,6 +1938,18 @@ useEffect(() => {
                   LEGACY_DEMO_STREAK_IDS
                 )
               );
+            if (Array.isArray(payload.new.data.studySessions))
+              setStudySessions(
+                payload.new.data.studySessions.filter(
+                  (session: any) =>
+                    session &&
+                    typeof session.id === "string" &&
+                    typeof session.date === "string" &&
+                    typeof session.minutes === "number"
+                )
+              );
+            if (typeof payload.new.data.gamificationXp === "number")
+              setGamificationXp(Math.max(0, Math.floor(payload.new.data.gamificationXp)));
             const updatedHiddenGoogleEventIds = normalizeGoogleEventIds(
               payload.new.data.hiddenGoogleEventIds
             );
@@ -1622,6 +1979,8 @@ useEffect(() => {
   localStorage.setItem(`tracker_clubs_v8_${userId}`, JSON.stringify(clubs));
   localStorage.setItem(`tracker_tasks_v8_${userId}`, JSON.stringify(tasks));
   localStorage.setItem(`tracker_streaks_v8_${userId}`, JSON.stringify(streaks));
+  localStorage.setItem(`tracker_study_sessions_v1_${userId}`, JSON.stringify(studySessions));
+  localStorage.setItem(`tracker_gamification_xp_v1_${userId}`, JSON.stringify(gamificationXp));
   localStorage.setItem(
     `tracker_google_calendar_events_v1_${userId}`,
     JSON.stringify(googleCalendarEvents)
@@ -1642,6 +2001,8 @@ useEffect(() => {
             clubs,
             tasks,
             streaks,
+            studySessions,
+            gamificationXp,
             googleCalendarEvents,
             hiddenGoogleEventIds,
           },
@@ -1667,6 +2028,8 @@ useEffect(() => {
   clubs,
   tasks,
   streaks,
+  studySessions,
+  gamificationXp,
   googleCalendarEvents,
   hiddenGoogleEventIds,
   isLoaded,
@@ -1883,6 +2246,169 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     return result;
   }, [tasks, taskFilter, taskSort]);
 
+  const gamification = useMemo(() => {
+    const completedTasks = tasks.filter((task) => task.completed).length;
+    const focusSessions = studySessions.length;
+
+    return {
+      ...getGamificationProgress(gamificationXp),
+      completedTasks,
+      focusSessions,
+    };
+  }, [gamificationXp, tasks, studySessions]);
+
+  const analytics = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const totalStudyHours = studySessions.reduce((sum, session) => sum + session.minutes / 60, 0);
+    const totalEstimatedHours = tasks.reduce((sum, task) => sum + (task.estimatedHours || 0), 0);
+    const completedTaskCount = tasks.filter((task) => task.completed).length;
+    const pendingTaskCount = tasks.filter((task) => !task.completed).length;
+    const missedDeadlineTasks = tasks.filter((task) => {
+      if (task.completed || !task.dueDate) return false;
+      const due = new Date(`${task.dueDate}T23:59:59`);
+      return !Number.isNaN(due.getTime()) && due.getTime() < Date.now();
+    });
+
+    const classStudy = classes.map((cls) => {
+      // Analytics should reflect completed focus sessions, not estimated/planned
+      // task time. This prevents unfinished homework from looking like study time.
+      const hours = studySessions
+        .filter((session) => session.taskId)
+        .filter((session) => {
+          const task = tasks.find((candidate) => candidate.id === session.taskId);
+          return task?.classId === cls.id;
+        })
+        .reduce((sum, session) => sum + session.minutes / 60, 0);
+      const grade = cls.manualGrade
+        ? parseGradeToPoints(cls.manualGrade)
+        : calculateOverallGrade(cls.standards).gpa;
+      return {
+        id: cls.id,
+        name: cls.name,
+        color: cls.color,
+        hours,
+        grade: grade ?? 0,
+        letter: grade && grade > 0 ? pointsToLetter(grade) : "N/A",
+      };
+    }).sort((a, b) => b.hours - a.hours);
+
+    const last7Days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (6 - index));
+      const key = formatDateKey(date);
+      const minutes = studySessions
+        .filter((session) => session.date === key)
+        .reduce((sum, session) => sum + session.minutes, 0);
+      const completed = tasks.filter((task) => task.completedAt?.slice(0, 10) === key).length;
+      return {
+        key,
+        label: date.toLocaleDateString(undefined, { weekday: "short" }),
+        minutes,
+        hours: Number((minutes / 60).toFixed(1)),
+        completed,
+      };
+    });
+
+    const streakAnalytics = streaks.map((habit) => ({
+      id: habit.id,
+      name: habit.name,
+      current: calculateCurrentStreak(habit.completedDates),
+      best: calculateBestStreak(habit.completedDates),
+      color: habit.color,
+    })).sort((a, b) => b.current - a.current);
+
+    const weeklyGoalHours = 10;
+    const weekHours = last7Days.reduce((sum, day) => sum + day.hours, 0);
+    const weekCompleted = last7Days.reduce((sum, day) => sum + day.completed, 0);
+
+    return {
+      totalStudyHours,
+      totalEstimatedHours,
+      completedTaskCount,
+      pendingTaskCount,
+      missedDeadlineTasks,
+      classStudy,
+      last7Days,
+      streakAnalytics,
+      weeklyGoalHours,
+      weekHours,
+      weekCompleted,
+      completionRate: tasks.length ? completedTaskCount / tasks.length : 0,
+      todayLabel: today.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    };
+  }, [classes, tasks, studySessions, streaks]);
+
+  const aiStudyPlan = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const pending = tasks
+      .filter((task) => !task.completed)
+      .map((task) => {
+        const due = task.dueDate ? new Date(`${task.dueDate}T23:59:59`) : null;
+        const daysUntil = due && !Number.isNaN(due.getTime())
+          ? Math.ceil((due.getTime() - today.getTime()) / (1000 * 3600 * 24))
+          : 14;
+        // Only plan time that is actually left. A finished amount of work never
+        // becomes a fake 30-minute block just because the task is still open.
+        const remainingHours = Math.max(0, Number(((task.estimatedHours || 0) - (task.actualHours || 0)).toFixed(2)));
+        const urgency = task.type === "test" ? 18 : 0;
+        const dueScore = daysUntil <= 0 ? 60 : daysUntil <= 1 ? 50 : daysUntil <= 3 ? 40 : daysUntil <= 7 ? 25 : 10;
+        const effortScore = Math.min(20, remainingHours * 4);
+        return { task, daysUntil, remainingHours, priority: urgency + dueScore + effortScore };
+      })
+      .filter((item) => item.remainingHours > 0)
+      .sort((a, b) => b.priority - a.priority || a.daysUntil - b.daysUntil);
+
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() + index);
+      const key = formatDateKey(date);
+      const capacity = date.getDay() === 0 || date.getDay() === 6 ? 3 : 2.5;
+      return {
+        date,
+        key,
+        label: date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }),
+        capacity,
+        remaining: capacity,
+        items: [] as Array<{ taskId: string; title: string; className: string; minutes: number; reason: string }>,
+      };
+    });
+
+    for (const item of pending) {
+      let remainingMinutes = Math.ceil(item.remainingHours * 60 / 30) * 30;
+      for (const day of days) {
+        if (remainingMinutes <= 0) break;
+        if (item.daysUntil < 0 && day.date.getTime() > today.getTime()) continue;
+        const alloc = Math.min(remainingMinutes, Math.floor(day.remaining * 60 / 30) * 30);
+        if (alloc <= 0) continue;
+        const cls = classes.find((c) => c.id === item.task.classId);
+        day.items.push({
+          taskId: item.task.id,
+          title: item.task.title,
+          className: cls?.name || "General",
+          minutes: alloc,
+          reason: item.task.type === "test" ? "Exam priority" : item.daysUntil <= 2 ? "Due soon" : "Balance workload",
+        });
+        day.remaining = Math.max(0, day.remaining - alloc / 60);
+        remainingMinutes -= alloc;
+      }
+    }
+
+    const totalScheduledMinutes = days.reduce(
+      (sum, day) => sum + day.items.reduce((inner, item) => inner + item.minutes, 0),
+      0
+    );
+    const unscheduledTasks = pending.filter((item) => !days.some((day) => day.items.some((entry) => entry.taskId === item.task.id)));
+
+    return {
+      days,
+      totalScheduledMinutes,
+      unscheduledTasks,
+      pendingCount: pending.length,
+    };
+  }, [tasks, classes]);
+
   const existingTestCount = useMemo(() => {
     if (!activeClass || !activeClass.standards) return 0;
     return activeClass.standards.reduce(
@@ -1998,6 +2524,18 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     : t
                 )
               );
+              const completedSessionId = `session-${Date.now()}`;
+              setStudySessions((prevSessions) => [
+                ...prevSessions,
+                {
+                  id: completedSessionId,
+                  date: formatDateKey(new Date()),
+                  minutes: 25,
+                  taskId: selectedTimerTaskId,
+                },
+              ]);
+              recordClanStudySession(completedSessionId, 25);
+              setGamificationXp((prevXp) => prevXp + XP_PER_FOCUS_SESSION);
             }
             setTimerMode("break");
             return 5 * 60;
@@ -2019,6 +2557,23 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       return;
     }
     setIsTimerRunning((prev) => !prev);
+  };
+
+  // Start a fresh work session for a specific task.
+  // This is used by the planner and the recommended-focus card so
+  // the button actually starts the timer instead of only selecting a task.
+  const startFocusForTask = (taskId: string) => {
+    if (!taskId) return;
+    const taskExists = tasks.some((task) => task.id === taskId && !task.completed);
+    if (!taskExists) return;
+
+    setSelectedTimerTaskId(taskId);
+    setTimerMode("work");
+    setTimeLeft(25 * 60);
+    setIsTimerRunning(true);
+    // The timer lives in the focus/tasks experience on mobile, so explicitly
+    // switch there instead of leaving the user on the planner screen.
+    setMobileTab("tasks");
   };
 
   const resetTimer = () => {
@@ -2371,12 +2926,34 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     setTaskDueDate("");
   };
 
-  const toggleTask = (id: string) =>
+  const toggleTask = (id: string) => {
+    const target = tasks.find((task) => task.id === id);
+    if (!target) return;
+
+    const completing = !target.completed;
     setTasks((prev) =>
-      prev.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
+      prev.map((task) => {
+        if (task.id !== id) return task;
+        return {
+          ...task,
+          completed: completing,
+          completedAt: completing ? new Date().toISOString() : undefined,
+          // Award completion XP only once for this task. Pre-existing completed
+          // tasks have no xpAwarded flag and therefore do not grant XP at startup.
+          xpAwarded: completing ? (task.xpAwarded ?? false) : task.xpAwarded,
+        };
+      })
     );
+
+    if (completing && !target.xpAwarded) {
+      setGamificationXp((prevXp) => prevXp + XP_PER_COMPLETED_TASK);
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === id ? { ...task, xpAwarded: true } : task
+        )
+      );
+    }
+  };
 
   const deleteTask = (id: string) => {
     setTasks((prev) => prev.filter((t) => t.id !== id));
@@ -2816,7 +3393,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             <span>🎓</span> WJ Study
           </h1>
           <p className="hidden sm:block text-xs text-slate-400">
-            PowerSchool & SchoolsBuddy AI Photo Scan, School Break Calendar, SBG Evaluation, Habit Streaks & Schedule
+            PowerSchool & SchoolsBuddy AI Photo Scan, School Break Calendar, SBG Evaluation, Habit Streaks, XP & Schedule
           </p>
         </div>
 
@@ -2853,36 +3430,82 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             </div>
           </div>
 
-          {/* Pomodoro Timer Widget */}
-          <div className="shrink-0 bg-slate-950/80 border border-slate-800 px-3 py-2 rounded-lg flex items-center gap-3">
-            <div>
-              <div className="text-[9px] text-slate-400 font-bold uppercase flex items-center gap-1">
-                <Flame size={12} className="text-amber-500" /> Focus ({timerMode})
+          {/* XP / LEVEL WIDGET */}
+          <div className="shrink-0 min-w-[250px] rounded-xl border border-violet-500/20 bg-slate-950/90 px-3.5 py-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-400">
+                  <Award size={14} className="text-violet-400" /> Level {gamification.level}
+                </div>
+                <div className="mt-0.5 text-sm font-extrabold text-white">
+                  {gamification.totalXp.toLocaleString()} XP
+                </div>
               </div>
-              <div className="text-sm font-mono font-bold text-blue-400">
-                {Math.floor(timeLeft / 60)}:
-                {timeLeft % 60 < 10 ? "0" : ""}
-                {timeLeft % 60}
+              <div className="text-right text-[9px] text-slate-500">
+                <div>{gamification.xpToNextLevel} XP to Lv. {gamification.level + 1}</div>
+                <div>{gamification.completedTasks} tasks · {gamification.focusSessions} focus</div>
               </div>
             </div>
-            <div className="flex gap-1">
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-violet-500 transition-all duration-500"
+                style={{ width: `${gamification.progressPercent}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Pomodoro Timer Widget */}
+          <div className="shrink-0 min-w-[220px] bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1.5">
+                <Flame size={14} className="text-amber-500" /> Focus ({timerMode === "work" ? "Work" : "Break"})
+              </div>
+              <div className="mt-0.5 text-2xl sm:text-xl leading-none font-mono font-extrabold tracking-tight text-blue-400">
+                {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:{String(timeLeft % 60).padStart(2, "0")}
+              </div>
+            </div>
+            <div className="flex shrink-0 gap-1.5">
               <button
                 type="button"
                 onClick={toggleTimer}
-                className="p-1 bg-blue-600 hover:bg-blue-500 text-white rounded transition"
+                className="grid h-10 w-10 place-items-center bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition"
                 title={isTimerRunning ? "Pause" : "Start"}
+                aria-label={isTimerRunning ? "Pause focus timer" : "Start focus timer"}
               >
-                {isTimerRunning ? <Pause size={12} /> : <Play size={12} />}
+                {isTimerRunning ? <Pause size={15} /> : <Play size={15} />}
               </button>
               <button
                 type="button"
                 onClick={resetTimer}
-                className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded transition"
+                className="grid h-10 w-10 place-items-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
                 title="Reset"
+                aria-label="Reset focus timer"
               >
-                <RotateCcw size={12} />
+                <RotateCcw size={15} />
               </button>
             </div>
+          </div>
+
+          {/* Focus Target Selector — kept beside the timer for quick access */}
+          <div className="shrink-0 min-w-[275px] bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl">
+            <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1.5 mb-1.5">
+              <Clock size={14} className="text-blue-400" /> Focus Target
+            </div>
+            <select
+              value={selectedTimerTaskId}
+              onChange={(e) => setSelectedTimerTaskId(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-800 px-2.5 py-2 rounded-lg text-xs sm:text-[11px] font-semibold text-white focus:outline-none focus:border-blue-500"
+              aria-label="Focus target task"
+            >
+              <option value="">-- Choose a task --</option>
+              {tasks
+                .filter((t) => !t.completed)
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    [{t.type.toUpperCase()}] {t.title}
+                  </option>
+                ))}
+            </select>
           </div>
 
           {/* Cloud Sync Status */}
@@ -3509,26 +4132,6 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             </div>
           </div>
 
-          {/* TIMER TARGET PICKER */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
-            <h3 className="text-xs font-bold text-slate-300 uppercase flex items-center gap-1.5">
-              <Clock size={14} className="text-blue-400" /> Focus Target
-            </h3>
-            <select
-              value={selectedTimerTaskId}
-              onChange={(e) => setSelectedTimerTaskId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:border-blue-500"
-            >
-              <option value="">-- Choose Focus Task --</option>
-              {tasks
-                .filter((t) => !t.completed)
-                .map((t) => (
-                  <option key={t.id} value={t.id}>
-                    [{t.type.toUpperCase()}] {t.title}
-                  </option>
-                ))}
-            </select>
-          </div>
         </aside>
 
         {/* CENTER / MAIN PANEL */}
@@ -3539,6 +4142,44 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               mobileTab === "tasks" ? "block" : "hidden"
             } lg:block space-y-6`}
           >
+            {/* MOBILE FOCUS TIMER */}
+            <div className="lg:hidden rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-600/10 via-slate-900 to-slate-950 p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-blue-300">
+                    <Clock size={14} /> {timerMode === "work" ? "Focus" : "Break"}
+                  </div>
+                  <div className="mt-1 truncate text-sm font-semibold text-white">
+                    {selectedTimerTaskId
+                      ? tasks.find((task) => task.id === selectedTimerTaskId)?.title || "Focus session"
+                      : "Choose a task to start focusing"}
+                  </div>
+                </div>
+                <div className="shrink-0 font-mono text-2xl font-extrabold text-blue-400">
+                  {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:{String(timeLeft % 60).padStart(2, "0")}
+                </div>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={toggleTimer}
+                  disabled={!selectedTimerTaskId}
+                  className="flex-1 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {isTimerRunning ? <Pause size={14} /> : <Play size={14} />}
+                  {isTimerRunning ? "Pause" : "Start focus"}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetTimer}
+                  className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-700 px-3 text-slate-300 transition hover:bg-slate-800"
+                  aria-label="Reset focus timer"
+                >
+                  <RotateCcw size={14} />
+                </button>
+              </div>
+            </div>
+
             {/* Priority Banner */}
             {topPriorityTask && (
               <div className="bg-gradient-to-r from-blue-950/80 via-slate-900 to-indigo-950/80 border border-blue-500/30 p-3 sm:p-4 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
@@ -3558,7 +4199,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setSelectedTimerTaskId(topPriorityTask.id)}
+                  onClick={() => startFocusForTask(topPriorityTask.id)}
                   className="w-full sm:w-auto px-3 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-semibold rounded-lg text-white whitespace-nowrap transition min-h-10"
                 >
                   Start Focus
@@ -3778,7 +4419,10 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               mobileTab === "timetable" ||
               mobileTab === "ai" ||
               mobileTab === "simulator" ||
-              mobileTab === "streaks"
+              mobileTab === "streaks" ||
+              mobileTab === "planner" ||
+              mobileTab === "analytics" ||
+              mobileTab === "clan"
                 ? "block"
                 : "hidden"
             } lg:block space-y-6`}
@@ -3867,8 +4511,389 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   >
                     <Upload size={13} /> Syllabus
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("planner");
+                      setMobileTab("planner");
+                    }}
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
+                      activeTab === "planner"
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <Brain size={13} /> AI Planner
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("analytics");
+                      setMobileTab("analytics");
+                    }}
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
+                      activeTab === "analytics"
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <BarChart3 size={13} /> Analytics
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("clan");
+                      setMobileTab("clan");
+                    }}
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
+                      activeTab === "clan"
+                        ? "bg-violet-600 text-white shadow-md"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <Trophy size={13} /> Clan
+                  </button>
                 </div>
               </div>
+
+              {/* TAB: CLAN */}
+              {activeTab === "clan" && (
+                <div className="space-y-4 pt-1">
+                  <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-600/10 via-slate-950 to-slate-950 p-4 sm:p-5">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 text-sm font-bold text-white">
+                          <Trophy size={18} className="text-violet-400" /> Study Clan
+                        </div>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                          Join a clan and compete on actual study time recorded by Focus sessions.
+                        </p>
+                      </div>
+                      {clan && (
+                        <div className="rounded-xl border border-violet-500/20 bg-slate-950/70 px-4 py-3 text-center">
+                          <div className="text-[10px] uppercase tracking-wider text-slate-500">Your rank</div>
+                          <div className="text-2xl font-extrabold text-violet-300">
+                            #{Math.max(1, clanMembers.findIndex((member) => member.user_id === userId) + 1)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {clanMessage && (
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs text-emerald-300">{clanMessage}</div>
+                  )}
+                  {clanError && (
+                    <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 px-4 py-3 text-xs text-rose-300">{clanError}</div>
+                  )}
+
+                  {!clan ? (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3">
+                        <div className="text-sm font-bold text-white">Create a clan</div>
+                        <input
+                          value={newClanName}
+                          onChange={(e) => setNewClanName(e.target.value)}
+                          placeholder="Clan name"
+                          className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5 text-sm text-white outline-none focus:border-violet-500"
+                        />
+                        <input
+                          value={clanDisplayName}
+                          onChange={(e) => setClanDisplayName(e.target.value)}
+                          placeholder="Your display name"
+                          className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5 text-sm text-white outline-none focus:border-violet-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={createClan}
+                          disabled={clanLoading || !newClanName.trim() || !clanDisplayName.trim()}
+                          className="w-full rounded-lg bg-violet-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <span className="inline-flex items-center justify-center gap-2"><Trophy size={15} /> Create clan</span>
+                        </button>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3">
+                        <div className="text-sm font-bold text-white">Join a clan</div>
+                        <input
+                          value={joinClanCode}
+                          onChange={(e) => setJoinClanCode(e.target.value.toUpperCase())}
+                          placeholder="6-character join code"
+                          maxLength={6}
+                          className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5 text-sm font-mono uppercase text-white outline-none focus:border-violet-500"
+                        />
+                        <input
+                          value={clanDisplayName}
+                          onChange={(e) => setClanDisplayName(e.target.value)}
+                          placeholder="Your display name"
+                          className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5 text-sm text-white outline-none focus:border-violet-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={joinClan}
+                          disabled={clanLoading || joinClanCode.trim().length < 6 || !clanDisplayName.trim()}
+                          className="w-full rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2.5 text-sm font-semibold text-violet-300 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <span className="inline-flex items-center justify-center gap-2"><UserPlus size={15} /> Join clan</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <div className="text-lg font-extrabold text-white truncate">{clan.name}</div>
+                            <div className="mt-1 text-xs text-slate-500">Share this code with classmates to join.</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 px-3 py-2 font-mono text-sm font-bold tracking-widest text-violet-300">{clan.join_code}</div>
+                            <button type="button" onClick={copyClanCode} className="rounded-lg border border-slate-800 bg-slate-900 p-2.5 text-slate-300 hover:text-white" title="Copy join code"><Copy size={15} /></button>
+                            <button type="button" onClick={() => userId && loadClan(userId)} className="rounded-lg border border-slate-800 bg-slate-900 p-2.5 text-slate-300 hover:text-white" title="Refresh leaderboard"><RefreshCw size={15} /></button>
+                            <button type="button" onClick={leaveClan} className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-2.5 text-rose-300 hover:bg-rose-500/10" title="Leave clan"><LogOut size={15} /></button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden">
+                        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+                          <div className="flex items-center gap-2 text-sm font-bold text-white"><Trophy size={16} className="text-amber-400" /> Study leaderboard</div>
+                          <div className="text-[10px] uppercase tracking-wider text-slate-500">All-time</div>
+                        </div>
+                        <div className="divide-y divide-slate-800/70">
+                          {clanMembers.map((member, index) => (
+                            <div key={member.user_id} className={`flex items-center gap-3 px-4 py-3 ${member.user_id === userId ? "bg-violet-500/5" : ""}`}>
+                              <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-extrabold ${index === 0 ? "bg-amber-500/15 text-amber-300" : index === 1 ? "bg-slate-700/40 text-slate-200" : index === 2 ? "bg-orange-500/10 text-orange-300" : "bg-slate-900 text-slate-500"}`}>{index + 1}</div>
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-sm font-semibold text-slate-100">{member.display_name}{member.user_id === userId ? " (You)" : ""}</div>
+                                <div className="mt-0.5 text-[10px] text-slate-500">Focus time</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-extrabold text-violet-300">{(member.study_minutes / 60).toFixed(1)}h</div>
+                                <div className="text-[10px] text-slate-500">{member.study_minutes} min</div>
+                              </div>
+                            </div>
+                          ))}
+                          {clanMembers.length === 0 && <div className="px-4 py-8 text-center text-sm text-slate-500">No members yet.</div>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB: AI STUDY PLANNER */}
+              {activeTab === "planner" && (
+                <div className="space-y-4 pt-1">
+                  <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-600/10 via-slate-950 to-slate-950 p-4 sm:p-5">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 text-sm font-bold text-white">
+                          <Brain size={18} className="text-blue-400" /> AI Study Planner
+                        </div>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                          Builds a 7-day plan from work that still has time remaining, deadlines, tests, and time already logged. Planned time is not counted as completed study time.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-center sm:min-w-44">
+                        <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2">
+                          <div className="text-lg font-extrabold text-white">{aiStudyPlan.pendingCount}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">Tasks</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2">
+                          <div className="text-lg font-extrabold text-blue-400">{(aiStudyPlan.totalScheduledMinutes / 60).toFixed(1)}h</div>
+                          <div className="text-[10px] text-slate-500 uppercase">Planned time</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {aiStudyPlan.days.map((day, index) => {
+                      const plannedMinutes = day.items.reduce((sum, item) => sum + item.minutes, 0);
+                      const percent = day.capacity ? Math.min(100, plannedMinutes / (day.capacity * 60) * 100) : 0;
+                      return (
+                        <div key={day.key} className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-bold text-white">{index === 0 ? "Today" : day.label}</div>
+                              <div className="mt-0.5 text-[11px] text-slate-500">{plannedMinutes ? `${(plannedMinutes / 60).toFixed(1)}h planned` : "Open study time"}</div>
+                            </div>
+                            <span className="rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold text-slate-400">{day.items.length} block{day.items.length === 1 ? "" : "s"}</span>
+                          </div>
+                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-900">
+                            <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${percent}%` }} />
+                          </div>
+                          <div className="mt-3 space-y-2">
+                            {day.items.length === 0 ? (
+                              <div className="rounded-xl border border-dashed border-slate-800 p-3 text-xs text-slate-500">
+                                Use this as catch-up, review, or rest time.
+                              </div>
+                            ) : day.items.map((item) => (
+                              <div key={`${day.key}-${item.taskId}`} className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <div className="truncate text-xs font-semibold text-white">{item.title}</div>
+                                    <div className="mt-0.5 truncate text-[10px] text-slate-500">{item.className} · {item.reason}</div>
+                                  </div>
+                                  <span className="shrink-0 text-xs font-bold text-blue-400">{item.minutes}m</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => startFocusForTask(item.taskId)}
+                                  className="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-blue-500/20 bg-blue-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-blue-300 transition hover:bg-blue-500/20"
+                                >
+                                  <Play size={12} /> Start focus on this task
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {aiStudyPlan.unscheduledTasks.length > 0 && (
+                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+                      <div className="flex items-center gap-2 text-xs font-bold text-amber-300"><AlertTriangle size={14} /> Some work does not fit in the next 7 days</div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {aiStudyPlan.unscheduledTasks.map((item) => (
+                          <span key={item.task.id} className="rounded-full border border-amber-500/20 bg-slate-950 px-2.5 py-1 text-[10px] text-slate-300">{item.task.title}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB: STUDY ANALYTICS */}
+              {activeTab === "analytics" && (
+                <div className="space-y-4 pt-1">
+                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Study time</div>
+                      <div className="mt-1 text-2xl font-extrabold text-blue-400">{analytics.totalStudyHours.toFixed(1)}h</div>
+                      <div className="mt-1 text-[10px] text-slate-500">tracked focus sessions</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Task completion</div>
+                      <div className="mt-1 text-2xl font-extrabold text-emerald-400">{Math.round(analytics.completionRate * 100)}%</div>
+                      <div className="mt-1 text-[10px] text-slate-500">{analytics.completedTaskCount} of {tasks.length}</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">This week</div>
+                      <div className="mt-1 text-2xl font-extrabold text-violet-400">{analytics.weekHours.toFixed(1)}h</div>
+                      <div className="mt-1 text-[10px] text-slate-500">{analytics.weekCompleted} completed</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Missed deadlines</div>
+                      <div className="mt-1 text-2xl font-extrabold text-rose-400">{analytics.missedDeadlineTasks.length}</div>
+                      <div className="mt-1 text-[10px] text-slate-500">unfinished past due</div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="flex items-center gap-2 text-sm font-bold text-white"><TrendingUp size={16} className="text-blue-400" /> Weekly study time</h3>
+                          <p className="mt-0.5 text-[10px] text-slate-500">Focus sessions recorded by the app</p>
+                        </div>
+                        <span className="text-xs font-semibold text-slate-400">Goal {analytics.weeklyGoalHours}h</span>
+                      </div>
+                      <div className="mt-5 flex h-40 items-end gap-2">
+                        {analytics.last7Days.map((day) => {
+                          const height = Math.max(6, Math.min(100, day.hours / 3 * 100));
+                          return (
+                            <div key={day.key} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1">
+                              <span className="text-[10px] font-semibold text-slate-400">{day.hours ? `${day.hours}h` : ""}</span>
+                              <div className="w-full max-w-10 rounded-t-lg bg-slate-900" style={{ height: `${height}%` }}>
+                                <div className="h-full w-full rounded-t-lg bg-blue-500/70" />
+                              </div>
+                              <span className="text-[10px] text-slate-500">{day.label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="flex items-center gap-2 text-sm font-bold text-white"><BarChart3 size={16} className="text-emerald-400" /> Study time vs. grades</h3>
+                          <p className="mt-0.5 text-[10px] text-slate-500">Hours logged on tasks for each class</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        {analytics.classStudy.length === 0 ? (
+                          <div className="rounded-xl border border-dashed border-slate-800 p-6 text-center text-xs text-slate-500">Add classes and log focus sessions to see class analytics.</div>
+                        ) : analytics.classStudy.slice(0, 6).map((item) => {
+                          const maxHours = Math.max(1, ...analytics.classStudy.map((entry) => entry.hours));
+                          return (
+                            <div key={item.id}>
+                              <div className="flex items-center justify-between gap-2 text-[11px]">
+                                <span className="min-w-0 truncate font-semibold text-slate-300">{item.name}</span>
+                                <span className="shrink-0 font-mono text-slate-400">{item.letter} · {item.hours.toFixed(1)}h</span>
+                              </div>
+                              <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-900">
+                                <div className="h-full rounded-full" style={{ width: `${Math.max(4, item.hours / maxHours * 100)}%`, backgroundColor: item.color }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                      <h3 className="flex items-center gap-2 text-sm font-bold text-white"><Flame size={16} className="text-amber-400" /> Streaks</h3>
+                      <div className="mt-3 space-y-2">
+                        {analytics.streakAnalytics.length === 0 ? (
+                          <div className="rounded-xl border border-dashed border-slate-800 p-5 text-center text-xs text-slate-500">Create a habit to start tracking streaks.</div>
+                        ) : analytics.streakAnalytics.map((habit) => (
+                          <div key={habit.id} className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2.5">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: habit.color }} />
+                              <span className="truncate text-xs font-semibold text-slate-300">{habit.name}</span>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-3 text-[10px]">
+                              <span className="text-amber-400 font-bold">🔥 {habit.current}</span>
+                              <span className="text-slate-500">Best {habit.best}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                      <h3 className="flex items-center gap-2 text-sm font-bold text-white"><AlertTriangle size={16} className="text-rose-400" /> Missed deadlines</h3>
+                      <div className="mt-3 space-y-2">
+                        {analytics.missedDeadlineTasks.length === 0 ? (
+                          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-xs text-emerald-300"><CheckCircle2 size={15} /> No unfinished tasks are past due.</div>
+                        ) : analytics.missedDeadlineTasks.slice(0, 5).map((task) => {
+                          const cls = classes.find((c) => c.id === task.classId);
+                          return (
+                            <div key={task.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2.5">
+                              <div className="min-w-0">
+                                <div className="truncate text-xs font-semibold text-slate-200">{task.title}</div>
+                                <div className="mt-0.5 text-[10px] text-slate-500">{cls?.name || "General"} · due {task.dueDate}</div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setMobileTab("tasks")}
+                                className="shrink-0 rounded-lg border border-slate-700 px-2 py-1 text-[10px] font-semibold text-slate-300"
+                              >
+                                Open
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* TAB: CALENDAR WITH SCHOOL DAYS VS. BREAK DAYS */}
               {activeTab === "calendar" && (
@@ -5441,67 +6466,17 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       )}
 
       {/* MOBILE BOTTOM NAVIGATION */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex justify-around items-center lg:hidden z-50 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]" style={{ minHeight: "4.25rem" }}>
-        <button
-          type="button"
-          onClick={() => setMobileTab("classes")}
-          className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-semibold transition ${
-            mobileTab === "classes" ? "text-blue-400" : "text-slate-400"
-          }`}
-        >
-          <BookOpen size={18} />
-          <span>Classes</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setMobileTab("tasks")}
-          className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-semibold transition ${
-            mobileTab === "tasks" ? "text-blue-400" : "text-slate-400"
-          }`}
-        >
-          <List size={18} />
-          <span>Tasks</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMobileTab("calendar");
-            setActiveTab("streaks");
-          }}
-          className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-semibold transition ${
-            mobileTab === "calendar" && activeTab === "streaks" ? "text-amber-400" : "text-slate-400"
-          }`}
-        >
-          <Flame size={18} />
-          <span>Streaks</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMobileTab("calendar");
-            setActiveTab("calendar");
-          }}
-          className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-semibold transition ${
-            mobileTab === "calendar" && activeTab === "calendar" ? "text-blue-400" : "text-slate-400"
-          }`}
-        >
-          <Calendar size={18} />
-          <span>Calendar</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMobileTab("timetable");
-            setActiveTab("timetable");
-          }}
-          className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-semibold transition ${
-            mobileTab === "timetable" ? "text-blue-400" : "text-slate-400"
-          }`}
-        >
-          <CalendarDays size={18} />
-          <span>Timetable</span>
-        </button>
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-800 bg-slate-900/95 px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur-md lg:hidden shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
+        <div className="mx-auto grid max-w-xl grid-cols-6 items-center">
+          <button type="button" onClick={() => setMobileTab("classes")} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "classes" ? "text-blue-400" : "text-slate-400"}`}><BookOpen size={18} /><span>Classes</span></button>
+          <button type="button" onClick={() => setMobileTab("tasks")} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "tasks" ? "text-blue-400" : "text-slate-400"}`}><List size={18} /><span>Tasks</span></button>
+          <button type="button" onClick={() => { setMobileTab("planner"); setActiveTab("planner"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "planner" ? "text-blue-400" : "text-slate-400"}`}><Brain size={18} /><span>Planner</span></button>
+          <button type="button" onClick={() => { setMobileTab("analytics"); setActiveTab("analytics"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "analytics" ? "text-violet-400" : "text-slate-400"}`}><BarChart3 size={18} /><span>Analytics</span></button>
+          <button type="button" onClick={() => { setMobileTab("calendar"); setActiveTab("calendar"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "calendar" && activeTab === "calendar" ? "text-blue-400" : "text-slate-400"}`}><Calendar size={18} /><span>Calendar</span></button>
+          <button type="button" onClick={() => { setMobileTab("clan"); setActiveTab("clan"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "clan" ? "text-violet-400" : "text-slate-400"}`}><Trophy size={18} /><span>Clan</span></button>
+        </div>
       </nav>
     </div>
   );
 }
+
