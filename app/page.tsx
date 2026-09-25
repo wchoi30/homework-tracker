@@ -1026,8 +1026,18 @@ function LandingPage({
         </div>
       </section>
 
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} WJ Study
+      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500 space-y-2">
+        <div>© {new Date().getFullYear()} WJ Study</div>
+        <div>
+          <a
+            href="https://www.privacypolicies.com/live/03a8d09b-605b-4acd-927e-5ee3a2186e07"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-slate-300 hover:underline transition"
+          >
+            Privacy Policy
+          </a>
+        </div>
       </footer>
     </div>
   );
