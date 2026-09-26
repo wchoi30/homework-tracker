@@ -375,6 +375,12 @@ function generateLocalClanCode(): string {
 }
 
 const LOCAL_CLAN_STORAGE_PREFIX = "wjstudy_clan_v2_";
+const LEGACY_CLAN_STORAGE_PREFIXES = [
+  "wjstudy_clan_v1_",
+  "wjstudy_clan_",
+  "tracker_clan_v1_",
+  "tracker_clan_v2_",
+];
 
 export const CLUB_ICON_OPTIONS = ["👥", "🤖", "🏐", "⚽", "🏀", "🎨", "🎭", "🎵", "♟️", "💻", "🚀", "📖"];
 
@@ -1400,18 +1406,39 @@ export default function AcademicOSDashboard() {
     }
   };
 
+  const clearAllLocalClanStores = (currentUserId: string) => {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(`${LOCAL_CLAN_STORAGE_PREFIX}${currentUserId}`);
+    LEGACY_CLAN_STORAGE_PREFIXES.forEach((prefix) => {
+      localStorage.removeItem(`${prefix}${currentUserId}`);
+    });
+  };
+
   const persistLocalClan = (currentUserId: string, nextClan: LocalClanStore | null) => {
     if (typeof window === "undefined") return;
     const key = `${LOCAL_CLAN_STORAGE_PREFIX}${currentUserId}`;
-    if (!nextClan) localStorage.removeItem(key);
-    else localStorage.setItem(key, JSON.stringify(nextClan));
+    if (!nextClan) {
+      clearAllLocalClanStores(currentUserId);
+    } else {
+      // Remove old versions before writing the current format.
+      LEGACY_CLAN_STORAGE_PREFIXES.forEach((prefix) => {
+        localStorage.removeItem(`${prefix}${currentUserId}`);
+      });
+      localStorage.setItem(key, JSON.stringify(nextClan));
+    }
   };
 
   const readLocalClan = (currentUserId: string): LocalClanStore | null => {
-    return safeStorageGet<LocalClanStore | null>(
+    const saved = safeStorageGet<LocalClanStore | null>(
       `${LOCAL_CLAN_STORAGE_PREFIX}${currentUserId}`,
       null
     );
+    if (!saved?.clan?.join_code) return null;
+    if (typeof saved.displayName !== "string" || typeof saved.studyMinutes !== "number") {
+      clearAllLocalClanStores(currentUserId);
+      return null;
+    }
+    return saved;
   };
 
   const sortClanMembers = (members: ClanMember[]) =>
@@ -1586,10 +1613,17 @@ export default function AcademicOSDashboard() {
     setClanError(null);
     setClanMessage(null);
 
-    if (readLocalClan(userId)?.clan?.join_code) {
+    const savedClan = readLocalClan(userId);
+    if (clan?.join_code) {
       setClanError("You are already in a clan. Leave it before creating another.");
       setClanLoading(false);
       return;
+    }
+    // If the UI shows the create/join form but an old local membership is
+    // still present, treat it as an orphaned membership rather than blocking
+    // the student forever. A real loaded clan is guarded above.
+    if (savedClan?.clan?.join_code) {
+      clearAllLocalClanStores(userId);
     }
 
     const code = generateLocalClanCode();
