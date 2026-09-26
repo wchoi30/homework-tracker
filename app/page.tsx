@@ -2210,8 +2210,10 @@ export default function AcademicOSDashboard() {
       if (loadedUserIdRef.current === activeId) return;
 
       loadedUserIdRef.current = activeId;
+      clanLoadedForUserIdRef.current = null;
       setIsLoaded(false);
-      loadUserData(activeId);
+      void loadUserData(activeId);
+      void loadClan(activeId);
     } else {
       loadedUserIdRef.current = null;
       clanLoadedForUserIdRef.current = null;
