@@ -5135,6 +5135,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         </div>
                       </div>
                     </div>
+                    </div>
                   ) : (
                     <div className="space-y-4">
                       <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
