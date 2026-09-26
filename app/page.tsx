@@ -1421,6 +1421,11 @@ export default function AcademicOSDashboard() {
       setClan(saved.clan as ClanInfo);
       setClanDisplayName(saved.displayName || "Student");
       setClanStudyMinutes(Math.max(0, Number(saved.studyMinutes || 0)));
+      // Restore the Clan screen after a full page reload so a saved
+      // membership does not appear to disappear just because the default
+      // workspace tab was reset during the new React mount.
+      setActiveTab("clan");
+      setMobileTab("clan");
       setClanMembers([
         {
           user_id: currentUserId,
@@ -1441,7 +1446,18 @@ export default function AcademicOSDashboard() {
 
   useEffect(() => {
     clanDisplayNameRef.current = clanDisplayName;
-  }, [clanDisplayName]);
+
+    if (!userId || clanStorageMode !== "local" || !clan?.join_code || !isLoaded) return;
+    const saved = readLocalClan(userId);
+    if (!saved) return;
+
+    persistLocalClan(userId, {
+      ...saved,
+      clan,
+      displayName: clanDisplayName || "Student",
+      studyMinutes: clanStudyMinutesRef.current,
+    });
+  }, [clanDisplayName, userId, clanStorageMode, clan?.join_code, isLoaded]);
 
   useEffect(() => {
     clanStudyMinutesRef.current = clanStudyMinutes;
@@ -1582,6 +1598,8 @@ export default function AcademicOSDashboard() {
 
     persistLocalClan(userId, nextClan);
     setClanStorageMode("local");
+    setActiveTab("clan");
+    setMobileTab("clan");
     setClan(nextClan.clan as ClanInfo);
     setClanDisplayName(nextClan.displayName);
     setClanStudyMinutes(0);
@@ -1630,6 +1648,8 @@ export default function AcademicOSDashboard() {
 
     persistLocalClan(userId, nextClan);
     setClanStorageMode("local");
+    setActiveTab("clan");
+    setMobileTab("clan");
     setClan(nextClan.clan as ClanInfo);
     setClanDisplayName(nextClan.displayName);
     setClanStudyMinutes(0);
@@ -6604,4 +6624,5 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     </div>
   );
 }
+
 
