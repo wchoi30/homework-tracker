@@ -1116,11 +1116,6 @@ function LandingPage({
       title: "Habit streaks",
       text: "Build study routines and keep your streak alive day after day.",
     },
-    {
-      icon: Upload,
-      title: "Syllabus task extractor",
-      text: "Upload a syllabus and turn it into tasks and due dates automatically.",
-    },
   ];
 
   const steps = [
@@ -1345,7 +1340,7 @@ export default function AcademicOSDashboard() {
     "classes" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan"
   >("tasks");
   const [activeTab, setActiveTab] = useState<
-    "standards" | "calendar" | "timetable" | "grades" | "simulator" | "syllabus" | "streaks" | "learning" | "planner" | "analytics" | "clan"
+    "standards" | "calendar" | "timetable" | "grades" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan"
   >("calendar");
 
   const [taskFilter, setTaskFilter] = useState<
@@ -1444,7 +1439,8 @@ export default function AcademicOSDashboard() {
 
   const isSavingRef = useRef(false);
   const loadedUserIdRef = useRef<string | null>(null); // <-- ADD THIS
-  const parseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const workspaceSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const workspaceSaveRequestRef = useRef(0);
   const prevClassIdRef = useRef<string>(selectedClassId);
 
   const [newClassName, setNewClassName] = useState("");
@@ -1514,9 +1510,6 @@ export default function AcademicOSDashboard() {
   const focusRunTaskIdRef = useRef<string | null>(null);
   const focusRunXpAwardedRef = useRef(false);
 
-  const [isParsing, setIsParsing] = useState(false);
-  const [rawSyllabusText, setRawSyllabusText] = useState("");
-  const [parsedItems, setParsedItems] = useState<Partial<Task>[]>([]);
 
   const [simCurrentGrade, setSimCurrentGrade] = useState<StandardLevel>("B+");
   const [simTargetGrade, setSimTargetGrade] = useState<StandardLevel>("A");
@@ -1538,47 +1531,95 @@ export default function AcademicOSDashboard() {
         .single();
 
       if (!error && data && data.data) {
-        setClasses(
-          withoutLegacyDemoItems(
-            Array.isArray(data.data.classes) ? data.data.classes : EMPTY_CLASSES,
-            LEGACY_DEMO_CLASS_IDS
+        const serverUpdatedAt = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+        const localWorkspaceSavedAt = Number(
+          safeStorageGet<string | number>(
+            `tracker_workspace_data_saved_at_v2_${currentUserId}`,
+            0
           )
+        );
+        const localWorkspaceClasses = withoutLegacyDemoItems(
+          safeStorageGet(`tracker_classes_v8_${currentUserId}`, EMPTY_CLASSES),
+          LEGACY_DEMO_CLASS_IDS
+        );
+        const localWorkspaceClubs = normalizeClubsData(
+          withoutLegacyDemoItems(
+            safeStorageGet(`tracker_clubs_v8_${currentUserId}`, EMPTY_CLUBS),
+            LEGACY_DEMO_CLUB_IDS
+          )
+        );
+        const localWorkspaceTasks = withoutLegacyDemoItems(
+          safeStorageGet(`tracker_tasks_v8_${currentUserId}`, EMPTY_TASKS),
+          LEGACY_DEMO_TASK_IDS
+        );
+        const localWorkspaceStreaks = withoutLegacyDemoItems(
+          safeStorageGet(`tracker_streaks_v8_${currentUserId}`, EMPTY_STREAKS),
+          LEGACY_DEMO_STREAK_IDS
+        );
+        const localWorkspaceStudySessions = safeStorageGet<StudySession[]>(
+          `tracker_study_sessions_v1_${currentUserId}`,
+          []
+        );
+        const localWorkspaceXp = safeStorageGet<number>(
+          `tracker_gamification_xp_v1_${currentUserId}`,
+          0
+        );
+        const useLocalWorkspace =
+          localWorkspaceSavedAt > 0 && localWorkspaceSavedAt > serverUpdatedAt;
+
+        setClasses(
+          useLocalWorkspace
+            ? localWorkspaceClasses
+            : withoutLegacyDemoItems(
+                Array.isArray(data.data.classes) ? data.data.classes : EMPTY_CLASSES,
+                LEGACY_DEMO_CLASS_IDS
+              )
         );
         setClubs(
-          normalizeClubsData(
-            withoutLegacyDemoItems(
-              Array.isArray(data.data.clubs) ? data.data.clubs : EMPTY_CLUBS,
-              LEGACY_DEMO_CLUB_IDS
-            )
-          )
+          useLocalWorkspace
+            ? localWorkspaceClubs
+            : normalizeClubsData(
+                withoutLegacyDemoItems(
+                  Array.isArray(data.data.clubs) ? data.data.clubs : EMPTY_CLUBS,
+                  LEGACY_DEMO_CLUB_IDS
+                )
+              )
         );
         setTasks(
-          withoutLegacyDemoItems(
-            Array.isArray(data.data.tasks) ? data.data.tasks : EMPTY_TASKS,
-            LEGACY_DEMO_TASK_IDS
-          )
+          useLocalWorkspace
+            ? localWorkspaceTasks
+            : withoutLegacyDemoItems(
+                Array.isArray(data.data.tasks) ? data.data.tasks : EMPTY_TASKS,
+                LEGACY_DEMO_TASK_IDS
+              )
         );
         setStreaks(
-          withoutLegacyDemoItems(
-            Array.isArray(data.data.streaks) ? data.data.streaks : EMPTY_STREAKS,
-            LEGACY_DEMO_STREAK_IDS
-          )
+          useLocalWorkspace
+            ? localWorkspaceStreaks
+            : withoutLegacyDemoItems(
+                Array.isArray(data.data.streaks) ? data.data.streaks : EMPTY_STREAKS,
+                LEGACY_DEMO_STREAK_IDS
+              )
         );
         setStudySessions(
-          Array.isArray(data.data.studySessions)
-            ? data.data.studySessions.filter(
-                (session: any) =>
-                  session &&
-                  typeof session.id === "string" &&
-                  typeof session.date === "string" &&
-                  typeof session.minutes === "number"
-              )
-            : []
+          useLocalWorkspace
+            ? localWorkspaceStudySessions
+            : Array.isArray(data.data.studySessions)
+              ? data.data.studySessions.filter(
+                  (session: any) =>
+                    session &&
+                    typeof session.id === "string" &&
+                    typeof session.date === "string" &&
+                    typeof session.minutes === "number"
+                )
+              : []
         );
         setGamificationXp(
-          typeof data.data.gamificationXp === "number"
-            ? Math.max(0, Math.floor(data.data.gamificationXp))
-            : 0
+          useLocalWorkspace
+            ? Math.max(0, Math.floor(localWorkspaceXp))
+            : typeof data.data.gamificationXp === "number"
+              ? Math.max(0, Math.floor(data.data.gamificationXp))
+              : 0
         );
         const serverLearningMaterials =
           Array.isArray(data.data.learningMaterials)
@@ -1611,7 +1652,6 @@ export default function AcademicOSDashboard() {
             0
           )
         );
-        const serverUpdatedAt = data.updated_at ? new Date(data.updated_at).getTime() : 0;
         const useCachedLearningData =
           cachedLearningSavedAt > 0 && cachedLearningSavedAt > serverUpdatedAt;
 
@@ -1649,7 +1689,71 @@ export default function AcademicOSDashboard() {
         setHiddenGoogleEventIds(savedHiddenGoogleEventIds);
         setGoogleCalendarDeletionRules(savedGoogleCalendarDeletionRules);
         setGoogleCalendarMergeRules(savedGoogleCalendarMergeRules);
-        setSyncStatus("synced");
+
+        if (!useLocalWorkspace) {
+          try {
+            localStorage.setItem(
+              `tracker_workspace_data_saved_at_v2_${currentUserId}`,
+              String(serverUpdatedAt || Date.now())
+            );
+            localStorage.setItem(
+              `tracker_classes_v8_${currentUserId}`,
+              JSON.stringify(
+                withoutLegacyDemoItems(
+                  Array.isArray(data.data.classes) ? data.data.classes : EMPTY_CLASSES,
+                  LEGACY_DEMO_CLASS_IDS
+                )
+              )
+            );
+            localStorage.setItem(
+              `tracker_clubs_v8_${currentUserId}`,
+              JSON.stringify(
+                normalizeClubsData(
+                  withoutLegacyDemoItems(
+                    Array.isArray(data.data.clubs) ? data.data.clubs : EMPTY_CLUBS,
+                    LEGACY_DEMO_CLUB_IDS
+                  )
+                )
+              )
+            );
+            localStorage.setItem(
+              `tracker_tasks_v8_${currentUserId}`,
+              JSON.stringify(
+                withoutLegacyDemoItems(
+                  Array.isArray(data.data.tasks) ? data.data.tasks : EMPTY_TASKS,
+                  LEGACY_DEMO_TASK_IDS
+                )
+              )
+            );
+            localStorage.setItem(
+              `tracker_streaks_v8_${currentUserId}`,
+              JSON.stringify(
+                withoutLegacyDemoItems(
+                  Array.isArray(data.data.streaks) ? data.data.streaks : EMPTY_STREAKS,
+                  LEGACY_DEMO_STREAK_IDS
+                )
+              )
+            );
+            localStorage.setItem(
+              `tracker_study_sessions_v1_${currentUserId}`,
+              JSON.stringify(
+                Array.isArray(data.data.studySessions) ? data.data.studySessions : []
+              )
+            );
+            localStorage.setItem(
+              `tracker_gamification_xp_v1_${currentUserId}`,
+              JSON.stringify(
+                typeof data.data.gamificationXp === "number"
+                  ? Math.max(0, Math.floor(data.data.gamificationXp))
+                  : 0
+              )
+            );
+          } catch {
+            // Device cache is only a resilience layer; account data remains usable.
+          }
+        }
+
+        setSyncStatus(useLocalWorkspace ? "syncing" : "synced");
       } else {
         const localClasses = withoutLegacyDemoItems(
           safeStorageGet(`tracker_classes_v8_${currentUserId}`, EMPTY_CLASSES),
@@ -1697,6 +1801,23 @@ export default function AcademicOSDashboard() {
             []
           )
         );
+
+        try {
+          const localWorkspaceSavedAt = Number(
+            safeStorageGet<string | number>(
+              `tracker_workspace_data_saved_at_v2_${currentUserId}`,
+              0
+            )
+          );
+          if (localWorkspaceSavedAt === 0) {
+            localStorage.setItem(
+              `tracker_workspace_data_saved_at_v2_${currentUserId}`,
+              String(Date.now())
+            );
+          }
+        } catch {
+          // Ignore cache errors.
+        }
 
         setClasses(localClasses);
         setClubs(localClubs);
@@ -1844,8 +1965,6 @@ export default function AcademicOSDashboard() {
         setClan(saved.clan as ClanInfo);
         setClanDisplayName(saved.displayName || "Student");
         setClanStudyMinutes(Math.max(0, Number(saved.studyMinutes || 0)));
-        setActiveTab("clan");
-        setMobileTab("clan");
         setClanMembers([{
           user_id: currentUserId,
           display_name: saved.displayName || "Student",
@@ -1876,8 +1995,6 @@ export default function AcademicOSDashboard() {
         setClan(fallback.clan as ClanInfo);
         setClanDisplayName(fallback.displayName || "Student");
         setClanStudyMinutes(Math.max(0, Number(fallback.studyMinutes || 0)));
-        setActiveTab("clan");
-        setMobileTab("clan");
         setClanMembers([{
           user_id: currentUserId,
           display_name: fallback.displayName || "Student",
@@ -2773,6 +2890,10 @@ export default function AcademicOSDashboard() {
 
       loadedUserIdRef.current = activeId;
       clanLoadedForUserIdRef.current = null;
+      // The calendar is the default landing view after login. Loading a saved
+      // clan should never redirect the user away from the calendar.
+      setActiveTab("calendar");
+      setMobileTab("calendar");
       setIsLoaded(false);
       void loadUserData(activeId);
       void loadClan(activeId);
@@ -2800,7 +2921,6 @@ export default function AcademicOSDashboard() {
 
   return () => {
     subscription.unsubscribe();
-    if (parseTimerRef.current) clearTimeout(parseTimerRef.current);
   };
 }, []);
 
@@ -2819,14 +2939,28 @@ useEffect(() => {
         (payload) => {
           if (isSavingRef.current) return;
           if (payload.new && payload.new.data) {
-            if (Array.isArray(payload.new.data.classes))
+            const localWorkspaceSavedAt = Number(
+              safeStorageGet<string | number>(
+                `tracker_workspace_data_saved_at_v2_${userId}`,
+                0
+              )
+            );
+            const realtimeUpdatedAt = payload.new?.updated_at
+              ? new Date(payload.new.updated_at).getTime()
+              : 0;
+            const localWorkspaceIsNewer =
+              localWorkspaceSavedAt > 0 &&
+              realtimeUpdatedAt > 0 &&
+              localWorkspaceSavedAt > realtimeUpdatedAt;
+
+            if (!localWorkspaceIsNewer && Array.isArray(payload.new.data.classes))
               setClasses(
                 withoutLegacyDemoItems(
                   payload.new.data.classes,
                   LEGACY_DEMO_CLASS_IDS
                 )
               );
-            if (Array.isArray(payload.new.data.clubs))
+            if (!localWorkspaceIsNewer && Array.isArray(payload.new.data.clubs))
               setClubs(
                 normalizeClubsData(
                   withoutLegacyDemoItems(
@@ -2835,21 +2969,21 @@ useEffect(() => {
                   )
                 )
               );
-            if (Array.isArray(payload.new.data.tasks))
+            if (!localWorkspaceIsNewer && Array.isArray(payload.new.data.tasks))
               setTasks(
                 withoutLegacyDemoItems(
                   payload.new.data.tasks,
                   LEGACY_DEMO_TASK_IDS
                 )
               );
-            if (Array.isArray(payload.new.data.streaks))
+            if (!localWorkspaceIsNewer && Array.isArray(payload.new.data.streaks))
               setStreaks(
                 withoutLegacyDemoItems(
                   payload.new.data.streaks,
                   LEGACY_DEMO_STREAK_IDS
                 )
               );
-            if (Array.isArray(payload.new.data.studySessions))
+            if (!localWorkspaceIsNewer && Array.isArray(payload.new.data.studySessions))
               setStudySessions(
                 payload.new.data.studySessions.filter(
                   (session: any) =>
@@ -2859,7 +2993,7 @@ useEffect(() => {
                     typeof session.minutes === "number"
                 )
               );
-            if (typeof payload.new.data.gamificationXp === "number")
+            if (!localWorkspaceIsNewer && typeof payload.new.data.gamificationXp === "number")
               setGamificationXp(Math.max(0, Math.floor(payload.new.data.gamificationXp)));
             if (Array.isArray(payload.new.data.learningMaterials))
               setLearningMaterials(payload.new.data.learningMaterials);
@@ -2921,11 +3055,19 @@ useEffect(() => {
 
 useEffect(() => {
   if (!isLoaded || !userId) return;
-  if (clanLoadedForUserIdRef.current !== userId) return;
+
+  // Academic workspace persistence must not depend on the optional Clan subsystem.
+  // A slow/failing Clan load should never prevent tasks, classes, grades, streaks,
+  // or schedule changes from being saved.
 
   // Immediately lock local state from Realtime overwrites during the 600ms debounce
   isSavingRef.current = true;
 
+  const workspaceSavedAt = Date.now();
+  localStorage.setItem(
+    `tracker_workspace_data_saved_at_v2_${userId}`,
+    String(workspaceSavedAt)
+  );
   localStorage.setItem(`tracker_classes_v8_${userId}`, JSON.stringify(classes));
   localStorage.setItem(`tracker_clubs_v8_${userId}`, JSON.stringify(clubs));
   localStorage.setItem(`tracker_tasks_v8_${userId}`, JSON.stringify(tasks));
@@ -2954,39 +3096,65 @@ useEffect(() => {
   async function saveData() {
     setSyncStatus("syncing");
     try {
-      const { error } = await supabase.from("user_data").upsert(
+      // Merge into the existing user_data JSON instead of replacing it blindly.
+      // This keeps unrelated user-specific fields (especially Clan data) intact
+      // while the rest of the academic workspace is being saved.
+      const { data: existingRow, error: readError } = await supabase
+        .from("user_data")
+        .select("data")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (readError) throw readError;
+
+      const existingData =
+        existingRow?.data &&
+        typeof existingRow.data === "object" &&
+        !Array.isArray(existingRow.data)
+          ? { ...(existingRow.data as Record<string, any>) }
+          : {};
+
+      const nextData: Record<string, any> = {
+        ...existingData,
+        classes,
+        clubs,
+        tasks,
+        streaks,
+        studySessions,
+        gamificationXp,
+        learningMaterials,
+        learningBundles,
+        googleCalendarEvents,
+        hiddenGoogleEventIds,
+        googleCalendarDeletionRules,
+        googleCalendarMergeRules,
+      };
+
+      // Only replace/delete the Clan field after Clan has actually finished
+      // loading. A slow Clan request must never erase the user's membership.
+      if (clanLoadedForUserIdRef.current === userId) {
+        if (clan && userId) {
+          nextData.clan = {
+            clan,
+            displayName: clanDisplayName || "Student",
+            studyMinutes: clanStudyMinutes,
+            joinedAt: readLocalClan(userId)?.joinedAt || new Date().toISOString(),
+          };
+        } else {
+          delete nextData.clan;
+        }
+      }
+
+      const { error: writeError } = await supabase.from("user_data").upsert(
         {
           user_id: userId,
-          data: {
-            classes,
-            clubs,
-            tasks,
-            streaks,
-            studySessions,
-            gamificationXp,
-            learningMaterials,
-            learningBundles,
-            googleCalendarEvents,
-            hiddenGoogleEventIds,
-            googleCalendarDeletionRules,
-            googleCalendarMergeRules,
-            ...(clan && userId
-              ? {
-                  clan: {
-                    clan,
-                    displayName: clanDisplayName || "Student",
-                    studyMinutes: clanStudyMinutes,
-                    joinedAt: readLocalClan(userId)?.joinedAt || new Date().toISOString(),
-                  },
-                }
-              : {}),
-          },
+          data: nextData,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" }
       );
-      if (error) setSyncStatus("error");
-      else setSyncStatus("synced");
+      if (writeError) throw writeError;
+      setSyncStatus("synced");
     } catch (err) {
       setSyncStatus("error");
     } finally {
@@ -3090,7 +3258,9 @@ useEffect(() => {
     });
 
     if (extractedClasses.length > 0) {
-      setClasses((prev) => [...prev, ...extractedClasses]);
+      const nextClasses = [...classes, ...extractedClasses];
+      setClasses(nextClasses);
+      saveWorkspaceChangeImmediately({ classes: nextClasses });
       setSelectedClassId(extractedClasses[0].id);
       alert(`🎉 PowerSchool AI extracted ${extractedClasses.length} courses!`);
     } else {
@@ -3140,7 +3310,9 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     });
 
     if (extractedClubs.length > 0) {
-      setClubs((prev) => [...prev, ...extractedClubs]);
+      const nextClubs = [...clubs, ...extractedClubs];
+      setClubs(nextClubs);
+      saveWorkspaceChangeImmediately({ clubs: nextClubs });
       alert(`🎉 SchoolsBuddy AI extracted ${extractedClubs.length} clubs!`);
     } else {
       alert("No club text detected. Please try a clearer screenshot.");
@@ -3248,7 +3420,32 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
   const analytics = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const totalStudyHours = studySessions.reduce((sum, session) => sum + session.minutes / 60, 0);
+
+    // Study time is based on actual logged work, not estimated task time.
+    // When a task has both focus-session minutes and an actualHours value,
+    // use the larger value so focus logging is never double-counted while
+    // manually logged task time is still represented.
+    const focusMinutesByTask = new Map<string, number>();
+    let orphanStudyMinutes = 0;
+    studySessions.forEach((session) => {
+      const minutes = Math.max(0, Number(session.minutes) || 0);
+      if (session.taskId) {
+        focusMinutesByTask.set(
+          session.taskId,
+          (focusMinutesByTask.get(session.taskId) || 0) + minutes
+        );
+      } else {
+        orphanStudyMinutes += minutes;
+      }
+    });
+
+    const loggedTaskHours = tasks.reduce((sum, task) => {
+      const focusHours = (focusMinutesByTask.get(task.id) || 0) / 60;
+      const manualLoggedHours = Math.max(0, Number(task.actualHours) || 0);
+      return sum + Math.max(focusHours, manualLoggedHours);
+    }, 0);
+    const totalStudyHours = loggedTaskHours + orphanStudyMinutes / 60;
+
     const totalEstimatedHours = tasks.reduce((sum, task) => sum + (task.estimatedHours || 0), 0);
     const completedTaskCount = tasks.filter((task) => task.completed).length;
     const pendingTaskCount = tasks.filter((task) => !task.completed).length;
@@ -3259,15 +3456,13 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     });
 
     const classStudy = classes.map((cls) => {
-      // Analytics should reflect completed focus sessions, not estimated/planned
-      // task time. This prevents unfinished homework from looking like study time.
-      const hours = studySessions
-        .filter((session) => session.taskId)
-        .filter((session) => {
-          const task = tasks.find((candidate) => candidate.id === session.taskId);
-          return task?.classId === cls.id;
-        })
-        .reduce((sum, session) => sum + session.minutes / 60, 0);
+      const hours = tasks
+        .filter((task) => task.classId === cls.id)
+        .reduce((sum, task) => {
+          const focusHours = (focusMinutesByTask.get(task.id) || 0) / 60;
+          const manualLoggedHours = Math.max(0, Number(task.actualHours) || 0);
+          return sum + Math.max(focusHours, manualLoggedHours);
+        }, 0);
       const grade = cls.manualGrade
         ? parseGradeToPoints(cls.manualGrade)
         : calculateOverallGrade(cls.standards).gpa;
@@ -3279,21 +3474,38 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         grade: grade ?? 0,
         letter: grade && grade > 0 ? pointsToLetter(grade) : "N/A",
       };
-    }).sort((a, b) => b.hours - a.hours);
+    });
 
-    const last7Days = Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(today);
-      date.setDate(today.getDate() - (6 - index));
+    // "This week" means the current Monday-Sunday calendar week, rather than
+    // a rolling 7-day window. Weekly study is calculated from timestamped focus
+    // sessions because task.actualHours does not retain a per-day history.
+    const dayOfWeek = today.getDay();
+    const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - distanceToMonday);
+
+    const weekDates = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + index);
+      return date;
+    });
+
+    const thisWeekStudySessions = studySessions.filter((session) => {
+      const sessionDate = new Date(`${session.date}T12:00:00`);
+      return !Number.isNaN(sessionDate.getTime()) && sessionDate >= weekDates[0] && sessionDate <= weekDates[6];
+    });
+
+    const last7Days = weekDates.map((date) => {
       const key = formatDateKey(date);
-      const minutes = studySessions
+      const minutes = thisWeekStudySessions
         .filter((session) => session.date === key)
-        .reduce((sum, session) => sum + session.minutes, 0);
+        .reduce((sum, session) => sum + Math.max(0, Number(session.minutes) || 0), 0);
       const completed = tasks.filter((task) => task.completedAt?.slice(0, 10) === key).length;
       return {
         key,
         label: date.toLocaleDateString(undefined, { weekday: "short" }),
         minutes,
-        hours: Number((minutes / 60).toFixed(1)),
+        hours: Number((minutes / 60).toFixed(2)),
         completed,
       };
     });
@@ -3309,6 +3521,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     const weeklyGoalHours = 10;
     const weekHours = last7Days.reduce((sum, day) => sum + day.hours, 0);
     const weekCompleted = last7Days.reduce((sum, day) => sum + day.completed, 0);
+    const weeklyMaxMinutes = Math.max(60, ...last7Days.map((day) => day.minutes));
 
     return {
       totalStudyHours,
@@ -3322,8 +3535,10 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       weeklyGoalHours,
       weekHours,
       weekCompleted,
+      weeklyMaxMinutes,
       completionRate: tasks.length ? completedTaskCount / tasks.length : 0,
       todayLabel: today.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      weekLabel: `${weekDates[0].toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekDates[6].toLocaleDateString(undefined, { month: "short", day: "numeric" })}`,
     };
   }, [classes, tasks, studySessions, streaks]);
 
@@ -3692,18 +3907,22 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       standards: [],
       meetingTimes: [],
     };
-    setClasses((prev) => [...prev, newClass]);
+    const nextClasses = [...classes, newClass];
+    setClasses(nextClasses);
+    saveWorkspaceChangeImmediately({ classes: nextClasses });
     setSelectedClassId(newClass.id);
     setNewClassName("");
   };
 
   const deleteClass = (id: string) => {
     const remaining = classes.filter((c) => c.id !== id);
+    const remainingTasks = tasks.filter((t) => t.classId !== id);
     setClasses(remaining);
+    setTasks(remainingTasks);
+    saveWorkspaceChangeImmediately({ classes: remaining, tasks: remainingTasks });
     if (selectedClassId === id) {
       setSelectedClassId(remaining[0]?.id ?? "");
     }
-    setTasks((prev) => prev.filter((t) => t.classId !== id));
   };
 
   const startEditClass = (cls: ClassItem) => {
@@ -3727,21 +3946,21 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     e.preventDefault();
     if (!editingClassId || !editClassDraft) return;
     if (!editClassDraft.name.trim()) return;
-    setClasses((prev) =>
-      prev.map((c) =>
-        c.id === editingClassId
-          ? {
-              ...c,
-              name: editClassDraft.name.trim(),
-              color: editClassDraft.color,
-              professorName: editClassDraft.professorName.trim() || undefined,
-              roomNumber: editClassDraft.roomNumber.trim() || undefined,
-              periodCode: editClassDraft.periodCode.trim() || undefined,
-              officeHours: editClassDraft.officeHours.trim() || undefined,
-            }
-          : c
-      )
+    const nextClasses = classes.map((c) =>
+      c.id === editingClassId
+        ? {
+            ...c,
+            name: editClassDraft.name.trim(),
+            color: editClassDraft.color,
+            professorName: editClassDraft.professorName.trim() || undefined,
+            roomNumber: editClassDraft.roomNumber.trim() || undefined,
+            periodCode: editClassDraft.periodCode.trim() || undefined,
+            officeHours: editClassDraft.officeHours.trim() || undefined,
+          }
+        : c
     );
+    setClasses(nextClasses);
+    saveWorkspaceChangeImmediately({ classes: nextClasses });
     cancelEditClass();
   };
 
@@ -3750,9 +3969,11 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       grade.trim() === ""
         ? undefined
         : (grade.trim().toUpperCase() as StandardLevel);
-    setClasses((prev) =>
-      prev.map((cls) => (cls.id === classId ? { ...cls, manualGrade: val } : cls))
+    const nextClasses = classes.map((cls) =>
+      cls.id === classId ? { ...cls, manualGrade: val } : cls
     );
+    setClasses(nextClasses);
+    saveWorkspaceChangeImmediately({ classes: nextClasses });
   };
 
   const addMeetingTimeToClass = (e: React.FormEvent) => {
@@ -3765,29 +3986,31 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       endTime: timetableEndTime,
     };
 
-    setClasses((prev) =>
-      prev.map((c) => {
-        if (c.id !== timetableClassId) return c;
-        return {
-          ...c,
-          meetingTimes: [...(c.meetingTimes || []), newMeeting],
-        };
-      })
+    const nextClasses = classes.map((c) =>
+      c.id !== timetableClassId
+        ? c
+        : {
+            ...c,
+            meetingTimes: [...(c.meetingTimes || []), newMeeting],
+          }
     );
+    setClasses(nextClasses);
+    saveWorkspaceChangeImmediately({ classes: nextClasses });
   };
 
   const removeMeetingTimeFromClass = (classId: string, indexToRemove: number) => {
-    setClasses((prev) =>
-      prev.map((c) => {
-        if (c.id !== classId) return c;
-        return {
-          ...c,
-          meetingTimes: (c.meetingTimes || []).filter(
-            (_, idx) => idx !== indexToRemove
-          ),
-        };
-      })
+    const nextClasses = classes.map((c) =>
+      c.id !== classId
+        ? c
+        : {
+            ...c,
+            meetingTimes: (c.meetingTimes || []).filter(
+              (_, idx) => idx !== indexToRemove
+            ),
+          }
     );
+    setClasses(nextClasses);
+    saveWorkspaceChangeImmediately({ classes: nextClasses });
   };
 
   const addStandardToClass = (classId: string) => {
@@ -3797,27 +4020,27 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       name: newStandardName.trim(),
       levels: [],
     };
-    setClasses((prev) =>
-      prev.map((cls) =>
-        cls.id === classId
-          ? { ...cls, standards: [...(cls.standards || []), newStd] }
-          : cls
-      )
+    const nextClasses = classes.map((cls) =>
+      cls.id === classId
+        ? { ...cls, standards: [...(cls.standards || []), newStd] }
+        : cls
     );
+    setClasses(nextClasses);
+    saveWorkspaceChangeImmediately({ classes: nextClasses });
     setNewStandardName("");
   };
 
   const deleteStandard = (classId: string, standardId: string) => {
-    setClasses((prev) =>
-      prev.map((cls) =>
-        cls.id === classId
-          ? {
-              ...cls,
-              standards: (cls.standards || []).filter((s) => s.id !== standardId),
-            }
-          : cls
-      )
+    const nextClasses = classes.map((cls) =>
+      cls.id === classId
+        ? {
+            ...cls,
+            standards: (cls.standards || []).filter((s) => s.id !== standardId),
+          }
+        : cls
     );
+    setClasses(nextClasses);
+    saveWorkspaceChangeImmediately({ classes: nextClasses });
   };
 
   const addGradeToStandard = (
@@ -3825,20 +4048,20 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     standardId: string,
     level: StandardLevel
   ) => {
-    setClasses((prev) =>
-      prev.map((cls) =>
-        cls.id !== classId
-          ? cls
-          : {
-              ...cls,
-              standards: (cls.standards || []).map((st) =>
-                st.id !== standardId
-                  ? st
-                  : { ...st, levels: [...(st.levels || []), level] }
-              ),
-            }
-      )
+    const nextClasses = classes.map((cls) =>
+      cls.id !== classId
+        ? cls
+        : {
+            ...cls,
+            standards: (cls.standards || []).map((st) =>
+              st.id !== standardId
+                ? st
+                : { ...st, levels: [...(st.levels || []), level] }
+            ),
+          }
     );
+    setClasses(nextClasses);
+    saveWorkspaceChangeImmediately({ classes: nextClasses });
   };
 
   const removeGradeFromStandard = (
@@ -3846,25 +4069,25 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     standardId: string,
     indexToRemove: number
   ) => {
-    setClasses((prev) =>
-      prev.map((cls) =>
-        cls.id !== classId
-          ? cls
-          : {
-              ...cls,
-              standards: (cls.standards || []).map((st) =>
-                st.id !== standardId
-                  ? st
-                  : {
-                      ...st,
-                      levels: (st.levels || []).filter(
-                        (_, idx) => idx !== indexToRemove
-                      ),
-                    }
-              ),
-            }
-      )
+    const nextClasses = classes.map((cls) =>
+      cls.id !== classId
+        ? cls
+        : {
+            ...cls,
+            standards: (cls.standards || []).map((st) =>
+              st.id !== standardId
+                ? st
+                : {
+                    ...st,
+                    levels: (st.levels || []).filter(
+                      (_, idx) => idx !== indexToRemove
+                    ),
+                  }
+            ),
+          }
     );
+    setClasses(nextClasses);
+    saveWorkspaceChangeImmediately({ classes: nextClasses });
   };
 
   const addClub = (e: React.FormEvent) => {
@@ -3889,21 +4112,24 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       meetingTimes: initialSlots,
       attendance: {},
     };
-    setClubs((prev) => [...prev, newClub]);
+    const nextClubs = [...clubs, newClub];
+    setClubs(nextClubs);
+    saveWorkspaceChangeImmediately({ clubs: nextClubs });
     setSelectedClubId(newClub.id);
     setNewClubName("");
     setNewClubRole("");
   };
 
   const updateClubIcon = (clubId: string, icon: string) => {
-    setClubs((prev) =>
-      prev.map((c) => (c.id === clubId ? { ...c, icon } : c))
-    );
+    const nextClubs = clubs.map((c) => (c.id === clubId ? { ...c, icon } : c));
+    setClubs(nextClubs);
+    saveWorkspaceChangeImmediately({ clubs: nextClubs });
   };
 
   const deleteClub = (id: string) => {
     const remaining = clubs.filter((c) => c.id !== id);
     setClubs(remaining);
+    saveWorkspaceChangeImmediately({ clubs: remaining });
     if (selectedClubId === id) {
       setSelectedClubId(remaining[0]?.id ?? "");
     }
@@ -3916,28 +4142,28 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       startTime: addClubSlotStart,
       endTime: addClubSlotEnd,
     };
-    setClubs((prev) =>
-      prev.map((c) =>
-        c.id !== clubId
-          ? c
-          : { ...c, meetingTimes: [...(c.meetingTimes || []), newSlot] }
-      )
+    const nextClubs = clubs.map((c) =>
+      c.id !== clubId
+        ? c
+        : { ...c, meetingTimes: [...(c.meetingTimes || []), newSlot] }
     );
+    setClubs(nextClubs);
+    saveWorkspaceChangeImmediately({ clubs: nextClubs });
   };
 
   const removeTimeslotFromClub = (clubId: string, indexToRemove: number) => {
-    setClubs((prev) =>
-      prev.map((c) =>
-        c.id !== clubId
-          ? c
-          : {
-              ...c,
-              meetingTimes: (c.meetingTimes || []).filter(
-                (_, idx) => idx !== indexToRemove
-              ),
-            }
-      )
+    const nextClubs = clubs.map((c) =>
+      c.id !== clubId
+        ? c
+        : {
+            ...c,
+            meetingTimes: (c.meetingTimes || []).filter(
+              (_, idx) => idx !== indexToRemove
+            ),
+          }
     );
+    setClubs(nextClubs);
+    saveWorkspaceChangeImmediately({ clubs: nextClubs });
   };
 
   const addStreak = (e: React.FormEvent) => {
@@ -3950,27 +4176,31 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       createdAt: formatDateKey(new Date()),
       completedDates: {},
     };
-    setStreaks((prev) => [...prev, newHabit]);
+    const nextStreaks = [...streaks, newHabit];
+    setStreaks(nextStreaks);
+    saveWorkspaceChangeImmediately({ streaks: nextStreaks });
     setNewStreakName("");
   };
 
   const toggleStreakDate = (habitId: string, dateKey: string) => {
-    setStreaks((prev) =>
-      prev.map((habit) => {
-        if (habit.id !== habitId) return habit;
-        const updated = { ...habit.completedDates };
-        if (updated[dateKey]) {
-          delete updated[dateKey];
-        } else {
-          updated[dateKey] = true;
-        }
-        return { ...habit, completedDates: updated };
-      })
-    );
+    const nextStreaks = streaks.map((habit) => {
+      if (habit.id !== habitId) return habit;
+      const updated = { ...habit.completedDates };
+      if (updated[dateKey]) {
+        delete updated[dateKey];
+      } else {
+        updated[dateKey] = true;
+      }
+      return { ...habit, completedDates: updated };
+    });
+    setStreaks(nextStreaks);
+    saveWorkspaceChangeImmediately({ streaks: nextStreaks });
   };
 
   const deleteStreak = (habitId: string) => {
-    setStreaks((prev) => prev.filter((h) => h.id !== habitId));
+    const nextStreaks = streaks.filter((h) => h.id !== habitId);
+    setStreaks(nextStreaks);
+    saveWorkspaceChangeImmediately({ streaks: nextStreaks });
   };
 
   const prevStreakWeek = () => {
@@ -4021,7 +4251,9 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       actualHours: 0,
       completed: false,
     };
-    setTasks((prev) => [...prev, newTask]);
+    const nextTasks = [...tasks, newTask];
+    setTasks(nextTasks);
+    saveWorkspaceChangeImmediately({ tasks: nextTasks });
     setTaskTitle("");
     setTaskDueDate("");
   };
@@ -4031,48 +4263,188 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     if (!target) return;
 
     const completing = !target.completed;
-    setTasks((prev) =>
-      prev.map((task) => {
-        if (task.id !== id) return task;
-        return {
-          ...task,
-          completed: completing,
-          completedAt: completing ? new Date().toISOString() : undefined,
-          // Award completion XP only once for this task. Pre-existing completed
-          // tasks have no xpAwarded flag and therefore do not grant XP at startup.
-          xpAwarded: completing ? (task.xpAwarded ?? false) : task.xpAwarded,
-        };
-      })
-    );
+    let nextTasks = tasks.map((task) => {
+      if (task.id !== id) return task;
+      return {
+        ...task,
+        completed: completing,
+        completedAt: completing ? new Date().toISOString() : undefined,
+        // Award completion XP only once for this task. Pre-existing completed
+        // tasks have no xpAwarded flag and therefore do not grant XP at startup.
+        xpAwarded: completing ? (task.xpAwarded ?? false) : task.xpAwarded,
+      };
+    });
 
+    let nextXp = gamificationXp;
     if (completing && !target.xpAwarded) {
-      setGamificationXp((prevXp) => prevXp + XP_PER_COMPLETED_TASK);
-      setTasks((prev) =>
-        prev.map((task) =>
-          task.id === id ? { ...task, xpAwarded: true } : task
-        )
+      nextXp += XP_PER_COMPLETED_TASK;
+      nextTasks = nextTasks.map((task) =>
+        task.id === id ? { ...task, xpAwarded: true } : task
       );
     }
+
+    setTasks(nextTasks);
+    if (nextXp !== gamificationXp) setGamificationXp(nextXp);
+    saveWorkspaceChangeImmediately({ tasks: nextTasks, gamificationXp: nextXp });
   };
 
   const deleteTask = (id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    const nextTasks = tasks.filter((t) => t.id !== id);
+    setTasks(nextTasks);
+    saveWorkspaceChangeImmediately({ tasks: nextTasks });
     if (selectedTimerTaskId === id) setSelectedTimerTaskId("");
   };
 
   const updateTaskScore = (id: string, scoreStr: string) => {
     const val = scoreStr.trim().toUpperCase();
     const isValidScore = (Object.keys(LETTER_POINTS) as string[]).includes(val);
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === id
-          ? {
-              ...task,
-              score: isValidScore ? (val as StandardLevel) : undefined,
-            }
-          : task
-      )
+    const nextTasks = tasks.map((task) =>
+      task.id === id
+        ? {
+            ...task,
+            score: isValidScore ? (val as StandardLevel) : undefined,
+          }
+        : task
     );
+    setTasks(nextTasks);
+    saveWorkspaceChangeImmediately({ tasks: nextTasks });
+  };
+
+  type WorkspacePersistSnapshot = {
+    classes: ClassItem[];
+    clubs: ClubItem[];
+    tasks: Task[];
+    streaks: StreakHabit[];
+    studySessions: StudySession[];
+    gamificationXp: number;
+  };
+
+  const saveWorkspaceChangeImmediately = (
+    overrides: Partial<WorkspacePersistSnapshot>
+  ) => {
+    if (!userId || !isLoaded) return;
+
+    const snapshot: WorkspacePersistSnapshot = {
+      classes,
+      clubs,
+      tasks,
+      streaks,
+      studySessions,
+      gamificationXp,
+      ...overrides,
+    };
+
+    const localSavedAt = Date.now();
+    try {
+      localStorage.setItem(
+        `tracker_workspace_data_saved_at_v2_${userId}`,
+        String(localSavedAt)
+      );
+      localStorage.setItem(`tracker_classes_v8_${userId}`, JSON.stringify(snapshot.classes));
+      localStorage.setItem(`tracker_clubs_v8_${userId}`, JSON.stringify(snapshot.clubs));
+      localStorage.setItem(`tracker_tasks_v8_${userId}`, JSON.stringify(snapshot.tasks));
+      localStorage.setItem(`tracker_streaks_v8_${userId}`, JSON.stringify(snapshot.streaks));
+      localStorage.setItem(`tracker_study_sessions_v1_${userId}`, JSON.stringify(snapshot.studySessions));
+      localStorage.setItem(`tracker_gamification_xp_v1_${userId}`, JSON.stringify(snapshot.gamificationXp));
+    } catch {
+      // Supabase remains the durable account store when localStorage is unavailable.
+    }
+
+    const requestId = ++workspaceSaveRequestRef.current;
+    isSavingRef.current = true;
+    setSyncStatus("syncing");
+
+    workspaceSaveQueueRef.current = workspaceSaveQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        const { data: existingRow, error: readError } = await supabase
+          .from("user_data")
+          .select("data")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (readError) throw readError;
+
+        const existingData =
+          existingRow?.data &&
+          typeof existingRow.data === "object" &&
+          !Array.isArray(existingRow.data)
+            ? { ...(existingRow.data as Record<string, any>) }
+            : {};
+
+        const serverTimestamp = new Date().toISOString();
+        const nextData: Record<string, any> = {
+          ...existingData,
+          classes: snapshot.classes,
+          clubs: snapshot.clubs,
+          tasks: snapshot.tasks,
+          streaks: snapshot.streaks,
+          studySessions: snapshot.studySessions,
+          gamificationXp: snapshot.gamificationXp,
+          // Keep the rest of the signed-in user's current client state too, so an
+          // academic change never writes an older Learning or Calendar snapshot
+          // back over a newer change made in the same browser.
+          learningMaterials,
+          learningBundles,
+          googleCalendarEvents,
+          hiddenGoogleEventIds,
+          googleCalendarDeletionRules,
+          googleCalendarMergeRules,
+        };
+
+        // Never let an academic workspace save erase a Clan value that is not yet
+        // loaded. Once Clan is loaded, preserve the current membership snapshot too.
+        if (clanLoadedForUserIdRef.current === userId) {
+          if (clan) {
+            nextData.clan = {
+              clan,
+              displayName: clanDisplayName || "Student",
+              studyMinutes: clanStudyMinutes,
+              joinedAt:
+                readLocalClan(userId)?.joinedAt || new Date().toISOString(),
+            };
+          } else {
+            delete nextData.clan;
+          }
+        }
+
+        const { error: writeError } = await supabase.from("user_data").upsert(
+          {
+            user_id: userId,
+            data: nextData,
+            updated_at: serverTimestamp,
+          },
+          { onConflict: "user_id" }
+        );
+
+        if (writeError) throw writeError;
+
+        try {
+          localStorage.setItem(
+            `tracker_workspace_data_saved_at_v2_${userId}`,
+            String(Date.parse(serverTimestamp) || Date.now())
+          );
+        } catch {
+          // Ignore cache timestamp errors.
+        }
+
+        if (requestId === workspaceSaveRequestRef.current) {
+          setSyncStatus("synced");
+        }
+      })
+      .catch((err: unknown) => {
+        // Local storage was already updated synchronously. Surface the account
+        // failure instead of silently pretending the save succeeded.
+        if (requestId === workspaceSaveRequestRef.current) {
+          setSyncStatus("error");
+        }
+        console.error("Workspace save failed:", err);
+      })
+      .finally(() => {
+        if (requestId === workspaceSaveRequestRef.current) {
+          isSavingRef.current = false;
+        }
+      });
   };
 
   const saveLearningDataImmediately = async (
@@ -4282,88 +4654,6 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       0
     );
   }, [activeLearningBundle, learningQuizAnswers]);
-
-  const processRawSyllabus = () => {
-    if (!rawSyllabusText.trim()) return;
-    setIsParsing(true);
-    if (parseTimerRef.current) clearTimeout(parseTimerRef.current);
-
-    parseTimerRef.current = setTimeout(() => {
-      const lines = rawSyllabusText.split("\n");
-      const extracted: Partial<Task>[] = [];
-
-      lines.forEach((line) => {
-        const trimmed = line.trim();
-        if (!trimmed) return;
-
-        const dateMatch = trimmed.match(
-          /\b(20\d\d[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]20\d\d|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2})\b/i
-        );
-
-        const isExam = /exam|test|quiz|midterm|final/i.test(trimmed);
-
-        if (dateMatch || isExam || trimmed.length > 5) {
-          extracted.push({
-            title: trimmed.replace(/[-:]/g, " ").slice(0, 45),
-            dueDate: dateMatch ? "2026-10-01" : "2026-10-15",
-            type: isExam ? "test" : "homework",
-            estimatedHours: isExam ? 4 : 2,
-          });
-        }
-      });
-
-      setParsedItems(
-        extracted.length > 0
-          ? extracted.slice(0, 6)
-          : [
-              { title: "Syllabus Overview Quiz", dueDate: "2026-09-24", type: "homework", estimatedHours: 1 },
-              { title: "Midterm Examination", dueDate: "2026-10-10", type: "test", estimatedHours: 5 },
-              { title: "Term Research Paper", dueDate: "2026-11-05", type: "homework", estimatedHours: 6 },
-            ]
-      );
-      setIsParsing(false);
-    }, 1200);
-  };
-
-  const handleSyllabusUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsParsing(true);
-    if (parseTimerRef.current) clearTimeout(parseTimerRef.current);
-
-    parseTimerRef.current = setTimeout(() => {
-      const mockExtracted: Partial<Task>[] = [
-        { title: `${file.name.replace(/\.[^/.]+$/, "")} Quiz`, dueDate: "2026-09-28", type: "homework", estimatedHours: 1 },
-        { title: "Unit Assessment", dueDate: "2026-10-12", type: "test", estimatedHours: 4 },
-        { title: "Final Cumulative Exam", dueDate: "2026-11-20", type: "test", estimatedHours: 6 },
-      ];
-      setParsedItems(mockExtracted);
-      setIsParsing(false);
-      e.target.value = "";
-    }, 1500);
-  };
-
-  const importParsedTasks = () => {
-    const targetClassId =
-      classes.find((c) => c.id === selectedClassId)?.id || classes[0]?.id;
-    if (!targetClassId) {
-      alert("Add a class before importing tasks from a syllabus.");
-      return;
-    }
-    const imported: Task[] = parsedItems.map((item, i) => ({
-      id: (Date.now() + i).toString(),
-      title: item.title || "Imported Task",
-      classId: targetClassId,
-      dueDate: item.dueDate || "",
-      type: item.type || "homework",
-      estimatedHours: item.estimatedHours || 2,
-      actualHours: 0,
-      completed: false,
-    }));
-    setTasks((prev) => [...prev, ...imported]);
-    setParsedItems([]);
-    alert(`Successfully imported ${imported.length} tasks!`);
-  };
 
   const currentMonth = currentCalendarDate.toLocaleString("default", {
     month: "long",
@@ -5826,17 +6116,6 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setActiveTab("syllabus")}
-                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
-                      activeTab === "syllabus"
-                        ? "bg-blue-600 text-white"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <Upload size={13} /> Syllabus
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => {
                       setActiveTab("planner");
                       setMobileTab("planner");
@@ -6127,7 +6406,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
                       <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Study time</div>
                       <div className="mt-1 text-2xl font-extrabold text-blue-400">{analytics.totalStudyHours.toFixed(1)}h</div>
-                      <div className="mt-1 text-[10px] text-slate-500">tracked focus sessions</div>
+                      <div className="mt-1 text-[10px] text-slate-500">actual logged study time</div>
                     </div>
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
                       <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Task completion</div>
@@ -6137,7 +6416,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
                       <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">This week</div>
                       <div className="mt-1 text-2xl font-extrabold text-violet-400">{analytics.weekHours.toFixed(1)}h</div>
-                      <div className="mt-1 text-[10px] text-slate-500">{analytics.weekCompleted} completed</div>
+                      <div className="mt-1 text-[10px] text-slate-500">Mon–Sun · {analytics.weekLabel}</div>
                     </div>
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
                       <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Missed deadlines</div>
@@ -6151,46 +6430,72 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="flex items-center gap-2 text-sm font-bold text-white"><TrendingUp size={16} className="text-blue-400" /> Weekly study time</h3>
-                          <p className="mt-0.5 text-[10px] text-slate-500">Focus sessions recorded by the app</p>
+                          <p className="mt-0.5 text-[10px] text-slate-500">Focus minutes recorded during the current Monday–Sunday week</p>
                         </div>
                         <span className="text-xs font-semibold text-slate-400">Goal {analytics.weeklyGoalHours}h</span>
                       </div>
-                      <div className="mt-5 flex h-40 items-end gap-2">
-                        {analytics.last7Days.map((day) => {
-                          const height = Math.max(6, Math.min(100, day.hours / 3 * 100));
-                          return (
-                            <div key={day.key} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1">
-                              <span className="text-[10px] font-semibold text-slate-400">{day.hours ? `${day.hours}h` : ""}</span>
-                              <div className="w-full max-w-10 rounded-t-lg bg-slate-900" style={{ height: `${height}%` }}>
-                                <div className="h-full w-full rounded-t-lg bg-blue-500/70" />
-                              </div>
-                              <span className="text-[10px] text-slate-500">{day.label}</span>
+                      <div className="mt-5 grid grid-cols-[34px_1fr] gap-3">
+                        <div className="flex h-44 flex-col justify-between text-right text-[9px] text-slate-600">
+                          <span>{(analytics.weeklyMaxMinutes / 60).toFixed(1)}h</span>
+                          <span>{(analytics.weeklyMaxMinutes / 120).toFixed(1)}h</span>
+                          <span>0h</span>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="relative h-44 overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
+                            <div className="pointer-events-none absolute inset-0 flex flex-col justify-between py-3">
+                              <div className="border-t border-slate-800/90" />
+                              <div className="border-t border-slate-800/70" />
+                              <div className="border-t border-slate-800/90" />
                             </div>
-                          );
-                        })}
+                            <div className="relative flex h-full items-end gap-2 px-3 pb-2 pt-3">
+                              {analytics.last7Days.map((day) => {
+                                const percent = day.minutes > 0
+                                  ? Math.max(5, Math.min(100, (day.minutes / analytics.weeklyMaxMinutes) * 100))
+                                  : 3;
+                                return (
+                                  <div key={day.key} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
+                                    <span className="text-[9px] font-semibold text-slate-400">{day.minutes ? `${day.hours.toFixed(1)}h` : "0h"}</span>
+                                    <div
+                                      className={`w-full max-w-10 rounded-t-lg border border-blue-400/20 ${day.minutes ? "bg-blue-500/70" : "bg-slate-800/80"}`}
+                                      style={{ height: `${percent}%` }}
+                                      title={`${day.label}: ${day.hours.toFixed(2)}h of focus time`}
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          <div className="mt-1 flex gap-2 px-3">
+                            {analytics.last7Days.map((day) => (
+                              <span key={day.key} className="min-w-0 flex-1 text-center text-[9px] text-slate-500">{day.label}</span>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-3">
                         <div>
                           <h3 className="flex items-center gap-2 text-sm font-bold text-white"><BarChart3 size={16} className="text-emerald-400" /> Study time vs. grades</h3>
-                          <p className="mt-0.5 text-[10px] text-slate-500">Hours logged on tasks for each class</p>
+                          <p className="mt-0.5 text-[10px] text-slate-500">Up to 8 of your classes, ranked by logged study time</p>
                         </div>
+                        <span className="shrink-0 text-[10px] text-slate-500">{Math.min(8, analytics.classStudy.length)} shown</span>
                       </div>
-                      <div className="mt-4 space-y-3">
+                      <div className="mt-4 max-h-[420px] space-y-3 overflow-y-auto pr-1">
                         {analytics.classStudy.length === 0 ? (
-                          <div className="rounded-xl border border-dashed border-slate-800 p-6 text-center text-xs text-slate-500">Add classes and log focus sessions to see class analytics.</div>
-                        ) : analytics.classStudy.slice(0, 6).map((item) => {
+                          <div className="rounded-xl border border-dashed border-slate-800 p-6 text-center text-xs text-slate-500">Add a class to see its grade and study-time comparison.</div>
+                        ) : analytics.classStudy.slice(0, 8).map((item) => {
                           const maxHours = Math.max(1, ...analytics.classStudy.map((entry) => entry.hours));
+                          const width = item.hours > 0 ? Math.max(6, (item.hours / maxHours) * 100) : 3;
                           return (
                             <div key={item.id}>
                               <div className="flex items-center justify-between gap-2 text-[11px]">
                                 <span className="min-w-0 truncate font-semibold text-slate-300">{item.name}</span>
                                 <span className="shrink-0 font-mono text-slate-400">{item.letter} · {item.hours.toFixed(1)}h</span>
                               </div>
-                              <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-900">
-                                <div className="h-full rounded-full" style={{ width: `${Math.max(4, item.hours / maxHours * 100)}%`, backgroundColor: item.color }} />
+                              <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-slate-900">
+                                <div className="h-full rounded-full" style={{ width: `${width}%`, backgroundColor: item.color }} />
                               </div>
                             </div>
                           );
@@ -6212,7 +6517,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               <span className="truncate text-xs font-semibold text-slate-300">{habit.name}</span>
                             </div>
                             <div className="flex shrink-0 items-center gap-3 text-[10px]">
-                              <span className="text-amber-400 font-bold">🔥 {habit.current}</span>
+                              <span className="font-bold text-amber-400">🔥 {habit.current}</span>
                               <span className="text-slate-500">Best {habit.best}</span>
                             </div>
                           </div>
@@ -7461,9 +7766,11 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                   value={cls.targetGrade || "A"}
                                   onChange={(e) => {
                                     const val = e.target.value as StandardLevel;
-                                    setClasses((prev) =>
-                                      prev.map((c) => (c.id === cls.id ? { ...c, targetGrade: val } : c))
+                                    const nextClasses = classes.map((c) =>
+                                      c.id === cls.id ? { ...c, targetGrade: val } : c
                                     );
+                                    setClasses(nextClasses);
+                                    saveWorkspaceChangeImmediately({ classes: nextClasses });
                                   }}
                                   className="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-xs font-bold text-blue-400 focus:outline-none"
                                 >
@@ -7662,127 +7969,6 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   </div>
               )}
 
-              {/* TAB: SYLLABUS */}
-              {activeTab === "syllabus" && (
-                <div className="space-y-4 pt-1">
-                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <Upload size={18} className="text-blue-400" /> Syllabus AI Task Extractor
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      Paste syllabus text or upload course outline to automatically extract key exam dates, homework deadlines, and import them into your schedule.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
-                      <h4 className="text-xs font-bold text-blue-400 uppercase flex items-center gap-1.5">
-                        <BookOpen size={14} /> Paste or Upload Syllabus
-                      </h4>
-
-                      <textarea
-                        rows={6}
-                        placeholder="Paste raw course syllabus, schedule, or assessment dates here..."
-                        value={rawSyllabusText}
-                        onChange={(e) => setRawSyllabusText(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg text-xs focus:outline-none focus:border-blue-500 font-mono text-slate-200"
-                      />
-
-                      <div className="flex flex-col sm:flex-row items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={processRawSyllabus}
-                          disabled={isParsing || !rawSyllabusText.trim()}
-                          className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold py-2 rounded-lg text-xs flex items-center justify-center gap-1.5 transition"
-                        >
-                          {isParsing ? (
-                            <Sparkles size={14} className="animate-spin" />
-                          ) : (
-                            <Sparkles size={14} />
-                          )}
-                          {isParsing ? "Extracting..." : "Parse Text"}
-                        </button>
-
-                        <label className="w-full sm:w-auto cursor-pointer bg-slate-900 hover:bg-slate-800 border border-slate-800 px-3 py-2 rounded-lg text-xs text-slate-300 font-semibold flex items-center justify-center gap-1.5 transition">
-                          <Upload size={14} />
-                          <span>Upload File</span>
-                          <input
-                            type="file"
-                            accept=".txt,.pdf,.doc,.docx"
-                            onChange={handleSyllabusUpload}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3 flex flex-col justify-between">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                          <h4 className="text-xs font-bold text-blue-400 uppercase flex items-center gap-1.5">
-                            <Check size={14} /> Extracted Items ({parsedItems.length})
-                          </h4>
-                          {parsedItems.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={importParsedTasks}
-                              className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2.5 py-1 rounded transition flex items-center gap-1"
-                            >
-                              <Plus size={12} /> Import All
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="space-y-2 max-h-[220px] overflow-y-auto">
-                          {isParsing && (
-                            <p className="text-xs text-slate-400 py-8 text-center animate-pulse">
-                              Analyzing syllabus text & dates...
-                            </p>
-                          )}
-                          {!isParsing && parsedItems.length === 0 && (
-                            <p className="text-xs text-slate-500 py-8 text-center">
-                              No items extracted yet. Paste text or upload a syllabus file to preview detected assignments.
-                            </p>
-                          )}
-                          {!isParsing &&
-                            parsedItems.map((item, idx) => (
-                              <div
-                                key={idx}
-                                className="bg-slate-900 border border-slate-800/80 p-2.5 rounded-lg flex items-center justify-between gap-2 text-xs"
-                              >
-                                <div className="space-y-0.5">
-                                  <span className="font-semibold text-slate-200 block truncate">
-                                    {item.title}
-                                  </span>
-                                  <div className="text-[10px] text-slate-400 flex items-center gap-2">
-                                    <span>Due: {item.dueDate || "N/A"}</span>
-                                    <span>Est: {item.estimatedHours}h</span>
-                                  </div>
-                                </div>
-                                <span
-                                  className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase shrink-0 ${
-                                    item.type === "test"
-                                      ? "bg-rose-500/20 text-rose-400"
-                                      : "bg-indigo-500/20 text-indigo-400"
-                                  }`}
-                                >
-                                  {item.type}
-                                </span>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-
-                      {parsedItems.length > 0 && (
-                        <div className="text-[10px] text-slate-400 italic bg-slate-900/50 p-2 rounded border border-slate-800 text-center">
-                          Imported tasks will be assigned to{" "}
-                          <strong className="text-slate-200">{activeClass?.name || "selected course"}</strong>.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </main>
