@@ -852,6 +852,35 @@ type SyncedGoogleCalendarEvent = {
   originalStartTime?: string;
 };
 
+type ManualCalendarEvent = {
+  id: string;
+  name: string;
+  details: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  type: "Study" | "Test" | "Homework" | "Class" | "Club" | "Personal" | "Other";
+};
+
+function getManualEventColor(type: ManualCalendarEvent["type"]): string {
+  switch (type) {
+    case "Test":
+      return "#E11D48";
+    case "Homework":
+      return "#2563EB";
+    case "Study":
+      return "#7C3AED";
+    case "Class":
+      return "#0F766E";
+    case "Club":
+      return "#D97706";
+    case "Personal":
+      return "#475569";
+    default:
+      return "#64748B";
+  }
+}
+
 type GoogleCalendarDeletionRule = {
   seriesId: string;
   mode: "all" | "from";
@@ -1424,6 +1453,14 @@ export default function AcademicOSDashboard() {
   const [zoomedCalendarDate, setZoomedCalendarDate] = useState<string | null>(null);
   const [editingGoogleEventId, setEditingGoogleEventId] = useState<string | null>(null);
   const [calendarDeleteEventId, setCalendarDeleteEventId] = useState<string | null>(null);
+  const [manualCalendarEvents, setManualCalendarEvents] = useState<ManualCalendarEvent[]>([]);
+  const [showManualEventModal, setShowManualEventModal] = useState(false);
+  const [manualEventName, setManualEventName] = useState("");
+  const [manualEventDetails, setManualEventDetails] = useState("");
+  const [manualEventDate, setManualEventDate] = useState(formatDateKey(new Date()));
+  const [manualEventStartTime, setManualEventStartTime] = useState("09:00");
+  const [manualEventEndTime, setManualEventEndTime] = useState("10:00");
+  const [manualEventType, setManualEventType] = useState<ManualCalendarEvent["type"]>("Study");
   const [calendarReviewOpen, setCalendarReviewOpen] = useState(false);
   const [calendarReviewGroups, setCalendarReviewGroups] = useState<CalendarEventReviewGroup[]>([]);
   const [calendarReviewSelected, setCalendarReviewSelected] = useState<Record<string, boolean>>({});
@@ -1689,6 +1726,20 @@ export default function AcademicOSDashboard() {
         setHiddenGoogleEventIds(savedHiddenGoogleEventIds);
         setGoogleCalendarDeletionRules(savedGoogleCalendarDeletionRules);
         setGoogleCalendarMergeRules(savedGoogleCalendarMergeRules);
+        setManualCalendarEvents(
+          Array.isArray(data.data.manualCalendarEvents)
+            ? data.data.manualCalendarEvents.filter(
+                (event: any) =>
+                  event &&
+                  typeof event.id === "string" &&
+                  typeof event.name === "string" &&
+                  typeof event.date === "string" &&
+                  typeof event.startTime === "string" &&
+                  typeof event.endTime === "string" &&
+                  typeof event.type === "string"
+              )
+            : []
+        );
 
         if (!useLocalWorkspace) {
           try {
@@ -1801,6 +1852,10 @@ export default function AcademicOSDashboard() {
             []
           )
         );
+        const localManualCalendarEvents = safeStorageGet<ManualCalendarEvent[]>(
+          `tracker_manual_calendar_events_v1_${currentUserId}`,
+          []
+        );
 
         try {
           const localWorkspaceSavedAt = Number(
@@ -1854,6 +1909,7 @@ export default function AcademicOSDashboard() {
         );
         setHiddenGoogleEventIds(localHiddenGoogleEventIds);
         setGoogleCalendarDeletionRules(localGoogleCalendarDeletionRules);
+        setManualCalendarEvents(Array.isArray(localManualCalendarEvents) ? localManualCalendarEvents : []);
         setSyncStatus("synced");
       }
     } catch (err) {
@@ -2870,6 +2926,7 @@ export default function AcademicOSDashboard() {
     clanLoadedForUserIdRef.current = null;
     setGoogleCalendarEvents([]);
     setHiddenGoogleEventIds([]);
+    setManualCalendarEvents([]);
     setGoogleCalendarMergeRules([]);
     setCalendarSyncState("idle");
     setCalendarSyncMessage(null);
@@ -2999,6 +3056,8 @@ useEffect(() => {
               setLearningMaterials(payload.new.data.learningMaterials);
             if (Array.isArray(payload.new.data.learningBundles))
               setLearningBundles(payload.new.data.learningBundles);
+            if (Array.isArray(payload.new.data.manualCalendarEvents))
+              setManualCalendarEvents(payload.new.data.manualCalendarEvents);
             const updatedHiddenGoogleEventIds = normalizeGoogleEventIds(
               payload.new.data.hiddenGoogleEventIds
             );
@@ -3092,6 +3151,10 @@ useEffect(() => {
     `tracker_google_calendar_merge_rules_v1_${userId}`,
     JSON.stringify(googleCalendarMergeRules)
   );
+  localStorage.setItem(
+    `tracker_manual_calendar_events_v1_${userId}`,
+    JSON.stringify(manualCalendarEvents)
+  );
 
   async function saveData() {
     setSyncStatus("syncing");
@@ -3128,6 +3191,7 @@ useEffect(() => {
         hiddenGoogleEventIds,
         googleCalendarDeletionRules,
         googleCalendarMergeRules,
+        manualCalendarEvents,
       };
 
       // Only replace/delete the Clan field after Clan has actually finished
@@ -3182,6 +3246,7 @@ useEffect(() => {
   hiddenGoogleEventIds,
   googleCalendarDeletionRules,
   googleCalendarMergeRules,
+  manualCalendarEvents,
   isLoaded,
   userId,
 ]);
@@ -4683,6 +4748,14 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         : [],
     [googleCalendarEvents, zoomedCalendarDate]
   );
+  const zoomedManualEvents = useMemo(
+    () =>
+      zoomedCalendarDate
+        ? manualCalendarEvents.filter((event) => event.date === zoomedCalendarDate)
+        : [],
+    [manualCalendarEvents, zoomedCalendarDate]
+  );
+
   // Day-of-week + academic status for the zoomed day, so we can pull in the
   // same weekly Timetable class sessions and club meetings the month grid shows.
   const zoomedDayInfo = useMemo(() => {
@@ -4749,6 +4822,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
   type ZoomedDayItem =
     | { kind: "google"; sortKey: string; id: string; event: SyncedGoogleCalendarEvent }
+    | { kind: "manual"; sortKey: string; id: string; event: ManualCalendarEvent }
     | { kind: "task"; sortKey: string; id: string; task: Task }
     | { kind: "class"; sortKey: string; id: string; cls: ClassItem; slot: MeetingTime }
     | { kind: "club"; sortKey: string; id: string; club: ClubItem; slot: ClubMeetingTime };
@@ -4762,6 +4836,14 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         kind: "google",
         sortKey: event.allDay ? "0000" : event.startTime || "0000",
         id: `g-${event.id}`,
+        event,
+      });
+    });
+    zoomedManualEvents.forEach((event) => {
+      items.push({
+        kind: "manual",
+        sortKey: event.startTime || "0000",
+        id: `m-${event.id}`,
         event,
       });
     });
@@ -4787,7 +4869,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       });
     });
     return items.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-  }, [zoomedGoogleEvents, zoomedTasks, zoomedClassMeetings, zoomedClubMeetings]);
+  }, [zoomedGoogleEvents, zoomedManualEvents, zoomedTasks, zoomedClassMeetings, zoomedClubMeetings]);
 
   const editingGoogleEvent = googleCalendarEvents.find(
     (event) => event.id === editingGoogleEventId
@@ -4800,6 +4882,47 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         year: "numeric",
       }).format(new Date(`${zoomedCalendarDate}T12:00:00`))
     : "";
+
+  const openManualEventModal = (date?: string) => {
+    setManualEventDate(date || zoomedCalendarDate || formatDateKey(new Date()));
+    setManualEventName("");
+    setManualEventDetails("");
+    setManualEventStartTime("09:00");
+    setManualEventEndTime("10:00");
+    setManualEventType("Study");
+    setShowManualEventModal(true);
+  };
+
+  const addManualCalendarEvent = (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = manualEventName.trim();
+    if (!name || !manualEventDate || !manualEventStartTime || !manualEventEndTime) return;
+
+    const event: ManualCalendarEvent = {
+      id: `manual-event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      details: manualEventDetails.trim(),
+      date: manualEventDate,
+      startTime: manualEventStartTime,
+      endTime: manualEventEndTime,
+      type: manualEventType,
+    };
+
+    const nextEvents = [...manualCalendarEvents, event].sort(
+      (a, b) =>
+        a.date.localeCompare(b.date) ||
+        a.startTime.localeCompare(b.startTime) ||
+        a.name.localeCompare(b.name)
+    );
+    setManualCalendarEvents(nextEvents);
+    setShowManualEventModal(false);
+    setZoomedCalendarDate(manualEventDate);
+    setEditingGoogleEventId(null);
+  };
+
+  const deleteManualCalendarEvent = (eventId: string) => {
+    setManualCalendarEvents((current) => current.filter((event) => event.id !== eventId));
+  };
 
   const prevMonth = () => {
     setCurrentCalendarDate(
@@ -6571,6 +6694,15 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     <div className="flex w-full sm:w-auto flex-wrap items-center gap-2 self-start sm:self-auto">
                       <button
                         type="button"
+                        onClick={() => openManualEventModal()}
+                        className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition"
+                        title="Add a calendar event manually"
+                      >
+                        <Plus size={14} />
+                        Add Event
+                      </button>
+                      <button
+                        type="button"
                         onClick={handleGoogleCalendarSync}
                         disabled={calendarSyncState === "syncing"}
                         className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
@@ -6724,6 +6856,9 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       const dayGoogleEvents = googleCalendarEvents.filter((event) =>
                         googleEventOccursOnDate(event, dateStr)
                       );
+                      const dayManualEvents = manualCalendarEvents.filter(
+                        (event) => event.date === dateStr
+                      );
 
                       const dayClubMeetings =
                         academicStatus.type === "break" || academicStatus.type === "staff_only"
@@ -6829,6 +6964,21 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                 {event.startTime && (
                                   <span className="ml-1 font-mono opacity-80">{event.startTime}</span>
                                 )}
+                              </button>
+                            ))}
+                            {dayManualEvents.map((event) => (
+                              <button
+                                key={`manual-${event.id}`}
+                                type="button"
+                                onClick={(clickEvent) => {
+                                  clickEvent.stopPropagation();
+                                  openCalendarDay(dateStr);
+                                }}
+                                className="w-full text-left text-[9px] px-1.5 py-1 rounded-lg border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 transition"
+                                title={`${event.name} · ${event.startTime} – ${event.endTime}`}
+                              >
+                                <span className="font-semibold text-slate-200 truncate block">{event.name}</span>
+                                <span className="text-slate-500 font-mono">{event.startTime}</span>
                               </button>
                             ))}
                             {dayTasks.map((t) => (
@@ -7974,6 +8124,132 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         </main>
       </div>
 
+      {showManualEventModal && (
+        <div
+          className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+          onClick={() => setShowManualEventModal(false)}
+          role="presentation"
+        >
+          <section
+            className="w-full max-w-lg rounded-t-2xl border border-slate-700 bg-slate-900 p-5 shadow-2xl sm:rounded-2xl"
+            onClick={(clickEvent) => clickEvent.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="manual-event-title"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Calendar</p>
+                <h2 id="manual-event-title" className="mt-1 text-xl font-bold text-white">Add event</h2>
+                <p className="mt-1 text-xs text-slate-400">Create a personal calendar event without Google Calendar.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowManualEventModal(false)}
+                className="rounded-lg border border-slate-700 p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                aria-label="Close add event"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={addManualCalendarEvent} className="mt-5 space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Name
+                  <input
+                    value={manualEventName}
+                    onChange={(e) => setManualEventName(e.target.value)}
+                    placeholder="e.g. Biology Review"
+                    required
+                    autoFocus
+                    className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-400"
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-slate-300">
+                  Type
+                  <select
+                    value={manualEventType}
+                    onChange={(e) => setManualEventType(e.target.value as ManualCalendarEvent["type"])}
+                    className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-400"
+                  >
+                    <option>Study</option>
+                    <option>Test</option>
+                    <option>Homework</option>
+                    <option>Class</option>
+                    <option>Club</option>
+                    <option>Personal</option>
+                    <option>Other</option>
+                  </select>
+                </label>
+              </div>
+
+              <label className="block text-xs font-semibold text-slate-300">
+                Event details
+                <textarea
+                  value={manualEventDetails}
+                  onChange={(e) => setManualEventDetails(e.target.value)}
+                  placeholder="What is this event for?"
+                  rows={3}
+                  className="mt-1.5 w-full resize-y rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-400"
+                />
+              </label>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Date
+                  <input
+                    type="date"
+                    value={manualEventDate}
+                    onChange={(e) => setManualEventDate(e.target.value)}
+                    required
+                    className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-400"
+                  />
+                </label>
+                <label className="block text-xs font-semibold text-slate-300">
+                  Start
+                  <input
+                    type="time"
+                    value={manualEventStartTime}
+                    onChange={(e) => setManualEventStartTime(e.target.value)}
+                    required
+                    className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-400"
+                  />
+                </label>
+                <label className="block text-xs font-semibold text-slate-300">
+                  End
+                  <input
+                    type="time"
+                    value={manualEventEndTime}
+                    onChange={(e) => setManualEventEndTime(e.target.value)}
+                    required
+                    className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-400"
+                  />
+                </label>
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowManualEventModal(false)}
+                  className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!manualEventName.trim() || !manualEventDate || !manualEventStartTime || !manualEventEndTime}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Plus size={16} /> Save event
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
       {calendarReviewOpen && (
         <div
           className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/85 p-0 backdrop-blur-sm sm:items-center sm:p-6"
@@ -8216,6 +8492,14 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   {zoomedDayItems.length} event{zoomedDayItems.length === 1 ? "" : "s"} scheduled
                 </p>
               </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openManualEventModal(zoomedCalendarDate || undefined)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                >
+                  <Plus size={14} /> Add event
+                </button>
               <button
                 type="button"
                 onClick={() => {
@@ -8227,11 +8511,12 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               >
                 <X size={18} />
               </button>
+              </div>
             </div>
 
             {zoomedDayItems.length === 0 ? (
               <p className="py-12 text-center text-sm text-slate-500">
-                Nothing scheduled for this day — no Google Calendar events, classes, tasks, or club meetings.
+                Nothing scheduled for this day — no Google Calendar events, personal events, classes, tasks, or club meetings.
               </p>
             ) : (
               <div className="mt-5 grid gap-5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
@@ -8266,6 +8551,46 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                             </span>
                           </div>
                         </button>
+                      );
+                    }
+
+                    if (item.kind === "manual") {
+                      const event = item.event;
+                      return (
+                        <div
+                          key={item.id}
+                          className="w-full rounded-xl border border-emerald-500/20 bg-slate-950/60 p-3 text-left"
+                        >
+                          <div className="flex items-start gap-2">
+                            <span
+                              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white"
+                              style={{ backgroundColor: getManualEventColor(event.type) }}
+                            >
+                              ✦
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-semibold text-slate-100">{event.name}</span>
+                              <span className="mt-0.5 block text-xs text-slate-400">
+                                {event.type} · {event.startTime} – {event.endTime}
+                              </span>
+                              {event.details && (
+                                <span className="mt-1 block whitespace-pre-wrap text-xs text-slate-500">{event.details}</span>
+                              )}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`Delete “${event.name}”?`)) {
+                                  deleteManualCalendarEvent(event.id);
+                                }
+                              }}
+                              className="shrink-0 rounded-lg p-2 text-slate-500 transition hover:bg-rose-500/10 hover:text-rose-300"
+                              title="Delete manual event"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
                       );
                     }
 
