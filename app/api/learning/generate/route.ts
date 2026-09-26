@@ -123,6 +123,18 @@ function normalizePack(result: any, className: string) {
   };
 }
 
+export async function GET() {
+  return NextResponse.json(
+    {
+      ok: true,
+      configured: Boolean(process.env.OPENAI_API_KEY),
+      model: MODEL,
+      message: "Learning generation endpoint is deployed. Use POST to generate a study pack.",
+    },
+    { headers: { "Cache-Control": "no-store" } }
+  );
+}
+
 export async function POST(request: Request) {
   const requestId = crypto.randomUUID();
 
@@ -267,3 +279,4 @@ export async function POST(request: Request) {
     );
   }
 }
+
