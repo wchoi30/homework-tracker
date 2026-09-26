@@ -1,5 +1,7 @@
 "use client";
 
+import katex from "katex";
+import "katex/dist/katex.min.css";
 import { createWorker } from "tesseract.js";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "./supabase";
@@ -1143,6 +1145,50 @@ function LandingPage({
         </div>
       </footer>
     </div>
+  );
+}
+
+function MathText({ text, className = "" }: { text: string; className?: string }) {
+  if (!text) return null;
+
+  // Split string by $$...$$ (display math) and $...$ (inline math)
+  const tokens = text.split(/(\$\$[\s\S]+?\$\$|\$[^\$]+?\$)/g);
+
+  return (
+    <span className={className}>
+      {tokens.map((part, index) => {
+        if (part.startsWith("$$") && part.endsWith("$$")) {
+          const math = part.slice(2, -2).trim();
+          try {
+            const html = katex.renderToString(math, { displayMode: true, throwOnError: false });
+            return (
+              <span
+                key={index}
+                className="my-2 block overflow-x-auto text-center"
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            );
+          } catch {
+            return <span key={index}>{part}</span>;
+          }
+        } else if (part.startsWith("$") && part.endsWith("$")) {
+          const math = part.slice(1, -1).trim();
+          try {
+            const html = katex.renderToString(math, { displayMode: false, throwOnError: false });
+            return (
+              <span
+                key={index}
+                className="inline-block px-0.5"
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            );
+          } catch {
+            return <span key={index}>{part}</span>;
+          }
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </span>
   );
 }
 
@@ -6394,7 +6440,12 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                 <div key={`${section.heading}-${index}`} className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
                                   <h4 className="text-sm font-bold text-white">{section.heading}</h4>
                                   <ul className="mt-2 space-y-2">
-                                    {section.bullets.map((bullet, bulletIndex) => <li key={bulletIndex} className="flex gap-2 text-xs leading-relaxed text-slate-300"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400" />{bullet}</li>)}
+                                    {section.bullets.map((bullet, bulletIndex) => (
+                                      <li key={bulletIndex} className="flex gap-2 text-xs leading-relaxed text-slate-300">
+                                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400" />
+                                        <MathText text={bullet} />
+                                      </li>
+                                    ))}
                                   </ul>
                                 </div>
                               ))}
@@ -6409,7 +6460,15 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                 <div className="space-y-4">
                                   <button type="button" onClick={() => setLearningFlashcardFlipped((current) => !current)} className="flex min-h-[280px] w-full flex-col items-center justify-center rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-600/10 to-slate-900 p-8 text-center transition hover:border-blue-400/40">
                                     <div className="text-[10px] font-bold uppercase tracking-wider text-blue-400">{learningFlashcardFlipped ? "Answer" : "Question"}</div>
-                                    <div className="mt-5 text-xl font-bold leading-relaxed text-white">{learningFlashcardFlipped ? activeLearningBundle.flashcards[learningFlashcardIndex].back : activeLearningBundle.flashcards[learningFlashcardIndex].front}</div>
+                                    <div className="mt-5 text-xl font-bold leading-relaxed text-white">
+                                      <MathText
+                                        text={
+                                          learningFlashcardFlipped
+                                            ? activeLearningBundle.flashcards[learningFlashcardIndex].back
+                                            : activeLearningBundle.flashcards[learningFlashcardIndex].front
+                                          }
+                                        />
+                                      </div>
                                     <div className="mt-6 text-[10px] text-slate-500">Tap to flip</div>
                                   </button>
                                   <div className="flex items-center justify-between gap-2">

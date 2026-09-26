@@ -127,6 +127,13 @@ export async function POST(request: Request) {
     const body = await request.json();
     const className = typeof body?.className === "string" && body.className.trim() ? body.className.trim() : "Class";
     const materials = Array.isArray(body?.materials) ? body.materials.filter((m: any) => m && m.content) : [];
+    const systemInstruction = [
+      "You are an academic learning assistant for WJ Study.",
+      "Ground all study materials strictly in the provided content.",
+      "FORMATTING REQUIREMENT: Always write math equations, formulas, calculus expressions, physics variables, and chemical units using standard LaTeX delimited by single dollar signs for inline ($...$) or double dollar signs for block expressions ($$...$).",
+      "Examples: $\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1$, $F = ma$, $\\int_a^b f(x)\\,dx$, $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$. Never write plain-text math like lim x->0 (sin x)/x.",
+      "Create concise notes (4-10 sections), 10-20 high-yield flashcards, and 5-10 multiple-choice questions with exactly 4 options each.",
+    ].join(" ");
 
     if (materials.length === 0) {
       return NextResponse.json({ error: "No class material was provided." }, { status: 400 });
