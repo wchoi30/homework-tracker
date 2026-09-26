@@ -848,6 +848,30 @@ type SyncedGoogleCalendarEvent = {
   endDate?: string;
   endTime?: string;
   allDay: boolean;
+  recurringEventId?: string;
+  originalStartTime?: string;
+};
+
+type GoogleCalendarDeletionRule = {
+  seriesId: string;
+  mode: "all" | "from";
+  fromStart?: string;
+};
+
+type GoogleCalendarMergeRule = {
+  id: string;
+  canonicalTitle: string;
+  aliases: string[];
+};
+
+type CalendarEventReviewGroup = {
+  id: string;
+  eventIds: string[];
+  titles: string[];
+  proposedTitle: string;
+  confidence: number;
+  exampleTimes: string[];
+  exampleDates: string[];
 };
 
 type GoogleCalendarApiEvent = {
@@ -855,6 +879,8 @@ type GoogleCalendarApiEvent = {
   status?: string;
   summary?: string;
   description?: string;
+  recurringEventId?: string;
+  originalStartTime?: { date?: string; dateTime?: string };
   start?: { date?: string; dateTime?: string };
   end?: { date?: string; dateTime?: string };
 };
@@ -891,6 +917,8 @@ function normalizeGoogleCalendarEvents(value: unknown): SyncedGoogleCalendarEven
     const endRaw = event.end?.dateTime || event.end?.date;
     const allDay = Boolean(event.start?.date && !event.start?.dateTime);
 
+    const originalStartRaw = event.originalStartTime?.dateTime || event.originalStartTime?.date;
+
     return [{
       id: event.id,
       title: event.summary?.trim() || "Untitled Google Calendar event",
@@ -902,6 +930,8 @@ function normalizeGoogleCalendarEvents(value: unknown): SyncedGoogleCalendarEven
       endDate: endRaw?.slice(0, 10),
       endTime: event.end?.dateTime?.slice(11, 16),
       allDay,
+      recurringEventId: event.recurringEventId,
+      originalStartTime: originalStartRaw,
     }];
   });
 }
@@ -909,6 +939,124 @@ function normalizeGoogleCalendarEvents(value: unknown): SyncedGoogleCalendarEven
 function normalizeGoogleEventIds(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return [...new Set(value.filter((id): id is string => typeof id === "string"))];
+}
+
+function normalizeGoogleCalendarDeletionRules(value: unknown): GoogleCalendarDeletionRule[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const rule = item as Partial<GoogleCalendarDeletionRule>;
+    if (typeof rule.seriesId !== "string") return [];
+    if (rule.mode !== "all" && rule.mode !== "from") return [];
+    if (rule.mode === "from" && typeof rule.fromStart !== "string") return [];
+    return [{
+      seriesId: rule.seriesId,
+      mode: rule.mode,
+      ...(rule.mode === "from" ? { fromStart: rule.fromStart } : {}),
+    }];
+  });
+}
+
+function normalizeGoogleCalendarMergeRules(value: unknown): GoogleCalendarMergeRule[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const rule = item as Partial<GoogleCalendarMergeRule>;
+    if (typeof rule.id !== "string" || typeof rule.canonicalTitle !== "string" || !Array.isArray(rule.aliases)) {
+      return [];
+    }
+    const aliases = [...new Set(
+      rule.aliases.filter((alias): alias is string => typeof alias === "string")
+        .map((alias) => alias.trim())
+        .filter(Boolean)
+    )];
+    if (aliases.length === 0) return [];
+    const canonicalTitle = rule.canonicalTitle.trim();
+    if (!canonicalTitle) return [];
+    return [{ id: rule.id, canonicalTitle, aliases }];
+  });
+}
+
+function normalizeGoogleCalendarMergeText(text: string): string {
+  return text.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ");
+}
+
+function findGoogleCalendarMergeRule(
+  event: SyncedGoogleCalendarEvent,
+  rules: GoogleCalendarMergeRule[]
+): GoogleCalendarMergeRule | undefined {
+  const normalizedTitle = normalizeGoogleCalendarMergeText(event.title);
+  if (!normalizedTitle) return undefined;
+  return rules.find((rule) =>
+    [rule.canonicalTitle, ...rule.aliases].some(
+      (title) => normalizeGoogleCalendarMergeText(title) === normalizedTitle
+    )
+  );
+}
+
+function applyGoogleCalendarMergeRules(
+  events: SyncedGoogleCalendarEvent[],
+  rules: GoogleCalendarMergeRule[],
+  collapseOverlaps = false
+): { events: SyncedGoogleCalendarEvent[]; duplicateIds: string[] } {
+  if (rules.length === 0) return { events, duplicateIds: [] };
+
+  const duplicateIds = new Set<string>();
+  // For merged groups, the calendar should show at most one event per day.
+  // We keep the first occurrence deterministically and hide every additional
+  // merged variant that lands on that same start date, even when the times differ.
+  const seenOccurrences = new Set<string>();
+  const merged = events.map((event) => {
+    const rule = findGoogleCalendarMergeRule(event, rules);
+    return rule ? { ...event, title: rule.canonicalTitle } : event;
+  });
+
+  if (!collapseOverlaps) return { events: merged, duplicateIds: [] };
+
+  const kept = merged.filter((event) => {
+    const rule = findGoogleCalendarMergeRule(event, rules);
+    if (!rule) return true;
+
+    const occurrenceKey = `${rule.id}|${event.startDate}`;
+    if (seenOccurrences.has(occurrenceKey)) {
+      duplicateIds.add(event.id);
+      return false;
+    }
+
+    seenOccurrences.add(occurrenceKey);
+    return true;
+  });
+
+  return { events: kept, duplicateIds: [...duplicateIds] };
+}
+
+function googleEventDeletionTimestamp(event: SyncedGoogleCalendarEvent): number {
+  const raw = event.originalStartTime || `${event.startDate}T${event.startTime || "00:00"}`;
+  const parsed = Date.parse(raw);
+  if (Number.isFinite(parsed)) return parsed;
+
+  const fallback = Date.parse(`${event.startDate}T${event.startTime || "00:00"}`);
+  return Number.isFinite(fallback) ? fallback : 0;
+}
+
+function googleDeletionRuleApplies(
+  event: SyncedGoogleCalendarEvent,
+  rule: GoogleCalendarDeletionRule
+): boolean {
+  if (!event.recurringEventId || event.recurringEventId !== rule.seriesId) return false;
+  if (rule.mode === "all") return true;
+  const cutoff = Date.parse(rule.fromStart || "");
+  if (!Number.isFinite(cutoff)) return false;
+  return googleEventDeletionTimestamp(event) >= cutoff;
+}
+
+function shouldHideGoogleCalendarEvent(
+  event: SyncedGoogleCalendarEvent,
+  hiddenIds: string[],
+  deletionRules: GoogleCalendarDeletionRule[]
+): boolean {
+  if (hiddenIds.includes(event.id)) return true;
+  return deletionRules.some((rule) => googleDeletionRuleApplies(event, rule));
 }
 
 function addDaysToDateKey(dateKey: string, days: number): string {
@@ -1274,10 +1422,16 @@ export default function AcademicOSDashboard() {
   const [session, setSession] = useState<any>(null);
   const [googleCalendarEvents, setGoogleCalendarEvents] = useState<SyncedGoogleCalendarEvent[]>([]);
   const [hiddenGoogleEventIds, setHiddenGoogleEventIds] = useState<string[]>([]);
+  const [googleCalendarDeletionRules, setGoogleCalendarDeletionRules] = useState<GoogleCalendarDeletionRule[]>([]);
+  const [googleCalendarMergeRules, setGoogleCalendarMergeRules] = useState<GoogleCalendarMergeRule[]>([]);
   const [calendarSyncState, setCalendarSyncState] = useState<"idle" | "syncing" | "success" | "error">("idle");
   const [calendarSyncMessage, setCalendarSyncMessage] = useState<string | null>(null);
   const [zoomedCalendarDate, setZoomedCalendarDate] = useState<string | null>(null);
   const [editingGoogleEventId, setEditingGoogleEventId] = useState<string | null>(null);
+  const [calendarDeleteEventId, setCalendarDeleteEventId] = useState<string | null>(null);
+  const [calendarReviewOpen, setCalendarReviewOpen] = useState(false);
+  const [calendarReviewGroups, setCalendarReviewGroups] = useState<CalendarEventReviewGroup[]>([]);
+  const [calendarReviewSelected, setCalendarReviewSelected] = useState<Record<string, boolean>>({});
 
   // Authentication UI state
   const [email, setEmail] = useState("");
@@ -1379,7 +1533,7 @@ export default function AcademicOSDashboard() {
     try {
       const { data, error } = await supabase
         .from("user_data")
-        .select("data")
+        .select("data, updated_at")
         .eq("user_id", currentUserId)
         .single();
 
@@ -1426,27 +1580,75 @@ export default function AcademicOSDashboard() {
             ? Math.max(0, Math.floor(data.data.gamificationXp))
             : 0
         );
-        setLearningMaterials(
+        const serverLearningMaterials =
           Array.isArray(data.data.learningMaterials)
             ? data.data.learningMaterials.filter(
-                (item: any) => item && typeof item.id === "string" && typeof item.classId === "string" && typeof item.title === "string" && typeof item.content === "string"
+                (item: any) =>
+                  item &&
+                  typeof item.id === "string" &&
+                  typeof item.classId === "string" &&
+                  typeof item.title === "string" &&
+                  typeof item.content === "string"
               )
-            : []
+            : [];
+        const serverLearningBundles =
+          Array.isArray(data.data.learningBundles) ? data.data.learningBundles : [];
+
+        // The Learning section also keeps a device cache so an interrupted or
+        // delayed Supabase write cannot erase a newly-added material on refresh.
+        // Prefer that cache when it is newer than the account row.
+        const cachedLearningMaterials = safeStorageGet<LearningMaterial[]>(
+          `tracker_learning_materials_v1_${currentUserId}`,
+          []
+        );
+        const cachedLearningBundles = safeStorageGet<LearningBundle[]>(
+          `tracker_learning_bundles_v1_${currentUserId}`,
+          []
+        );
+        const cachedLearningSavedAt = Number(
+          safeStorageGet<string | number>(
+            `tracker_learning_data_saved_at_v1_${currentUserId}`,
+            0
+          )
+        );
+        const serverUpdatedAt = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+        const useCachedLearningData =
+          cachedLearningSavedAt > 0 && cachedLearningSavedAt > serverUpdatedAt;
+
+        setLearningMaterials(
+          useCachedLearningData ? cachedLearningMaterials : serverLearningMaterials
         );
         setLearningBundles(
-          Array.isArray(data.data.learningBundles) ? data.data.learningBundles : []
+          useCachedLearningData ? cachedLearningBundles : serverLearningBundles
         );
         learningMaterialsInitializedRef.current = true;
-        setGoogleCalendarEvents(normalizeGoogleCalendarEvents(data.data.googleCalendarEvents));
+        const normalizedGoogleEvents = normalizeGoogleCalendarEvents(data.data.googleCalendarEvents);
         const savedHiddenGoogleEventIds = normalizeGoogleEventIds(
           data.data.hiddenGoogleEventIds
         );
+        const savedGoogleCalendarDeletionRules = normalizeGoogleCalendarDeletionRules(
+          data.data.googleCalendarDeletionRules
+        );
+        const savedGoogleCalendarMergeRules = normalizeGoogleCalendarMergeRules(
+          data.data.googleCalendarMergeRules
+        );
+        const mergedLoadedEvents = applyGoogleCalendarMergeRules(
+          normalizedGoogleEvents,
+          savedGoogleCalendarMergeRules
+        ).events;
         setGoogleCalendarEvents(
-          normalizeGoogleCalendarEvents(data.data.googleCalendarEvents).filter(
-            (event) => !savedHiddenGoogleEventIds.includes(event.id)
+          mergedLoadedEvents.filter(
+            (event) =>
+              !shouldHideGoogleCalendarEvent(
+                event,
+                savedHiddenGoogleEventIds,
+                savedGoogleCalendarDeletionRules
+              )
           )
         );
         setHiddenGoogleEventIds(savedHiddenGoogleEventIds);
+        setGoogleCalendarDeletionRules(savedGoogleCalendarDeletionRules);
+        setGoogleCalendarMergeRules(savedGoogleCalendarMergeRules);
         setSyncStatus("synced");
       } else {
         const localClasses = withoutLegacyDemoItems(
@@ -1489,6 +1691,12 @@ export default function AcademicOSDashboard() {
         const localHiddenGoogleEventIds = normalizeGoogleEventIds(
           safeStorageGet(`tracker_hidden_google_event_ids_v1_${currentUserId}`, [])
         );
+        const localGoogleCalendarDeletionRules = normalizeGoogleCalendarDeletionRules(
+          safeStorageGet(
+            `tracker_google_calendar_deletion_rules_v1_${currentUserId}`,
+            []
+          )
+        );
 
         setClasses(localClasses);
         setClubs(localClubs);
@@ -1502,14 +1710,29 @@ export default function AcademicOSDashboard() {
         );
         setLearningMaterials(Array.isArray(localLearningMaterials) ? localLearningMaterials : []);
         setLearningBundles(Array.isArray(localLearningBundles) ? localLearningBundles : []);
+        if (localLearningMaterials.length || localLearningBundles.length) {
+          try {
+            localStorage.setItem(
+              `tracker_learning_data_saved_at_v1_${currentUserId}`,
+              String(Date.now())
+            );
+          } catch {
+            // Ignore storage errors.
+          }
+        }
         learningMaterialsInitializedRef.current = true;
-        setGoogleCalendarEvents(localGoogleCalendarEvents);
         setGoogleCalendarEvents(
           localGoogleCalendarEvents.filter(
-            (event) => !localHiddenGoogleEventIds.includes(event.id)
+            (event) =>
+              !shouldHideGoogleCalendarEvent(
+                event,
+                localHiddenGoogleEventIds,
+                localGoogleCalendarDeletionRules
+              )
           )
         );
         setHiddenGoogleEventIds(localHiddenGoogleEventIds);
+        setGoogleCalendarDeletionRules(localGoogleCalendarDeletionRules);
         setSyncStatus("synced");
       }
     } catch (err) {
@@ -2160,8 +2383,22 @@ export default function AcademicOSDashboard() {
         pageToken = payload.nextPageToken;
       } while (pageToken);
 
-      const importedEvents = normalizeGoogleCalendarEvents(allGoogleEvents).filter(
-        (event) => !hiddenGoogleEventIds.includes(event.id)
+      const mergedImport = applyGoogleCalendarMergeRules(
+        normalizeGoogleCalendarEvents(allGoogleEvents),
+        googleCalendarMergeRules,
+        true
+      );
+      const syncedHiddenGoogleEventIds = [...new Set([
+        ...hiddenGoogleEventIds,
+        ...mergedImport.duplicateIds,
+      ])];
+      const importedEvents = mergedImport.events.filter(
+        (event) =>
+          !shouldHideGoogleCalendarEvent(
+            event,
+            syncedHiddenGoogleEventIds,
+            googleCalendarDeletionRules
+          )
       );
       setGoogleCalendarEvents((currentEvents) => {
         const savedById = new Map(currentEvents.map((event) => [event.id, event]));
@@ -2172,8 +2409,15 @@ export default function AcademicOSDashboard() {
             : event;
         });
       });
+      if (mergedImport.duplicateIds.length > 0) {
+        setHiddenGoogleEventIds(syncedHiddenGoogleEventIds);
+      }
       setCalendarSyncState("success");
-      setCalendarSyncMessage(`${importedEvents.length} Google Calendar event${importedEvents.length === 1 ? "" : "s"} imported into this app.`);
+      setCalendarSyncMessage(
+        mergedImport.duplicateIds.length > 0
+          ? `Imported ${importedEvents.length} Google Calendar events and kept ${mergedImport.duplicateIds.length} merged overlap${mergedImport.duplicateIds.length === 1 ? "" : "s"} hidden.`
+          : `${importedEvents.length} Google Calendar event${importedEvents.length === 1 ? "" : "s"} imported into this app.`
+      );
     } catch (err: unknown) {
       setCalendarSyncState("error");
       setCalendarSyncMessage(
@@ -2200,13 +2444,90 @@ export default function AcademicOSDashboard() {
     );
   };
 
-  const deleteGoogleCalendarEvent = (eventId: string) => {
+  const openGoogleCalendarDeleteDialog = (eventId: string) => {
+    setCalendarDeleteEventId(eventId);
+  };
+
+  const closeGoogleCalendarDeleteDialog = () => {
+    setCalendarDeleteEventId(null);
+  };
+
+  const deleteGoogleCalendarEvent = (
+    eventId: string,
+    mode: "this" | "following" | "all"
+  ) => {
+    const eventToDelete = googleCalendarEvents.find((event) => event.id === eventId);
+    if (!eventToDelete) {
+      closeGoogleCalendarDeleteDialog();
+      return;
+    }
+
+    if (mode === "this" || !eventToDelete.recurringEventId) {
+      const nextHiddenGoogleEventIds = hiddenGoogleEventIds.includes(eventId)
+        ? hiddenGoogleEventIds
+        : [...hiddenGoogleEventIds, eventId];
+      setHiddenGoogleEventIds(nextHiddenGoogleEventIds);
+      setGoogleCalendarEvents((currentEvents) =>
+        currentEvents.filter((event) => event.id !== eventId)
+      );
+      setCalendarSyncMessage(`Hidden “${eventToDelete.title}” from WJ Study.`);
+      setCalendarDeleteEventId(null);
+      setEditingGoogleEventId(null);
+      return;
+    }
+
+    const seriesId = eventToDelete.recurringEventId;
+    const cutoff =
+      eventToDelete.originalStartTime ||
+      `${eventToDelete.startDate}T${eventToDelete.startTime || "00:00"}`;
+
+    let nextGoogleCalendarDeletionRules: GoogleCalendarDeletionRule[];
+    if (mode === "all") {
+      nextGoogleCalendarDeletionRules = [
+        ...googleCalendarDeletionRules.filter((rule) => rule.seriesId !== seriesId),
+        { seriesId, mode: "all" },
+      ];
+    } else {
+      const existingRule = googleCalendarDeletionRules.find(
+        (rule) => rule.seriesId === seriesId
+      );
+      if (existingRule?.mode === "all") {
+        nextGoogleCalendarDeletionRules = googleCalendarDeletionRules;
+      } else if (existingRule?.mode === "from") {
+        const existingCutoff = existingRule.fromStart || cutoff;
+        const earlierCutoff =
+          Date.parse(existingCutoff) <= Date.parse(cutoff)
+            ? existingCutoff
+            : cutoff;
+        nextGoogleCalendarDeletionRules = googleCalendarDeletionRules.map((rule) =>
+          rule.seriesId === seriesId
+            ? { ...rule, mode: "from", fromStart: earlierCutoff }
+            : rule
+        );
+      } else {
+        nextGoogleCalendarDeletionRules = [
+          ...googleCalendarDeletionRules,
+          { seriesId, mode: "from", fromStart: cutoff },
+        ];
+      }
+    }
+
+    setGoogleCalendarDeletionRules(nextGoogleCalendarDeletionRules);
     setGoogleCalendarEvents((currentEvents) =>
-      currentEvents.filter((event) => event.id !== eventId)
+      currentEvents.filter((currentEvent) =>
+        !shouldHideGoogleCalendarEvent(
+          currentEvent,
+          hiddenGoogleEventIds,
+          nextGoogleCalendarDeletionRules
+        )
+      )
     );
-    setHiddenGoogleEventIds((currentIds) =>
-      currentIds.includes(eventId) ? currentIds : [...currentIds, eventId]
+    setCalendarSyncMessage(
+      mode === "all"
+        ? `Hidden the entire “${eventToDelete.title}” series from WJ Study.`
+        : `Hidden “${eventToDelete.title}” and all following occurrences from WJ Study.`
     );
+    setCalendarDeleteEventId(null);
     setEditingGoogleEventId(null);
   };
 
@@ -2235,62 +2556,187 @@ export default function AcademicOSDashboard() {
     return shared / Math.min(wordsA.size, wordsB.size);
   };
 
-  const organizeCalendarWithAI = () => {
-    type MatchTarget = { name: string; color: string; icon?: string };
-    const targets: MatchTarget[] = [
-      ...classes.map((c) => ({ name: c.name, color: c.color, icon: "📘" })),
-      ...clubs.map((c) => ({ name: c.name, color: c.color || "#8B5CF6", icon: c.icon || "👥" })),
-    ];
+  const buildCalendarReviewGroups = (events: SyncedGoogleCalendarEvent[]) => {
+    if (events.length < 2) return [] as CalendarEventReviewGroup[];
 
-    let recoloredCount = 0;
-    let dedupedCount = 0;
+    const parent = events.map((_, index) => index);
+    const find = (index: number): number => {
+      let root = index;
+      while (parent[root] !== root) root = parent[root];
+      while (parent[index] !== index) {
+        const next = parent[index];
+        parent[index] = root;
+        index = next;
+      }
+      return root;
+    };
+    const union = (a: number, b: number) => {
+      const rootA = find(a);
+      const rootB = find(b);
+      if (rootA !== rootB) parent[rootB] = rootA;
+    };
 
-    setGoogleCalendarEvents((currentEvents) => {
-      // 1. De-duplicate exact repeats: same title + same start date/time
-      const seen = new Set<string>();
-      const deduped = currentEvents.filter((event) => {
-        const key = `${event.title.trim().toLowerCase()}|${event.startDate}|${event.startTime ?? ""}`;
-        if (seen.has(key)) {
-          dedupedCount += 1;
-          return false;
-        }
-        seen.add(key);
-        return true;
-      });
+    // Candidate duplicate groups are based on title similarity. We deliberately
+    // do not merge anything here — this only builds a review queue.
+    for (let i = 0; i < events.length; i += 1) {
+      for (let j = i + 1; j < events.length; j += 1) {
+        const a = events[i];
+        const b = events[j];
+        const score = nameSimilarity(a.title, b.title);
+        if (score >= 0.5) union(i, j);
+      }
+    }
 
-      // 2. Match remaining events to a class/club by name and recolor + re-icon
-      const recolored = deduped.map((event) => {
-        let best: MatchTarget | undefined;
-        let bestScore = 0;
-
-        // Use a for...of loop so TypeScript can correctly narrow `best` below.
-        for (const target of targets) {
-          const score = nameSimilarity(event.title, target.name);
-          if (score > bestScore) {
-            bestScore = score;
-            best = target;
-          }
-        }
-
-        if (best && bestScore >= 0.5 && (event.color !== best.color || event.icon !== best.icon)) {
-          recoloredCount += 1;
-          return { ...event, color: best.color, icon: best.icon ?? event.icon };
-        }
-        return event;
-      });
-
-      return recolored;
+    const groups = new Map<number, number[]>();
+    events.forEach((_, index) => {
+      const root = find(index);
+      const current = groups.get(root) || [];
+      current.push(index);
+      groups.set(root, current);
     });
 
-    setTimeout(() => {
-      if (recoloredCount === 0 && dedupedCount === 0) {
-        alert("✨ Your calendar is already organized — no changes needed.");
-      } else {
-        alert(
-          `✨ Calendar organized!\n${recoloredCount} event${recoloredCount === 1 ? "" : "s"} matched to your classes/clubs and recolored.\n${dedupedCount} duplicate event${dedupedCount === 1 ? "" : "s"} removed.`
-        );
+    const reviewGroups: CalendarEventReviewGroup[] = [];
+    let groupCounter = 0;
+    groups.forEach((indexes) => {
+      const uniqueTitles = [...new Set(indexes.map((index) => events[index].title.trim()).filter(Boolean))];
+      if (uniqueTitles.length < 2) return;
+
+      const groupEvents = indexes.map((index) => events[index]);
+      const wordCounts = uniqueTitles.map((title) => ({ title, words: normalizeWords(title) }));
+      const allWordCounts = new Map<string, number>();
+      wordCounts.forEach(({ words }) => words.forEach((word) => allWordCounts.set(word, (allWordCounts.get(word) || 0) + 1)));
+
+      let proposedTitle = uniqueTitles[0];
+      let bestScore = -1;
+      for (const candidate of uniqueTitles) {
+        let score = 0;
+        for (const other of uniqueTitles) {
+          score += nameSimilarity(candidate, other);
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          proposedTitle = candidate;
+        }
       }
-    }, 0);
+
+      const pairScores: number[] = [];
+      for (let i = 0; i < uniqueTitles.length; i += 1) {
+        for (let j = i + 1; j < uniqueTitles.length; j += 1) {
+          pairScores.push(nameSimilarity(uniqueTitles[i], uniqueTitles[j]));
+        }
+      }
+      const confidence = Math.round(((pairScores.reduce((sum, score) => sum + score, 0) / Math.max(1, pairScores.length)) || 0) * 100);
+
+      const exampleTimes = [...new Set(groupEvents.map((event) => event.startTime).filter((time): time is string => Boolean(time)))].slice(0, 4);
+      const exampleDates = [...new Set(groupEvents.map((event) => event.startDate).filter(Boolean))].slice(0, 4);
+
+      reviewGroups.push({
+        id: `calendar-review-${Date.now()}-${groupCounter++}`,
+        eventIds: groupEvents.map((event) => event.id),
+        titles: uniqueTitles,
+        proposedTitle,
+        confidence,
+        exampleTimes,
+        exampleDates,
+      });
+    });
+
+    return reviewGroups.sort((a, b) => b.confidence - a.confidence);
+  };
+
+  const organizeCalendarWithAI = () => {
+    const groups = buildCalendarReviewGroups(googleCalendarEvents);
+
+    if (groups.length === 0) {
+      setCalendarReviewGroups([]);
+      setCalendarReviewSelected({});
+      setCalendarReviewOpen(true);
+      return;
+    }
+
+    setCalendarReviewGroups(groups);
+    setCalendarReviewSelected(Object.fromEntries(groups.map((group) => [group.id, true])));
+    setCalendarReviewOpen(true);
+  };
+
+  const toggleCalendarReviewGroup = (groupId: string) => {
+    setCalendarReviewSelected((current) => ({ ...current, [groupId]: !current[groupId] }));
+  };
+
+  const updateCalendarReviewTitle = (groupId: string, title: string) => {
+    setCalendarReviewGroups((current) =>
+      current.map((group) => group.id === groupId ? { ...group, proposedTitle: title } : group)
+    );
+  };
+
+  const mergeReviewedCalendarGroups = () => {
+    const selectedGroups = calendarReviewGroups.filter((group) => calendarReviewSelected[group.id]);
+    if (selectedGroups.length === 0) {
+      setCalendarReviewOpen(false);
+      return;
+    }
+
+    const nextMergeRules = [...googleCalendarMergeRules];
+
+    selectedGroups.forEach((group) => {
+      const canonicalTitle = group.proposedTitle.trim() || group.titles[0];
+      const aliasSet = new Set(group.titles.map((title) => title.trim()).filter(Boolean));
+      aliasSet.add(canonicalTitle);
+      const existingIndex = nextMergeRules.findIndex((rule) =>
+        rule.aliases.some((alias) =>
+          group.titles.some(
+            (title) => normalizeGoogleCalendarMergeText(alias) === normalizeGoogleCalendarMergeText(title)
+          )
+        )
+      );
+
+      const nextRule: GoogleCalendarMergeRule = {
+        id: existingIndex >= 0 ? nextMergeRules[existingIndex].id : `calendar-merge-${Date.now()}-${group.id}`,
+        canonicalTitle,
+        aliases: [...aliasSet],
+      };
+
+      if (existingIndex >= 0) nextMergeRules[existingIndex] = nextRule;
+      else nextMergeRules.push(nextRule);
+    });
+
+    // A merge is an app-level consolidation: every selected title variant is
+    // normalized to the chosen canonical name, while distinct dates remain.
+    // When merged events land on the same calendar day, keep one occurrence
+    // for that day so the calendar never shows duplicate merged events.
+    const mergedResult = applyGoogleCalendarMergeRules(
+      googleCalendarEvents,
+      nextMergeRules,
+      true
+    );
+
+    const nextHiddenGoogleEventIds = [
+      ...new Set([...hiddenGoogleEventIds, ...mergedResult.duplicateIds]),
+    ];
+
+    setGoogleCalendarEvents(mergedResult.events);
+    setHiddenGoogleEventIds(nextHiddenGoogleEventIds);
+    setGoogleCalendarMergeRules(nextMergeRules);
+    setCalendarReviewOpen(false);
+    setEditingGoogleEventId(null);
+    setCalendarReviewGroups([]);
+    setCalendarReviewSelected({});
+
+    const mergedOccurrenceCount = selectedGroups.reduce(
+      (total, group) => total + group.eventIds.length,
+      0
+    );
+    const canonicalNames = selectedGroups
+      .map((group) => group.proposedTitle.trim() || group.titles[0])
+      .filter(Boolean);
+    const duplicateCount = mergedResult.duplicateIds.length;
+
+    setCalendarSyncMessage(
+      canonicalNames.length === 1
+        ? `Merged ${mergedOccurrenceCount} related occurrence${mergedOccurrenceCount === 1 ? "" : "s"} into “${canonicalNames[0]}”.${duplicateCount > 0 ? ` Removed ${duplicateCount} duplicate${duplicateCount === 1 ? "" : "s"} from matching days.` : ""}`
+        : `Merged ${selectedGroups.length} event groups (${mergedOccurrenceCount} occurrences).${duplicateCount > 0 ? ` Removed ${duplicateCount} duplicates from matching days.` : ""}`
+    );
+    setCalendarSyncState("success");
   };
 
   const handleLogOut = async () => {
@@ -2307,6 +2753,7 @@ export default function AcademicOSDashboard() {
     clanLoadedForUserIdRef.current = null;
     setGoogleCalendarEvents([]);
     setHiddenGoogleEventIds([]);
+    setGoogleCalendarMergeRules([]);
     setCalendarSyncState("idle");
     setCalendarSyncMessage(null);
   };
@@ -2421,11 +2868,46 @@ useEffect(() => {
             const updatedHiddenGoogleEventIds = normalizeGoogleEventIds(
               payload.new.data.hiddenGoogleEventIds
             );
-            setGoogleCalendarEvents(
-              normalizeGoogleCalendarEvents(
-                payload.new.data.googleCalendarEvents
-              ).filter((event) => !updatedHiddenGoogleEventIds.includes(event.id))
-            );
+            if (Array.isArray(payload.new.data.googleCalendarDeletionRules)) {
+              const updatedGoogleCalendarDeletionRules =
+                normalizeGoogleCalendarDeletionRules(
+                  payload.new.data.googleCalendarDeletionRules
+                );
+              const updatedGoogleCalendarMergeRules = normalizeGoogleCalendarMergeRules(
+                payload.new.data.googleCalendarMergeRules
+              );
+              const mergedRealtimeEvents = applyGoogleCalendarMergeRules(
+                normalizeGoogleCalendarEvents(
+                  payload.new.data.googleCalendarEvents
+                ),
+                updatedGoogleCalendarMergeRules
+              ).events;
+              setGoogleCalendarEvents(
+                mergedRealtimeEvents.filter(
+                  (event) =>
+                    !shouldHideGoogleCalendarEvent(
+                      event,
+                      updatedHiddenGoogleEventIds,
+                      updatedGoogleCalendarDeletionRules
+                    )
+                )
+              );
+              setGoogleCalendarDeletionRules(updatedGoogleCalendarDeletionRules);
+              setGoogleCalendarMergeRules(updatedGoogleCalendarMergeRules);
+            } else {
+              const updatedGoogleCalendarMergeRules = normalizeGoogleCalendarMergeRules(
+                payload.new.data.googleCalendarMergeRules
+              );
+              setGoogleCalendarEvents(
+                applyGoogleCalendarMergeRules(
+                  normalizeGoogleCalendarEvents(
+                    payload.new.data.googleCalendarEvents
+                  ),
+                  updatedGoogleCalendarMergeRules
+                ).events.filter((event) => !updatedHiddenGoogleEventIds.includes(event.id))
+              );
+              setGoogleCalendarMergeRules(updatedGoogleCalendarMergeRules);
+            }
             setHiddenGoogleEventIds(updatedHiddenGoogleEventIds);
           }
         }
@@ -2460,6 +2942,14 @@ useEffect(() => {
     `tracker_hidden_google_event_ids_v1_${userId}`,
     JSON.stringify(hiddenGoogleEventIds)
   );
+  localStorage.setItem(
+    `tracker_google_calendar_deletion_rules_v1_${userId}`,
+    JSON.stringify(googleCalendarDeletionRules)
+  );
+  localStorage.setItem(
+    `tracker_google_calendar_merge_rules_v1_${userId}`,
+    JSON.stringify(googleCalendarMergeRules)
+  );
 
   async function saveData() {
     setSyncStatus("syncing");
@@ -2478,6 +2968,8 @@ useEffect(() => {
             learningBundles,
             googleCalendarEvents,
             hiddenGoogleEventIds,
+            googleCalendarDeletionRules,
+            googleCalendarMergeRules,
             ...(clan && userId
               ? {
                   clan: {
@@ -2513,11 +3005,15 @@ useEffect(() => {
   streaks,
   studySessions,
   gamificationXp,
+  learningMaterials,
+  learningBundles,
   clan,
   clanDisplayName,
   clanStudyMinutes,
   googleCalendarEvents,
   hiddenGoogleEventIds,
+  googleCalendarDeletionRules,
+  googleCalendarMergeRules,
   isLoaded,
   userId,
 ]);
@@ -3579,6 +4075,90 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     );
   };
 
+  const saveLearningDataImmediately = async (
+    nextMaterials: LearningMaterial[],
+    nextBundles: LearningBundle[]
+  ) => {
+    if (!userId || !isLoaded) return;
+
+    const localSavedAt = Date.now();
+
+    // Keep a local copy immediately so the material survives reloads even if the
+    // network request is delayed or fails. This timestamp lets loadUserData know
+    // that the device has newer Learning data than the server row.
+    try {
+      localStorage.setItem(
+        `tracker_learning_materials_v1_${userId}`,
+        JSON.stringify(nextMaterials)
+      );
+      localStorage.setItem(
+        `tracker_learning_bundles_v1_${userId}`,
+        JSON.stringify(nextBundles)
+      );
+      localStorage.setItem(
+        `tracker_learning_data_saved_at_v1_${userId}`,
+        String(localSavedAt)
+      );
+    } catch {
+      // Continue to the account save; localStorage can be unavailable in some modes.
+    }
+
+    // Ignore Realtime payloads generated by the account write while this save is
+    // in progress so an older snapshot cannot briefly overwrite the new material.
+    isSavingRef.current = true;
+    setSyncStatus("syncing");
+    try {
+      const { data: existing, error: readError } = await supabase
+        .from("user_data")
+        .select("data")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (readError) throw readError;
+
+      const existingData =
+        existing?.data && typeof existing.data === "object" && !Array.isArray(existing.data)
+          ? { ...(existing.data as Record<string, any>) }
+          : {};
+
+      existingData.learningMaterials = nextMaterials;
+      existingData.learningBundles = nextBundles;
+
+      const { error: writeError } = await supabase.from("user_data").upsert(
+        {
+          user_id: userId,
+          data: existingData,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+
+      if (writeError) throw writeError;
+      try {
+        localStorage.setItem(
+          `tracker_learning_data_saved_at_v1_${userId}`,
+          String(Date.now())
+        );
+      } catch {
+        // Ignore storage errors.
+      }
+      setSyncStatus("synced");
+      setLearningError(null);
+      setLearningMessage("Learning data saved to your account.");
+    } catch (err) {
+      setSyncStatus("error");
+      setLearningError(
+        err instanceof Error
+          ? `Saved on this device, but account sync failed: ${err.message}`
+          : "Saved on this device, but account sync failed."
+      );
+    } finally {
+      setTimeout(() => {
+        isSavingRef.current = false;
+      }, 500);
+    }
+  };
+
   const addLearningMaterial = () => {
     if (!learningClassId || !learningMaterialText.trim()) {
       setLearningError("Select a class and add some material first.");
@@ -3591,18 +4171,22 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       content: learningMaterialText.trim(),
       createdAt: new Date().toISOString(),
     };
-    setLearningMaterials((current) => [...current, material]);
+    const nextMaterials = [...learningMaterials, material];
+    setLearningMaterials(nextMaterials);
     setLearningMaterialTitle("");
     setLearningMaterialText("");
     setLearningError(null);
-    setLearningMessage("Material added to this class.");
+    setLearningMessage("Material saved to this class.");
+    void saveLearningDataImmediately(nextMaterials, learningBundles);
   };
 
   const deleteLearningMaterial = (id: string) => {
-    setLearningMaterials((current) => current.filter((item) => item.id !== id));
-    setLearningBundles((current) =>
-      current.filter((bundle) => !bundle.materialIds.includes(id))
-    );
+    const nextMaterials = learningMaterials.filter((item) => item.id !== id);
+    const nextBundles = learningBundles.filter((bundle) => !bundle.materialIds.includes(id));
+    setLearningMaterials(nextMaterials);
+    setLearningBundles(nextBundles);
+    setLearningMessage("Material removed from this class.");
+    void saveLearningDataImmediately(nextMaterials, nextBundles);
   };
 
   const handleLearningFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -3668,7 +4252,12 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         materialIds: classMaterials.map((item) => item.id),
         createdAt: new Date().toISOString(),
       };
-      setLearningBundles((current) => [bundle, ...current.filter((item) => item.classId !== learningClassId).slice(0, 9)]);
+      const nextBundles = [
+        bundle,
+        ...learningBundles.filter((item) => item.classId !== learningClassId).slice(0, 9),
+      ];
+      setLearningBundles(nextBundles);
+      void saveLearningDataImmediately(learningMaterials, nextBundles);
       setLearningView("notes");
       setLearningFlashcardIndex(0);
       setLearningFlashcardFlipped(false);
@@ -5694,10 +6283,10 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         onClick={organizeCalendarWithAI}
                         disabled={googleCalendarEvents.length === 0}
                         className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
-                        title="Match synced events to your classes/clubs and clean up duplicates"
+                        title="Review similar Google events before merging them"
                       >
                         <Sparkles size={14} />
-                        Organize with AI
+                        Review & Organize
                       </button>
                       <div className="flex items-center gap-1.5">
                         <button
@@ -7199,6 +7788,222 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         </main>
       </div>
 
+      {calendarReviewOpen && (
+        <div
+          className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/85 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+          onClick={() => setCalendarReviewOpen(false)}
+          role="presentation"
+        >
+          <section
+            className="max-h-[94vh] w-full max-w-3xl overflow-y-auto rounded-t-2xl border border-slate-700 bg-slate-900 p-5 shadow-2xl sm:rounded-2xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="calendar-review-title"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-violet-400">Calendar cleanup</p>
+                <h2 id="calendar-review-title" className="mt-1 text-xl font-bold text-white">Review similar events</h2>
+                <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-400">
+                  Possible matches are grouped for you first. Nothing is changed until you press Merge selected.
+                  Different dates stay separate; after a merge, only one matching event is kept per day.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCalendarReviewOpen(false)}
+                className="rounded-lg border border-slate-700 p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                aria-label="Close calendar review"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {calendarReviewGroups.length === 0 ? (
+              <div className="py-14 text-center">
+                <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-emerald-500/10 text-emerald-300">
+                  <CheckCircle2 size={24} />
+                </div>
+                <h3 className="mt-4 text-base font-bold text-white">No similar event groups found</h3>
+                <p className="mt-1 text-xs text-slate-500">Your imported event names are currently distinct enough to keep separate.</p>
+              </div>
+            ) : (
+              <div className="mt-5 space-y-3">
+                {calendarReviewGroups.map((group) => (
+                  <div key={group.id} className={`rounded-2xl border p-4 transition ${calendarReviewSelected[group.id] ? "border-violet-500/40 bg-violet-500/5" : "border-slate-800 bg-slate-950/60"}`}>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(calendarReviewSelected[group.id])}
+                        onChange={() => toggleCalendarReviewGroup(group.id)}
+                        className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-900 text-violet-500 focus:ring-violet-500"
+                        aria-label={`Select ${group.titles.join(", ")}`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-violet-300">Possible match</span>
+                          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[9px] font-semibold text-slate-400">{group.confidence}% similarity</span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {group.titles.map((title) => (
+                            <span key={title} className="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1 text-xs font-medium text-slate-200">{title}</span>
+                          ))}
+                        </div>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                          <label className="block text-xs font-semibold text-slate-300">
+                            Merge into this name
+                            <input
+                              value={group.proposedTitle}
+                              onChange={(event) => updateCalendarReviewTitle(group.id, event.target.value)}
+                              className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-violet-400"
+                            />
+                          </label>
+                          <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2 text-[10px] text-slate-500">
+                            <div>{group.eventIds.length} occurrences in group</div>
+                            {group.exampleTimes.length > 0 && <div className="mt-0.5">Times: {group.exampleTimes.join(", ")}</div>}
+                            {group.exampleDates.length > 0 && <div className="mt-0.5">Dates: {group.exampleDates.join(", ")}</div>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-5 flex flex-col-reverse gap-2 border-t border-slate-800 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={() => setCalendarReviewOpen(false)}
+                className="rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-xs font-semibold text-slate-300 transition hover:bg-slate-800 hover:text-white"
+              >
+                Keep separate
+              </button>
+              <button
+                type="button"
+                onClick={mergeReviewedCalendarGroups}
+                disabled={calendarReviewGroups.length === 0 || !Object.values(calendarReviewSelected).some(Boolean)}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Check size={14} />
+                Merge selected
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {calendarDeleteEventId && (() => {
+        const calendarDeleteEvent = googleCalendarEvents.find(
+          (event) => event.id === calendarDeleteEventId
+        );
+        if (!calendarDeleteEvent) return null;
+        const isRecurring = Boolean(calendarDeleteEvent.recurringEventId);
+        const eventDateLabel = new Date(
+          `${calendarDeleteEvent.startDate}T${calendarDeleteEvent.startTime || "12:00"}`
+        ).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+
+        return (
+          <div
+            className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/85 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+            onClick={closeGoogleCalendarDeleteDialog}
+            role="presentation"
+          >
+            <section
+              className="w-full max-w-lg rounded-t-2xl border border-slate-700 bg-slate-900 p-5 shadow-2xl sm:rounded-2xl"
+              onClick={(event) => event.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="calendar-delete-title"
+            >
+              <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-rose-400">
+                    Delete event
+                  </p>
+                  <h2 id="calendar-delete-title" className="mt-1 truncate text-xl font-bold text-white">
+                    {isRecurring ? "Delete recurring event?" : "Delete this event?"}
+                  </h2>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                    “{calendarDeleteEvent.title}” · {eventDateLabel}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeGoogleCalendarDeleteDialog}
+                  className="rounded-lg border border-slate-700 p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                  aria-label="Cancel delete"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-relaxed text-slate-300">
+                These choices control what is hidden in <strong>WJ Study</strong>. Your Google Calendar itself is not changed.
+              </div>
+
+              {isRecurring ? (
+                <div className="mt-4 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => deleteGoogleCalendarEvent(calendarDeleteEvent.id, "this")}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-left transition hover:border-violet-500/50 hover:bg-slate-800"
+                  >
+                    <span className="block text-sm font-semibold text-white">This event only</span>
+                    <span className="mt-0.5 block text-xs text-slate-400">Hide only this occurrence ({eventDateLabel}).</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => deleteGoogleCalendarEvent(calendarDeleteEvent.id, "following")}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-left transition hover:border-violet-500/50 hover:bg-slate-800"
+                  >
+                    <span className="block text-sm font-semibold text-white">This and following</span>
+                    <span className="mt-0.5 block text-xs text-slate-400">Hide this occurrence and all later occurrences in this series.</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => deleteGoogleCalendarEvent(calendarDeleteEvent.id, "all")}
+                    className="w-full rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-left transition hover:border-rose-500/50 hover:bg-rose-500/10"
+                  >
+                    <span className="block text-sm font-semibold text-rose-200">Entire series</span>
+                    <span className="mt-0.5 block text-xs text-slate-400">Hide every occurrence in this recurring series.</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => deleteGoogleCalendarEvent(calendarDeleteEvent.id, "this")}
+                    className="w-full rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-left transition hover:border-rose-500/50 hover:bg-rose-500/10"
+                  >
+                    <span className="block text-sm font-semibold text-rose-200">Delete event</span>
+                    <span className="mt-0.5 block text-xs text-slate-400">Hide this event from WJ Study.</span>
+                  </button>
+                </div>
+              )}
+
+              <div className="mt-4 flex justify-end border-t border-slate-800 pt-4">
+                <button
+                  type="button"
+                  onClick={closeGoogleCalendarDeleteDialog}
+                  className="rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-xs font-semibold text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                >
+                  Cancel
+                </button>
+              </div>
+            </section>
+          </div>
+        );
+      })()}
+
       {zoomedCalendarDate && (
         <div
           className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-6"
@@ -7425,15 +8230,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                     <button
                       type="button"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Delete “${editingGoogleEvent.title}” from this app? It will remain in Google Calendar.`
-                          )
-                        ) {
-                          deleteGoogleCalendarEvent(editingGoogleEvent.id);
-                        }
-                      }}
+                      onClick={() => openGoogleCalendarDeleteDialog(editingGoogleEvent.id)}
                       className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
                     >
                       <Trash2 size={14} /> Delete from this app
