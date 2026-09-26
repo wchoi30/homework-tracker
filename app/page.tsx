@@ -7407,4 +7407,3 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
   );
 }
 
-
