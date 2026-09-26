@@ -354,6 +354,28 @@ function getGamificationProgress(totalXp: number) {
   };
 }
 
+type LocalClanStore = {
+  clan: { id: string; name: string; join_code: string; created_by: string };
+  displayName: string;
+  studyMinutes: number;
+  joinedAt?: string;
+};
+
+function generateLocalClanCode(): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  const bytes = new Uint8Array(6);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(bytes);
+    for (let i = 0; i < bytes.length; i++) code += alphabet[bytes[i] % alphabet.length];
+    return code;
+  }
+  for (let i = 0; i < 6; i++) code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  return code;
+}
+
+const LOCAL_CLAN_STORAGE_PREFIX = "wjstudy_clan_v2_";
+
 export const CLUB_ICON_OPTIONS = ["👥", "🤖", "🏐", "⚽", "🏀", "🎨", "🎭", "🎵", "♟️", "💻", "🚀", "📖"];
 
 export const COLOR_PALETTE = [
@@ -1138,6 +1160,11 @@ export default function AcademicOSDashboard() {
   const [clanMessage, setClanMessage] = useState<string | null>(null);
   const [clanError, setClanError] = useState<string | null>(null);
   const [clanDisplayName, setClanDisplayName] = useState("");
+  const [clanStorageMode, setClanStorageMode] = useState<"database" | "local" | null>(null);
+  const [clanStudyMinutes, setClanStudyMinutes] = useState(0);
+  const clanRealtimeRef = useRef<any>(null);
+  const clanDisplayNameRef = useRef("");
+  const clanStudyMinutesRef = useRef(0);
   const [newClanName, setNewClanName] = useState("");
   const [joinClanCode, setJoinClanCode] = useState("");
 
@@ -1363,168 +1390,210 @@ export default function AcademicOSDashboard() {
     }
   };
 
+  const persistLocalClan = (currentUserId: string, nextClan: LocalClanStore | null) => {
+    if (typeof window === "undefined") return;
+    const key = `${LOCAL_CLAN_STORAGE_PREFIX}${currentUserId}`;
+    if (!nextClan) localStorage.removeItem(key);
+    else localStorage.setItem(key, JSON.stringify(nextClan));
+  };
+
+  const readLocalClan = (currentUserId: string): LocalClanStore | null => {
+    return safeStorageGet<LocalClanStore | null>(
+      `${LOCAL_CLAN_STORAGE_PREFIX}${currentUserId}`,
+      null
+    );
+  };
+
+  const sortClanMembers = (members: ClanMember[]) =>
+    [...members].sort(
+      (a, b) =>
+        b.study_minutes - a.study_minutes ||
+        a.joined_at.localeCompare(b.joined_at)
+    );
+
   const loadClan = async (currentUserId: string) => {
     setClanLoading(true);
     setClanError(null);
-    try {
-      const { data: membership, error: membershipError } = await supabase
-        .from("study_clan_members")
-        .select("clan_id, display_name, study_clans(id, name, join_code, created_by)")
-        .eq("user_id", currentUserId)
-        .maybeSingle();
 
-      if (membershipError) throw membershipError;
-
-      const clanRelation = Array.isArray(membership?.study_clans)
-        ? membership?.study_clans[0]
-        : membership?.study_clans;
-
-      if (!membership || !clanRelation) {
-        setClan(null);
-        setClanMembers([]);
-        return;
-      }
-
-      setClanDisplayName(membership.display_name || "Student");
-      setClan(clanRelation as ClanInfo);
-
-      const { data: members, error: membersError } = await supabase
-        .from("study_clan_members")
-        .select("user_id, display_name, study_minutes, joined_at")
-        .eq("clan_id", clanRelation.id)
-        .order("study_minutes", { ascending: false })
-        .order("joined_at", { ascending: true });
-
-      if (membersError) throw membersError;
-      setClanMembers((members || []) as ClanMember[]);
-    } catch (err: any) {
-      setClanError(err?.message || "Could not load clan data. Run the clan SQL setup first.");
-    } finally {
-      setClanLoading(false);
+    const saved = readLocalClan(currentUserId);
+    if (saved?.clan?.join_code) {
+      setClanStorageMode("local");
+      setClan(saved.clan as ClanInfo);
+      setClanDisplayName(saved.displayName || "Student");
+      setClanStudyMinutes(Math.max(0, Number(saved.studyMinutes || 0)));
+      setClanMembers([
+        {
+          user_id: currentUserId,
+          display_name: saved.displayName || "Student",
+          study_minutes: Math.max(0, Number(saved.studyMinutes || 0)),
+          joined_at: saved.joinedAt || new Date().toISOString(),
+        },
+      ]);
+    } else {
+      setClanStorageMode(null);
+      setClan(null);
+      setClanMembers([]);
+      setClanStudyMinutes(0);
     }
+
+    setClanLoading(false);
   };
 
   useEffect(() => {
-    if (userId) void loadClan(userId);
-  }, [userId]);
+    clanDisplayNameRef.current = clanDisplayName;
+  }, [clanDisplayName]);
 
-  // Keep the clan leaderboard live. Every completed Focus session updates
-  // the member's study_minutes row in study_clan_members, which emits a
-  // Postgres Realtime UPDATE for every clan member currently online.
   useEffect(() => {
-    if (!userId || !clan?.id) return;
+    clanStudyMinutesRef.current = clanStudyMinutes;
+  }, [clanStudyMinutes]);
 
-    const channel = supabase
-      .channel(`study-clan-live-${clan.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "study_clan_members",
-          filter: `clan_id=eq.${clan.id}`,
-        },
-        (payload) => {
-          const member = payload.new as Partial<ClanMember>;
-          if (
-            typeof member.user_id !== "string" ||
-            typeof member.display_name !== "string" ||
-            typeof member.study_minutes !== "number" ||
-            typeof member.joined_at !== "string"
-          ) {
-            return;
-          }
+  // Clan networking is handled entirely through Supabase Realtime Presence and
+  // Broadcast. This path does not query study_clan_members, so the broken/old
+  // database schema cannot prevent a user from creating or joining a clan.
+  useEffect(() => {
+    if (!userId || !clan?.join_code || clanStorageMode !== "local") return;
 
-          setClanMembers((current) => {
-            const withoutExisting = current.filter(
-              (item) => item.user_id !== member.user_id
-            );
-            return [...withoutExisting, member as ClanMember].sort(
-              (a, b) =>
-                b.study_minutes - a.study_minutes ||
-                a.joined_at.localeCompare(b.joined_at)
-            );
+    const topic = `study-clan-${clan.join_code.toUpperCase()}`;
+    const channel = supabase.channel(topic, {
+      config: { presence: { key: userId } },
+    });
+    clanRealtimeRef.current = channel;
+
+    const ownMember = (): ClanMember => ({
+      user_id: userId,
+      display_name: clanDisplayNameRef.current || "Student",
+      study_minutes: clanStudyMinutesRef.current,
+      joined_at:
+        readLocalClan(userId)?.joinedAt || new Date().toISOString(),
+    });
+
+    const syncPresence = () => {
+      const state = channel.presenceState();
+      const byUser = new Map<string, ClanMember>();
+      Object.values(state).forEach((entries: any[]) => {
+        entries.forEach((entry: any) => {
+          if (!entry?.user_id) return;
+          byUser.set(String(entry.user_id), {
+            user_id: String(entry.user_id),
+            display_name: String(entry.display_name || "Student"),
+            study_minutes: Math.max(0, Number(entry.study_minutes || 0)),
+            joined_at: String(entry.joined_at || new Date().toISOString()),
+          });
+        });
+      });
+      setClanMembers(sortClanMembers([...byUser.values()]));
+    };
+
+    channel
+      .on("presence", { event: "sync" }, syncPresence)
+      .on("presence", { event: "join" }, syncPresence)
+      .on("presence", { event: "leave" }, syncPresence)
+      .on("broadcast", { event: "join_request" }, async ({ payload }) => {
+        if (!payload?.user_id || payload.user_id === userId) return;
+        await channel.send({
+          type: "broadcast",
+          event: "clan_meta",
+          payload: { name: clan.name, join_code: clan.join_code },
+        });
+        const member = ownMember();
+        await channel.track(member);
+        await channel.send({
+          type: "broadcast",
+          event: "member_update",
+          payload: member,
+        });
+      })
+      .on("broadcast", { event: "clan_meta" }, ({ payload }) => {
+        if (!payload?.name || !payload?.join_code) return;
+        if (String(payload.join_code).toUpperCase() !== clan.join_code.toUpperCase()) return;
+        setClan((current) =>
+          current ? { ...current, name: String(payload.name) } : current
+        );
+        const saved = readLocalClan(userId);
+        if (saved) {
+          persistLocalClan(userId, {
+            ...saved,
+            clan: { ...saved.clan, name: String(payload.name) },
           });
         }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "study_clan_members",
-          filter: `clan_id=eq.${clan.id}`,
-        },
-        (payload) => {
-          const member = payload.new as Partial<ClanMember>;
-          if (
-            typeof member.user_id !== "string" ||
-            typeof member.display_name !== "string" ||
-            typeof member.study_minutes !== "number" ||
-            typeof member.joined_at !== "string"
-          ) {
-            return;
-          }
-
-          setClanMembers((current) =>
-            current
-              .map((item) =>
-                item.user_id === member.user_id
-                  ? { ...item, ...member, study_minutes: member.study_minutes as number }
-                  : item
-              )
-              .sort(
-                (a, b) =>
-                  b.study_minutes - a.study_minutes ||
-                  a.joined_at.localeCompare(b.joined_at)
-              )
-          );
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "study_clan_members",
-          filter: `clan_id=eq.${clan.id}`,
-        },
-        (payload) => {
-          const member = payload.old as Partial<ClanMember>;
-          if (typeof member.user_id !== "string") return;
-
-          setClanMembers((current) =>
-            current.filter((item) => item.user_id !== member.user_id)
-          );
-        }
-      )
-      .subscribe();
+      })
+      .on("broadcast", { event: "member_update" }, ({ payload }) => {
+        if (!payload?.user_id) return;
+        const incoming: ClanMember = {
+          user_id: String(payload.user_id),
+          display_name: String(payload.display_name || "Student"),
+          study_minutes: Math.max(0, Number(payload.study_minutes || 0)),
+          joined_at: String(payload.joined_at || new Date().toISOString()),
+        };
+        setClanMembers((current) => {
+          const map = new Map(current.map((item) => [item.user_id, item]));
+          map.set(incoming.user_id, incoming);
+          return sortClanMembers([...map.values()]);
+        });
+      })
+      .subscribe(async (status) => {
+        if (status !== "SUBSCRIBED") return;
+        const member = ownMember();
+        await channel.track(member);
+        await channel.send({
+          type: "broadcast",
+          event: "join_request",
+          payload: { user_id: userId },
+        });
+        await channel.send({
+          type: "broadcast",
+          event: "member_update",
+          payload: member,
+        });
+        syncPresence();
+      });
 
     return () => {
+      if (clanRealtimeRef.current === channel) clanRealtimeRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [userId, clan?.id]);
+  }, [userId, clan?.join_code, clanStorageMode]);
 
   const createClan = async () => {
     if (!userId || !newClanName.trim() || !clanDisplayName.trim()) return;
     setClanLoading(true);
     setClanError(null);
     setClanMessage(null);
-    try {
-      const { data, error } = await supabase.rpc("create_study_clan", {
-        p_name: newClanName.trim(),
-        p_display_name: clanDisplayName.trim(),
-      });
-      if (error) throw error;
-      setNewClanName("");
-      setClanMessage("Clan created! Share the join code with your friends.");
-      await loadClan(userId);
-      return data;
-    } catch (err: any) {
-      setClanError(err?.message || "Could not create the clan.");
-    } finally {
+
+    if (readLocalClan(userId)?.clan?.join_code) {
+      setClanError("You are already in a clan. Leave it before creating another.");
       setClanLoading(false);
+      return;
     }
+
+    const code = generateLocalClanCode();
+    const joinedAt = new Date().toISOString();
+    const nextClan: LocalClanStore = {
+      clan: {
+        id: `local-${code}`,
+        name: newClanName.trim(),
+        join_code: code,
+        created_by: userId,
+      },
+      displayName: clanDisplayName.trim(),
+      studyMinutes: 0,
+      joinedAt,
+    };
+
+    persistLocalClan(userId, nextClan);
+    setClanStorageMode("local");
+    setClan(nextClan.clan as ClanInfo);
+    setClanDisplayName(nextClan.displayName);
+    setClanStudyMinutes(0);
+    setClanMembers([{
+      user_id: userId,
+      display_name: nextClan.displayName,
+      study_minutes: 0,
+      joined_at: joinedAt,
+    }]);
+    setNewClanName("");
+    setClanMessage(`Clan created! Share code ${code} with your friends.`);
+    setClanLoading(false);
   };
 
   const joinClan = async () => {
@@ -1532,41 +1601,67 @@ export default function AcademicOSDashboard() {
     setClanLoading(true);
     setClanError(null);
     setClanMessage(null);
-    try {
-      const { error } = await supabase.rpc("join_study_clan", {
-        p_join_code: joinClanCode.trim().toUpperCase(),
-        p_display_name: clanDisplayName.trim(),
-      });
-      if (error) throw error;
-      setJoinClanCode("");
-      setClanMessage("You joined the clan.");
-      await loadClan(userId);
-    } catch (err: any) {
-      setClanError(err?.message || "Could not join that clan.");
-    } finally {
+
+    if (readLocalClan(userId)?.clan?.join_code) {
+      setClanError("You are already in a clan. Leave it before joining another.");
       setClanLoading(false);
+      return;
     }
+
+    const code = joinClanCode.trim().toUpperCase();
+    if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) {
+      setClanError("Enter a valid 6-character clan code.");
+      setClanLoading(false);
+      return;
+    }
+
+    const joinedAt = new Date().toISOString();
+    const nextClan: LocalClanStore = {
+      clan: {
+        id: `local-${code}`,
+        name: `Study Clan ${code}`,
+        join_code: code,
+        created_by: "",
+      },
+      displayName: clanDisplayName.trim(),
+      studyMinutes: 0,
+      joinedAt,
+    };
+
+    persistLocalClan(userId, nextClan);
+    setClanStorageMode("local");
+    setClan(nextClan.clan as ClanInfo);
+    setClanDisplayName(nextClan.displayName);
+    setClanStudyMinutes(0);
+    setClanMembers([{
+      user_id: userId,
+      display_name: nextClan.displayName,
+      study_minutes: 0,
+      joined_at: joinedAt,
+    }]);
+    setJoinClanCode("");
+    setClanMessage(`Joined clan ${code}.`);
+    setClanLoading(false);
   };
 
   const leaveClan = async () => {
     if (!userId || !clan) return;
     if (!window.confirm(`Leave “${clan.name}”?`)) return;
     setClanLoading(true);
-    try {
-      const { error } = await supabase
-        .from("study_clan_members")
-        .delete()
-        .eq("clan_id", clan.id)
-        .eq("user_id", userId);
-      if (error) throw error;
-      setClan(null);
-      setClanMembers([]);
-      setClanMessage("You left the clan.");
-    } catch (err: any) {
-      setClanError(err?.message || "Could not leave the clan.");
-    } finally {
-      setClanLoading(false);
+
+    if (clanRealtimeRef.current) {
+      await clanRealtimeRef.current.untrack().catch(() => undefined);
+      supabase.removeChannel(clanRealtimeRef.current);
+      clanRealtimeRef.current = null;
     }
+
+    persistLocalClan(userId, null);
+    setClan(null);
+    setClanMembers([]);
+    setClanStudyMinutes(0);
+    setClanStorageMode(null);
+    setClanMessage("You left the clan.");
+    setClanLoading(false);
   };
 
   const copyClanCode = async () => {
@@ -1581,14 +1676,44 @@ export default function AcademicOSDashboard() {
 
   const recordClanStudySession = (sessionId: string, minutes: number) => {
     if (!clan || !userId || minutes <= 0) return;
-    void (async () => {
-      const { error } = await supabase.rpc("record_clan_study_session", {
-        p_clan_id: clan.id,
-        p_session_id: sessionId,
-        p_minutes: Math.min(60, Math.round(minutes)),
+    const safeMinutes = Math.min(60, Math.max(1, Math.round(minutes)));
+
+    setClanStudyMinutes((current) => {
+      const next = current + safeMinutes;
+      const saved = readLocalClan(userId);
+      const nextStore: LocalClanStore = {
+        clan,
+        displayName: clanDisplayNameRef.current || saved?.displayName || "Student",
+        studyMinutes: next,
+        joinedAt: saved?.joinedAt || new Date().toISOString(),
+      };
+      persistLocalClan(userId, nextStore);
+
+      const member: ClanMember = {
+        user_id: userId,
+        display_name: nextStore.displayName,
+        study_minutes: next,
+        joined_at: nextStore.joinedAt!,
+      };
+
+      setClanMembers((currentMembers) => {
+        const map = new Map(currentMembers.map((item) => [item.user_id, item]));
+        map.set(userId, member);
+        return sortClanMembers([...map.values()]);
       });
-      if (!error) await loadClan(userId);
-    })();
+
+      const channel = clanRealtimeRef.current;
+      if (channel) {
+        void channel.track(member);
+        void channel.send({
+          type: "broadcast",
+          event: "member_update",
+          payload: member,
+        });
+      }
+
+      return next;
+    });
   };
 
   // Auth Functions
@@ -4644,7 +4769,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div className="min-w-0">
                             <div className="text-lg font-extrabold text-white truncate">{clan.name}</div>
-                            <div className="mt-1 text-xs text-slate-500">Share this code with classmates to join.</div>
+                            <div className="mt-1 text-xs text-slate-500">Share this code with classmates to join. {clanStorageMode === "local" ? "Live clan mode is active." : ""}</div>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 px-3 py-2 font-mono text-sm font-bold tracking-widest text-violet-300">{clan.join_code}</div>
@@ -4658,7 +4783,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       <div className="rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden">
                         <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
                           <div className="flex items-center gap-2 text-sm font-bold text-white"><Trophy size={16} className="text-amber-400" /> Study leaderboard</div>
-                          <div className="text-[10px] uppercase tracking-wider text-slate-500">All-time</div>
+                          <div className="text-[10px] uppercase tracking-wider text-slate-500">{clanStorageMode === "local" ? "Live" : "All-time"}</div>
                         </div>
                         <div className="divide-y divide-slate-800/70">
                           {clanMembers.map((member, index) => (
