@@ -318,6 +318,38 @@ export type StudySession = {
   taskId?: string;
 };
 
+export type LearningMaterial = {
+  id: string;
+  classId: string;
+  title: string;
+  content: string;
+  createdAt: string;
+};
+
+export type LearningFlashcard = {
+  front: string;
+  back: string;
+};
+
+export type LearningQuizQuestion = {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+};
+
+export type LearningBundle = {
+  id: string;
+  classId: string;
+  title: string;
+  summary: string;
+  notes: { heading: string; bullets: string[] }[];
+  flashcards: LearningFlashcard[];
+  quiz: LearningQuizQuestion[];
+  materialIds: string[];
+  createdAt: string;
+};
+
 // --- GAMIFICATION ---
 const XP_PER_COMPLETED_TASK = 50;
 const XP_PER_FOCUS_SESSION = 25;
@@ -1116,10 +1148,10 @@ function LandingPage({
 
 export default function AcademicOSDashboard() {
   const [mobileTab, setMobileTab] = useState<
-    "classes" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks" | "planner" | "analytics" | "clan"
+    "classes" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan"
   >("tasks");
   const [activeTab, setActiveTab] = useState<
-    "standards" | "calendar" | "timetable" | "grades" | "simulator" | "syllabus" | "streaks" | "planner" | "analytics" | "clan"
+    "standards" | "calendar" | "timetable" | "grades" | "simulator" | "syllabus" | "streaks" | "learning" | "planner" | "analytics" | "clan"
   >("calendar");
 
   const [taskFilter, setTaskFilter] = useState<
@@ -1140,6 +1172,21 @@ export default function AcademicOSDashboard() {
   // We do not derive XP from pre-existing completed tasks/sessions, so importing
   // old data or adding existing work does not give a new user free XP.
   const [gamificationXp, setGamificationXp] = useState(0);
+
+  const [learningMaterials, setLearningMaterials] = useState<LearningMaterial[]>([]);
+  const [learningBundles, setLearningBundles] = useState<LearningBundle[]>([]);
+  const [learningClassId, setLearningClassId] = useState("");
+  const [learningMaterialTitle, setLearningMaterialTitle] = useState("");
+  const [learningMaterialText, setLearningMaterialText] = useState("");
+  const [learningView, setLearningView] = useState<"notes" | "flashcards" | "quiz">("notes");
+  const [learningGenerating, setLearningGenerating] = useState(false);
+  const [learningError, setLearningError] = useState<string | null>(null);
+  const [learningMessage, setLearningMessage] = useState<string | null>(null);
+  const [learningFlashcardIndex, setLearningFlashcardIndex] = useState(0);
+  const [learningFlashcardFlipped, setLearningFlashcardFlipped] = useState(false);
+  const [learningQuizAnswers, setLearningQuizAnswers] = useState<Record<number, number>>({});
+  const [learningFileLoading, setLearningFileLoading] = useState(false);
+  const learningMaterialsInitializedRef = useRef(false);
 
   type ClanInfo = {
     id: string;
@@ -1333,6 +1380,17 @@ export default function AcademicOSDashboard() {
             ? Math.max(0, Math.floor(data.data.gamificationXp))
             : 0
         );
+        setLearningMaterials(
+          Array.isArray(data.data.learningMaterials)
+            ? data.data.learningMaterials.filter(
+                (item: any) => item && typeof item.id === "string" && typeof item.classId === "string" && typeof item.title === "string" && typeof item.content === "string"
+              )
+            : []
+        );
+        setLearningBundles(
+          Array.isArray(data.data.learningBundles) ? data.data.learningBundles : []
+        );
+        learningMaterialsInitializedRef.current = true;
         setGoogleCalendarEvents(normalizeGoogleCalendarEvents(data.data.googleCalendarEvents));
         const savedHiddenGoogleEventIds = normalizeGoogleEventIds(
           data.data.hiddenGoogleEventIds
@@ -1371,6 +1429,14 @@ export default function AcademicOSDashboard() {
           `tracker_gamification_xp_v1_${currentUserId}`,
           0
         );
+        const localLearningMaterials = safeStorageGet<LearningMaterial[]>(
+          `tracker_learning_materials_v1_${currentUserId}`,
+          []
+        );
+        const localLearningBundles = safeStorageGet<LearningBundle[]>(
+          `tracker_learning_bundles_v1_${currentUserId}`,
+          []
+        );
         const localGoogleCalendarEvents = normalizeGoogleCalendarEvents(
           safeStorageGet(`tracker_google_calendar_events_v1_${currentUserId}`, [])
         );
@@ -1388,6 +1454,9 @@ export default function AcademicOSDashboard() {
             ? Math.max(0, Math.floor(localGamificationXp))
             : 0
         );
+        setLearningMaterials(Array.isArray(localLearningMaterials) ? localLearningMaterials : []);
+        setLearningBundles(Array.isArray(localLearningBundles) ? localLearningBundles : []);
+        learningMaterialsInitializedRef.current = true;
         setGoogleCalendarEvents(localGoogleCalendarEvents);
         setGoogleCalendarEvents(
           localGoogleCalendarEvents.filter(
@@ -2223,6 +2292,11 @@ export default function AcademicOSDashboard() {
       setStreaks([]);
       setStudySessions([]);
       setGamificationXp(0);
+      setLearningMaterials([]);
+      setLearningBundles([]);
+      setLearningClassId("");
+      setLearningMaterialTitle("");
+      setLearningMaterialText("");
       setGoogleCalendarEvents([]);
       setHiddenGoogleEventIds([]);
       setCalendarSyncState("idle");
@@ -2294,6 +2368,10 @@ useEffect(() => {
               );
             if (typeof payload.new.data.gamificationXp === "number")
               setGamificationXp(Math.max(0, Math.floor(payload.new.data.gamificationXp)));
+            if (Array.isArray(payload.new.data.learningMaterials))
+              setLearningMaterials(payload.new.data.learningMaterials);
+            if (Array.isArray(payload.new.data.learningBundles))
+              setLearningBundles(payload.new.data.learningBundles);
             const updatedHiddenGoogleEventIds = normalizeGoogleEventIds(
               payload.new.data.hiddenGoogleEventIds
             );
@@ -2326,6 +2404,8 @@ useEffect(() => {
   localStorage.setItem(`tracker_streaks_v8_${userId}`, JSON.stringify(streaks));
   localStorage.setItem(`tracker_study_sessions_v1_${userId}`, JSON.stringify(studySessions));
   localStorage.setItem(`tracker_gamification_xp_v1_${userId}`, JSON.stringify(gamificationXp));
+  localStorage.setItem(`tracker_learning_materials_v1_${userId}`, JSON.stringify(learningMaterials));
+  localStorage.setItem(`tracker_learning_bundles_v1_${userId}`, JSON.stringify(learningBundles));
   localStorage.setItem(
     `tracker_google_calendar_events_v1_${userId}`,
     JSON.stringify(googleCalendarEvents)
@@ -2348,6 +2428,8 @@ useEffect(() => {
             streaks,
             studySessions,
             gamificationXp,
+            learningMaterials,
+            learningBundles,
             googleCalendarEvents,
             hiddenGoogleEventIds,
             ...(clan && userId
@@ -2411,6 +2493,12 @@ useEffect(() => {
       setTimetableClassId(classes[0].id);
     }
   }, [classes, selectedClassId, taskClassId, timetableClassId]);
+
+  useEffect(() => {
+    if (classes.length > 0 && !classes.some((cls) => cls.id === learningClassId)) {
+      setLearningClassId(classes[0].id);
+    }
+  }, [classes, learningClassId]);
 
   const activeClass = classes.find((c) => c.id === selectedClassId) || classes[0];
 
@@ -3444,6 +3532,121 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       )
     );
   };
+
+  const addLearningMaterial = () => {
+    if (!learningClassId || !learningMaterialText.trim()) {
+      setLearningError("Select a class and add some material first.");
+      return;
+    }
+    const material: LearningMaterial = {
+      id: `learning-material-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      classId: learningClassId,
+      title: learningMaterialTitle.trim() || "Class material",
+      content: learningMaterialText.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    setLearningMaterials((current) => [...current, material]);
+    setLearningMaterialTitle("");
+    setLearningMaterialText("");
+    setLearningError(null);
+    setLearningMessage("Material added to this class.");
+  };
+
+  const deleteLearningMaterial = (id: string) => {
+    setLearningMaterials((current) => current.filter((item) => item.id !== id));
+    setLearningBundles((current) =>
+      current.filter((bundle) => !bundle.materialIds.includes(id))
+    );
+  };
+
+  const handleLearningFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLearningFileLoading(true);
+    setLearningError(null);
+    try {
+      if (file.type.startsWith("text/") || /\.(txt|md|csv)$/i.test(file.name)) {
+        const text = await file.text();
+        setLearningMaterialTitle(file.name.replace(/\.[^/.]+$/, ""));
+        setLearningMaterialText(text);
+      } else if (file.type.startsWith("image/")) {
+        const worker = await createWorker("eng");
+        const { data } = await worker.recognize(file);
+        await worker.terminate();
+        setLearningMaterialTitle(file.name.replace(/\.[^/.]+$/, ""));
+        setLearningMaterialText(data.text);
+      } else {
+        setLearningError("Use pasted text, TXT/MD/CSV files, or an image of your class notes.");
+      }
+    } catch (err: unknown) {
+      setLearningError(err instanceof Error ? err.message : "Could not read that material.");
+    } finally {
+      setLearningFileLoading(false);
+      e.target.value = "";
+    }
+  };
+
+  const generateLearningPack = async () => {
+    if (!learningClassId) {
+      setLearningError("Select a class first.");
+      return;
+    }
+    const classMaterials = learningMaterials.filter((item) => item.classId === learningClassId);
+    if (classMaterials.length === 0) {
+      setLearningError("Add at least one class material before generating a learning pack.");
+      return;
+    }
+    const activeClassName = classes.find((item) => item.id === learningClassId)?.name || "Class";
+    setLearningGenerating(true);
+    setLearningError(null);
+    setLearningMessage(null);
+    try {
+      const response = await fetch("/api/learning/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          className: activeClassName,
+          materials: classMaterials.map((item) => ({ title: item.title, content: item.content })),
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error || "AI learning generation failed.");
+      const bundle: LearningBundle = {
+        id: `learning-bundle-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        classId: learningClassId,
+        title: payload.title || `${activeClassName} Study Pack`,
+        summary: payload.summary || "",
+        notes: Array.isArray(payload.notes) ? payload.notes : [],
+        flashcards: Array.isArray(payload.flashcards) ? payload.flashcards : [],
+        quiz: Array.isArray(payload.quiz) ? payload.quiz : [],
+        materialIds: classMaterials.map((item) => item.id),
+        createdAt: new Date().toISOString(),
+      };
+      setLearningBundles((current) => [bundle, ...current.filter((item) => item.classId !== learningClassId).slice(0, 9)]);
+      setLearningView("notes");
+      setLearningFlashcardIndex(0);
+      setLearningFlashcardFlipped(false);
+      setLearningQuizAnswers({});
+      setLearningMessage("Your notes, flashcards, and quiz are ready.");
+    } catch (err: unknown) {
+      setLearningError(err instanceof Error ? err.message : "Could not generate the learning pack.");
+    } finally {
+      setLearningGenerating(false);
+    }
+  };
+
+  const activeLearningBundle = useMemo(
+    () => learningBundles.find((bundle) => bundle.classId === learningClassId) || null,
+    [learningBundles, learningClassId]
+  );
+
+  const learningQuizScore = useMemo(() => {
+    if (!activeLearningBundle) return 0;
+    return activeLearningBundle.quiz.reduce(
+      (score, question, index) => score + (learningQuizAnswers[index] === question.correctIndex ? 1 : 0),
+      0
+    );
+  }, [activeLearningBundle, learningQuizAnswers]);
 
   const processRawSyllabus = () => {
     if (!rawSyllabusText.trim()) return;
@@ -4890,6 +5093,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               mobileTab === "ai" ||
               mobileTab === "simulator" ||
               mobileTab === "streaks" ||
+              mobileTab === "learning" ||
               mobileTab === "planner" ||
               mobileTab === "analytics" ||
               mobileTab === "clan"
@@ -4936,6 +5140,21 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     }`}
                   >
                     <Flame size={13} className="text-amber-400" /> Streaks
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("learning");
+                      setMobileTab("learning");
+                      if (!learningClassId && classes[0]?.id) setLearningClassId(classes[0].id);
+                    }}
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
+                      activeTab === "learning"
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <BookOpen size={13} /> Learning
                   </button>
                   <button
                     type="button"
@@ -6038,6 +6257,213 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 </div>
               )}
 
+              {/* TAB: LEARNING */}
+              {activeTab === "learning" && (
+                <div className="space-y-4 pt-1">
+                  <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-600/10 via-slate-950 to-slate-950 p-4 sm:p-5">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 text-sm font-bold text-white">
+                          <BookOpen size={18} className="text-blue-400" /> Learning Lab
+                        </div>
+                        <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-400">
+                          Add your own class materials, then build source-grounded notes, flashcards, and practice quizzes for that class.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-slate-950/70 px-3 py-2 text-[10px] text-slate-400">
+                        <Sparkles size={13} className="text-blue-400" /> AI-generated from your materials
+                      </div>
+                    </div>
+                  </div>
+
+                  {learningMessage && (
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs text-emerald-300">{learningMessage}</div>
+                  )}
+                  {learningError && (
+                    <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 px-4 py-3 text-xs text-rose-300">{learningError}</div>
+                  )}
+
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+                    <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-4">
+                      <div>
+                        <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Class</label>
+                        <select
+                          value={learningClassId}
+                          onChange={(e) => {
+                            setLearningClassId(e.target.value);
+                            setLearningFlashcardIndex(0);
+                            setLearningFlashcardFlipped(false);
+                            setLearningQuizAnswers({});
+                          }}
+                          disabled={classes.length === 0}
+                          className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5 text-xs font-semibold text-white outline-none focus:border-blue-500"
+                        >
+                          {classes.length === 0 ? <option value="">Add a class first</option> : null}
+                          {classes.map((cls) => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
+                        </select>
+                      </div>
+
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3 space-y-3">
+                        <div className="text-xs font-bold text-white">Add class material</div>
+                        <input
+                          value={learningMaterialTitle}
+                          onChange={(e) => setLearningMaterialTitle(e.target.value)}
+                          placeholder="Material title (e.g. Unit 3 Notes)"
+                          className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white outline-none focus:border-blue-500"
+                        />
+                        <textarea
+                          value={learningMaterialText}
+                          onChange={(e) => setLearningMaterialText(e.target.value)}
+                          placeholder="Paste lecture notes, textbook excerpts, review sheets, or teacher handouts here..."
+                          rows={9}
+                          className="w-full resize-y rounded-lg border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs leading-relaxed text-white outline-none focus:border-blue-500"
+                        />
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-xs font-semibold text-slate-200 hover:border-slate-600">
+                            {learningFileLoading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+                            Upload TXT / MD / CSV / image
+                            <input type="file" className="hidden" accept=".txt,.md,.csv,text/plain,text/markdown,text/csv,image/*" onChange={handleLearningFileUpload} />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={addLearningMaterial}
+                            disabled={!learningClassId || !learningMaterialText.trim()}
+                            className="flex-1 rounded-lg bg-blue-600 px-3 py-2.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Add material
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="mb-2 flex items-center justify-between">
+                          <div className="text-xs font-bold text-white">Materials for this class</div>
+                          <span className="text-[10px] text-slate-500">{learningMaterials.filter((item) => item.classId === learningClassId).length}</span>
+                        </div>
+                        <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
+                          {learningMaterials.filter((item) => item.classId === learningClassId).length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-slate-800 p-4 text-center text-xs text-slate-500">Your class material library is empty.</div>
+                          ) : (
+                            learningMaterials.filter((item) => item.classId === learningClassId).map((item) => (
+                              <div key={item.id} className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-xs font-semibold text-white">{item.title}</div>
+                                  <div className="mt-0.5 truncate text-[10px] text-slate-500">{item.content.replace(/\s+/g, " ").slice(0, 120)}</div>
+                                </div>
+                                <button type="button" onClick={() => deleteLearningMaterial(item.id)} className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-rose-500/10 hover:text-rose-300" title="Delete material"><Trash2 size={13} /></button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={generateLearningPack}
+                        disabled={learningGenerating || learningMaterials.filter((item) => item.classId === learningClassId).length === 0}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-xs font-bold text-white shadow-lg shadow-blue-600/10 transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {learningGenerating ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+                        {learningGenerating ? "Building your study pack…" : "Generate notes + flashcards + quiz"}
+                      </button>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden">
+                      {activeLearningBundle ? (
+                        <>
+                          <div className="border-b border-slate-800 p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <h3 className="truncate text-base font-bold text-white">{activeLearningBundle.title}</h3>
+                                <p className="mt-1 text-xs leading-relaxed text-slate-400">{activeLearningBundle.summary}</p>
+                              </div>
+                              <button type="button" onClick={generateLearningPack} disabled={learningGenerating} className="shrink-0 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-[10px] font-semibold text-blue-300 hover:bg-blue-500/20">Regenerate</button>
+                            </div>
+                            <div className="mt-4 flex gap-1 overflow-x-auto rounded-lg border border-slate-800 bg-slate-900/60 p-1">
+                              {(["notes", "flashcards", "quiz"] as const).map((view) => (
+                                <button key={view} type="button" onClick={() => setLearningView(view)} className={`shrink-0 rounded-md px-3 py-2 text-[11px] font-semibold transition ${learningView === view ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200"}`}>
+                                  {view === "notes" ? "Notes" : view === "flashcards" ? "Flashcards" : "AI Quiz"}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {learningView === "notes" && (
+                            <div className="max-h-[620px] space-y-4 overflow-y-auto p-4">
+                              {activeLearningBundle.notes.map((section, index) => (
+                                <div key={`${section.heading}-${index}`} className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                  <h4 className="text-sm font-bold text-white">{section.heading}</h4>
+                                  <ul className="mt-2 space-y-2">
+                                    {section.bullets.map((bullet, bulletIndex) => <li key={bulletIndex} className="flex gap-2 text-xs leading-relaxed text-slate-300"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400" />{bullet}</li>)}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {learningView === "flashcards" && (
+                            <div className="p-4">
+                              {activeLearningBundle.flashcards.length === 0 ? (
+                                <div className="py-16 text-center text-sm text-slate-500">No flashcards were generated.</div>
+                              ) : (
+                                <div className="space-y-4">
+                                  <button type="button" onClick={() => setLearningFlashcardFlipped((current) => !current)} className="flex min-h-[280px] w-full flex-col items-center justify-center rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-600/10 to-slate-900 p-8 text-center transition hover:border-blue-400/40">
+                                    <div className="text-[10px] font-bold uppercase tracking-wider text-blue-400">{learningFlashcardFlipped ? "Answer" : "Question"}</div>
+                                    <div className="mt-5 text-xl font-bold leading-relaxed text-white">{learningFlashcardFlipped ? activeLearningBundle.flashcards[learningFlashcardIndex].back : activeLearningBundle.flashcards[learningFlashcardIndex].front}</div>
+                                    <div className="mt-6 text-[10px] text-slate-500">Tap to flip</div>
+                                  </button>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <button type="button" onClick={() => { setLearningFlashcardIndex((current) => (current - 1 + activeLearningBundle.flashcards.length) % activeLearningBundle.flashcards.length); setLearningFlashcardFlipped(false); }} className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white">Previous</button>
+                                    <span className="text-xs font-mono text-slate-500">{learningFlashcardIndex + 1} / {activeLearningBundle.flashcards.length}</span>
+                                    <button type="button" onClick={() => { setLearningFlashcardIndex((current) => (current + 1) % activeLearningBundle.flashcards.length); setLearningFlashcardFlipped(false); }} className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white">Next</button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {learningView === "quiz" && (
+                            <div className="max-h-[620px] space-y-4 overflow-y-auto p-4">
+                              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-xs text-slate-400">Score: <span className="font-bold text-white">{learningQuizScore} / {activeLearningBundle.quiz.length}</span> answered: {Object.keys(learningQuizAnswers).length}</div>
+                              {activeLearningBundle.quiz.map((question, index) => {
+                                const selected = learningQuizAnswers[index];
+                                const answered = selected !== undefined;
+                                return (
+                                  <div key={`${question.question}-${index}`} className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                    <div className="text-xs font-bold leading-relaxed text-white">{index + 1}. {question.question}</div>
+                                    <div className="mt-3 space-y-2">
+                                      {question.options.map((option, optionIndex) => {
+                                        const isCorrect = optionIndex === question.correctIndex;
+                                        const isSelected = selected === optionIndex;
+                                        return (
+                                          <button key={optionIndex} type="button" onClick={() => setLearningQuizAnswers((current) => ({ ...current, [index]: optionIndex }))} className={`w-full rounded-lg border px-3 py-2.5 text-left text-xs transition ${answered && isCorrect ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : answered && isSelected ? "border-rose-500/40 bg-rose-500/10 text-rose-200" : "border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700"}`}>
+                                            {option}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                    {answered && <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/70 p-3 text-[11px] leading-relaxed text-slate-400"><span className="font-bold text-slate-200">Why:</span> {question.explanation}</div>}
+                                  </div>
+                                );
+                              })}
+                              <button type="button" onClick={() => setLearningQuizAnswers({})} className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white">Reset quiz</button>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="grid min-h-[520px] place-items-center p-8 text-center">
+                          <div className="max-w-sm">
+                            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-blue-500/20 bg-blue-500/10 text-blue-400"><BookOpen size={22} /></div>
+                            <h3 className="mt-4 text-base font-bold text-white">Your learning pack will appear here</h3>
+                            <p className="mt-2 text-xs leading-relaxed text-slate-500">Select a class, add your materials, then generate custom notes, flashcards, and a practice quiz.</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* TAB: TIMETABLE */}
               {activeTab === "timetable" && (() => {
                 const weekDates = getWeekDates(timetableWeekBaseDate);
@@ -6967,9 +7393,10 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
       {/* MOBILE BOTTOM NAVIGATION */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-800 bg-slate-900/95 px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur-md lg:hidden shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
-        <div className="mx-auto grid max-w-xl grid-cols-6 items-center">
+        <div className="mx-auto grid max-w-xl grid-cols-7 items-center">
           <button type="button" onClick={() => setMobileTab("classes")} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "classes" ? "text-blue-400" : "text-slate-400"}`}><BookOpen size={18} /><span>Classes</span></button>
           <button type="button" onClick={() => setMobileTab("tasks")} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "tasks" ? "text-blue-400" : "text-slate-400"}`}><List size={18} /><span>Tasks</span></button>
+          <button type="button" onClick={() => { setMobileTab("learning"); setActiveTab("learning"); if (!learningClassId && classes[0]?.id) setLearningClassId(classes[0].id); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "learning" ? "text-blue-400" : "text-slate-400"}`}><BookOpen size={18} /><span>Learn</span></button>
           <button type="button" onClick={() => { setMobileTab("planner"); setActiveTab("planner"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "planner" ? "text-blue-400" : "text-slate-400"}`}><Brain size={18} /><span>Planner</span></button>
           <button type="button" onClick={() => { setMobileTab("analytics"); setActiveTab("analytics"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "analytics" ? "text-violet-400" : "text-slate-400"}`}><BarChart3 size={18} /><span>Analytics</span></button>
           <button type="button" onClick={() => { setMobileTab("calendar"); setActiveTab("calendar"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "calendar" && activeTab === "calendar" ? "text-blue-400" : "text-slate-400"}`}><Calendar size={18} /><span>Calendar</span></button>
