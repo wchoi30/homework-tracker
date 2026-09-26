@@ -1253,6 +1253,16 @@ export default function AcademicOSDashboard() {
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [timerMode, setTimerMode] = useState<"work" | "break">("work");
 
+  // Focus timing is based on real elapsed wall-clock time while the work timer
+  // is actively running. These refs let us record every completed minute even
+  // when the student pauses/resets before the 25-minute session ends.
+  const focusRunStartedAtRef = useRef<number | null>(null);
+  const focusRunBaseElapsedSecondsRef = useRef(0);
+  const focusRunRecordedMinutesRef = useRef(0);
+  const focusRunSessionIdRef = useRef<string | null>(null);
+  const focusRunTaskIdRef = useRef<string | null>(null);
+  const focusRunXpAwardedRef = useRef(false);
+
   const [isParsing, setIsParsing] = useState(false);
   const [rawSyllabusText, setRawSyllabusText] = useState("");
   const [parsedItems, setParsedItems] = useState<Partial<Task>[]>([]);
@@ -2647,66 +2657,169 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     }
   }, [selectedClassId, activeClass]);
 
+  const recordFocusMinutes = (minutes: number) => {
+    if (!userId || minutes <= 0) return;
+
+    const safeMinutes = Math.max(1, Math.floor(minutes));
+    const taskId = focusRunTaskIdRef.current || selectedTimerTaskId;
+    const sessionId = focusRunSessionIdRef.current || `focus-${Date.now()}`;
+    focusRunSessionIdRef.current = sessionId;
+
+    setStudySessions((prevSessions) => {
+      const now = new Date();
+      const existing = prevSessions.find((session) => session.id === sessionId);
+      if (existing) {
+        return prevSessions.map((session) =>
+          session.id === sessionId
+            ? {
+                ...session,
+                minutes: session.minutes + safeMinutes,
+                date: formatDateKey(now),
+                taskId: taskId || session.taskId,
+              }
+            : session
+        );
+      }
+
+      return [
+        ...prevSessions,
+        {
+          id: sessionId,
+          date: formatDateKey(now),
+          minutes: safeMinutes,
+          taskId: taskId || undefined,
+        },
+      ];
+    });
+
+    if (taskId) {
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                actualHours: +((task.actualHours || 0) + safeMinutes / 60).toFixed(2),
+              }
+            : task
+        )
+      );
+    }
+
+    recordClanStudySession(sessionId, safeMinutes);
+    focusRunRecordedMinutesRef.current += safeMinutes;
+  };
+
+  const flushActiveFocusMinutes = () => {
+    if (timerMode !== "work") return 0;
+    if (focusRunStartedAtRef.current === null) return 0;
+
+    const elapsedSeconds =
+      focusRunBaseElapsedSecondsRef.current +
+      Math.max(0, (Date.now() - focusRunStartedAtRef.current) / 1000);
+    const elapsedWholeMinutes = Math.floor(elapsedSeconds / 60);
+    const newMinutes = elapsedWholeMinutes - focusRunRecordedMinutesRef.current;
+
+    if (newMinutes > 0) recordFocusMinutes(newMinutes);
+    return newMinutes;
+  };
+
+  const beginWorkRun = (taskId: string, fresh = false) => {
+    if (!taskId) return;
+
+    if (fresh || focusRunTaskIdRef.current !== taskId || !focusRunSessionIdRef.current) {
+      focusRunTaskIdRef.current = taskId;
+      focusRunSessionIdRef.current = `focus-${Date.now()}`;
+      focusRunRecordedMinutesRef.current = 0;
+      focusRunBaseElapsedSecondsRef.current = 0;
+      focusRunXpAwardedRef.current = false;
+    }
+
+    focusRunStartedAtRef.current = Date.now();
+  };
+
+  const endWorkRun = () => {
+    flushActiveFocusMinutes();
+    if (focusRunStartedAtRef.current !== null) {
+      const elapsedSeconds =
+        focusRunBaseElapsedSecondsRef.current +
+        Math.max(0, (Date.now() - focusRunStartedAtRef.current) / 1000);
+      focusRunBaseElapsedSecondsRef.current = Math.min(25 * 60, elapsedSeconds);
+    }
+    focusRunStartedAtRef.current = null;
+  };
+
   useEffect(() => {
     if (!isTimerRunning) return;
 
     const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          setIsTimerRunning(false);
-          if (timerMode === "work") {
-            if (selectedTimerTaskId) {
-              setTasks((prevTasks) =>
-                prevTasks.map((t) =>
-                  t.id === selectedTimerTaskId
-                    ? {
-                        ...t,
-                        actualHours: +(
-                          (t.actualHours || 0) +
-                          25 / 60
-                        ).toFixed(2),
-                      }
-                    : t
-                )
-              );
-              const completedSessionId = `session-${Date.now()}`;
-              setStudySessions((prevSessions) => [
-                ...prevSessions,
-                {
-                  id: completedSessionId,
-                  date: formatDateKey(new Date()),
-                  minutes: 25,
-                  taskId: selectedTimerTaskId,
-                },
-              ]);
-              recordClanStudySession(completedSessionId, 25);
+      if (timerMode === "work") {
+        const startedAt = focusRunStartedAtRef.current;
+        if (startedAt !== null) {
+          const elapsedSeconds =
+            focusRunBaseElapsedSecondsRef.current +
+            Math.max(0, (Date.now() - startedAt) / 1000);
+          const wholeMinutes = Math.floor(elapsedSeconds / 60);
+          const newMinutes = wholeMinutes - focusRunRecordedMinutesRef.current;
+          if (newMinutes > 0) recordFocusMinutes(newMinutes);
+
+          const remaining = Math.max(0, 25 * 60 - elapsedSeconds);
+          setTimeLeft(Math.ceil(remaining));
+
+          if (elapsedSeconds >= 25 * 60) {
+            if (!focusRunXpAwardedRef.current) {
               setGamificationXp((prevXp) => prevXp + XP_PER_FOCUS_SESSION);
+              focusRunXpAwardedRef.current = true;
             }
+            // The full 25-minute block is now fully recorded. Switch to break.
+            focusRunRecordedMinutesRef.current = 25;
+            focusRunBaseElapsedSecondsRef.current = 25 * 60;
+            focusRunStartedAtRef.current = null;
+            setIsTimerRunning(false);
             setTimerMode("break");
-            return 5 * 60;
-          } else {
-            setTimerMode("work");
-            return 25 * 60;
+            setTimeLeft(5 * 60);
+            return;
           }
         }
-        return prev - 1;
-      });
-    }, 1000);
+      } else {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            setIsTimerRunning(false);
+            setTimerMode("work");
+            setTimeLeft(25 * 60);
+            return 25 * 60;
+          }
+          return prev - 1;
+        });
+      }
+    }, 250);
 
     return () => clearInterval(interval);
-  }, [isTimerRunning, timerMode, selectedTimerTaskId]);
+  }, [isTimerRunning, timerMode, selectedTimerTaskId, userId]);
 
   const toggleTimer = () => {
-    if (!selectedTimerTaskId && timerMode === "work" && !isTimerRunning) {
-      alert("Please select a target task first to track focus time!");
+    if (timerMode === "work") {
+      if (!selectedTimerTaskId && !isTimerRunning) {
+        alert("Please select a target task first to track focus time!");
+        return;
+      }
+
+      if (isTimerRunning) {
+        endWorkRun();
+        setIsTimerRunning(false);
+        return;
+      }
+
+      focusRunTaskIdRef.current = selectedTimerTaskId;
+      beginWorkRun(selectedTimerTaskId, false);
+      setIsTimerRunning(true);
       return;
     }
+
     setIsTimerRunning((prev) => !prev);
   };
 
-  // Start a fresh work session for a specific task.
-  // This is used by the planner and the recommended-focus card so
-  // the button actually starts the timer instead of only selecting a task.
+  // Start a fresh work session for a specific task. Partial minutes are still
+  // recorded when the student pauses or resets before the timer reaches zero.
   const startFocusForTask = (taskId: string) => {
     if (!taskId) return;
     const taskExists = tasks.some((task) => task.id === taskId && !task.completed);
@@ -2715,15 +2828,24 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     setSelectedTimerTaskId(taskId);
     setTimerMode("work");
     setTimeLeft(25 * 60);
+    beginWorkRun(taskId, true);
     setIsTimerRunning(true);
-    // The timer lives in the focus/tasks experience on mobile, so explicitly
-    // switch there instead of leaving the user on the planner screen.
     setMobileTab("tasks");
   };
 
   const resetTimer = () => {
+    if (isTimerRunning && timerMode === "work") endWorkRun();
     setIsTimerRunning(false);
     setTimeLeft(timerMode === "work" ? 25 * 60 : 5 * 60);
+
+    if (timerMode === "work") {
+      focusRunStartedAtRef.current = null;
+      focusRunBaseElapsedSecondsRef.current = 0;
+      focusRunRecordedMinutesRef.current = 0;
+      focusRunSessionIdRef.current = null;
+      focusRunTaskIdRef.current = selectedTimerTaskId || null;
+      focusRunXpAwardedRef.current = false;
+    }
   };
 
   const addClass = (e: React.FormEvent) => {
