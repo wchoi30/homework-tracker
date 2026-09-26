@@ -375,12 +375,6 @@ function generateLocalClanCode(): string {
 }
 
 const LOCAL_CLAN_STORAGE_PREFIX = "wjstudy_clan_v2_";
-const LEGACY_CLAN_STORAGE_PREFIXES = [
-  "wjstudy_clan_v1_",
-  "wjstudy_clan_",
-  "tracker_clan_v1_",
-  "tracker_clan_v2_",
-];
 
 export const CLUB_ICON_OPTIONS = ["👥", "🤖", "🏐", "⚽", "🏀", "🎨", "🎭", "🎵", "♟️", "💻", "🚀", "📖"];
 
@@ -1171,6 +1165,10 @@ export default function AcademicOSDashboard() {
   const clanRealtimeRef = useRef<any>(null);
   const clanDisplayNameRef = useRef("");
   const clanStudyMinutesRef = useRef(0);
+  // Prevent the main user-data autosave from firing before clan membership has
+  // been restored after authentication. Otherwise a reload can temporarily
+  // write a user record without the clan field and erase the membership.
+  const clanLoadedForUserIdRef = useRef<string | null>(null);
   const [newClanName, setNewClanName] = useState("");
   const [joinClanCode, setJoinClanCode] = useState("");
 
@@ -1406,39 +1404,18 @@ export default function AcademicOSDashboard() {
     }
   };
 
-  const clearAllLocalClanStores = (currentUserId: string) => {
-    if (typeof window === "undefined") return;
-    localStorage.removeItem(`${LOCAL_CLAN_STORAGE_PREFIX}${currentUserId}`);
-    LEGACY_CLAN_STORAGE_PREFIXES.forEach((prefix) => {
-      localStorage.removeItem(`${prefix}${currentUserId}`);
-    });
-  };
-
   const persistLocalClan = (currentUserId: string, nextClan: LocalClanStore | null) => {
     if (typeof window === "undefined") return;
     const key = `${LOCAL_CLAN_STORAGE_PREFIX}${currentUserId}`;
-    if (!nextClan) {
-      clearAllLocalClanStores(currentUserId);
-    } else {
-      // Remove old versions before writing the current format.
-      LEGACY_CLAN_STORAGE_PREFIXES.forEach((prefix) => {
-        localStorage.removeItem(`${prefix}${currentUserId}`);
-      });
-      localStorage.setItem(key, JSON.stringify(nextClan));
-    }
+    if (!nextClan) localStorage.removeItem(key);
+    else localStorage.setItem(key, JSON.stringify(nextClan));
   };
 
   const readLocalClan = (currentUserId: string): LocalClanStore | null => {
-    const saved = safeStorageGet<LocalClanStore | null>(
+    return safeStorageGet<LocalClanStore | null>(
       `${LOCAL_CLAN_STORAGE_PREFIX}${currentUserId}`,
       null
     );
-    if (!saved?.clan?.join_code) return null;
-    if (typeof saved.displayName !== "string" || typeof saved.studyMinutes !== "number") {
-      clearAllLocalClanStores(currentUserId);
-      return null;
-    }
-    return saved;
   };
 
   const sortClanMembers = (members: ClanMember[]) =>
@@ -1448,37 +1425,138 @@ export default function AcademicOSDashboard() {
         a.joined_at.localeCompare(b.joined_at)
     );
 
+  const saveClanMembershipToAccount = async (
+    currentUserId: string,
+    membership: LocalClanStore | null
+  ) => {
+    const { data: existing, error: readError } = await supabase
+      .from("user_data")
+      .select("data")
+      .eq("user_id", currentUserId)
+      .maybeSingle();
+
+    if (readError) throw readError;
+
+    const existingData =
+      existing?.data && typeof existing.data === "object" && !Array.isArray(existing.data)
+        ? { ...(existing.data as Record<string, any>) }
+        : {};
+
+    if (membership) existingData.clan = membership;
+    else delete existingData.clan;
+
+    const { error: writeError } = await supabase.from("user_data").upsert(
+      {
+        user_id: currentUserId,
+        data: existingData,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
+
+    if (writeError) throw writeError;
+  };
+
+  const readServerClan = async (currentUserId: string): Promise<LocalClanStore | null> => {
+    const { data, error } = await supabase
+      .from("user_data")
+      .select("data")
+      .eq("user_id", currentUserId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    const candidate = data?.data?.clan;
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return null;
+    const saved = candidate as Partial<LocalClanStore>;
+
+    if (
+      !saved.clan ||
+      typeof saved.clan !== "object" ||
+      typeof saved.clan.join_code !== "string" ||
+      typeof saved.clan.name !== "string" ||
+      typeof saved.displayName !== "string" ||
+      typeof saved.studyMinutes !== "number"
+    ) return null;
+
+    return {
+      clan: {
+        id: String(saved.clan.id || `local-${saved.clan.join_code}`),
+        name: saved.clan.name,
+        join_code: saved.clan.join_code,
+        created_by: String(saved.clan.created_by || ""),
+      },
+      displayName: saved.displayName,
+      studyMinutes: Math.max(0, Number(saved.studyMinutes || 0)),
+      joinedAt: saved.joinedAt || new Date().toISOString(),
+    };
+  };
+
   const loadClan = async (currentUserId: string) => {
     setClanLoading(true);
     setClanError(null);
 
-    const saved = readLocalClan(currentUserId);
-    if (saved?.clan?.join_code) {
-      setClanStorageMode("local");
-      setClan(saved.clan as ClanInfo);
-      setClanDisplayName(saved.displayName || "Student");
-      setClanStudyMinutes(Math.max(0, Number(saved.studyMinutes || 0)));
-      // Restore the Clan screen after a full page reload so a saved
-      // membership does not appear to disappear just because the default
-      // workspace tab was reset during the new React mount.
-      setActiveTab("clan");
-      setMobileTab("clan");
-      setClanMembers([
-        {
+    try {
+      const serverSaved = await readServerClan(currentUserId);
+      const localSaved = readLocalClan(currentUserId);
+      const saved = serverSaved || localSaved;
+
+      if (saved?.clan?.join_code) {
+        setClanStorageMode("local");
+        setClan(saved.clan as ClanInfo);
+        setClanDisplayName(saved.displayName || "Student");
+        setClanStudyMinutes(Math.max(0, Number(saved.studyMinutes || 0)));
+        setActiveTab("clan");
+        setMobileTab("clan");
+        setClanMembers([{
           user_id: currentUserId,
           display_name: saved.displayName || "Student",
           study_minutes: Math.max(0, Number(saved.studyMinutes || 0)),
           joined_at: saved.joinedAt || new Date().toISOString(),
-        },
-      ]);
-    } else {
-      setClanStorageMode(null);
-      setClan(null);
-      setClanMembers([]);
-      setClanStudyMinutes(0);
-    }
+        }]);
 
-    setClanLoading(false);
+        if (!localSaved || localSaved.clan.join_code !== saved.clan.join_code) {
+          persistLocalClan(currentUserId, saved);
+        }
+        if (!serverSaved) {
+          try {
+            await saveClanMembershipToAccount(currentUserId, saved);
+          } catch {
+            // Keep local persistence as an offline fallback.
+          }
+        }
+      } else {
+        setClanStorageMode(null);
+        setClan(null);
+        setClanMembers([]);
+        setClanStudyMinutes(0);
+      }
+    } catch (err: any) {
+      const fallback = readLocalClan(currentUserId);
+      if (fallback?.clan?.join_code) {
+        setClanStorageMode("local");
+        setClan(fallback.clan as ClanInfo);
+        setClanDisplayName(fallback.displayName || "Student");
+        setClanStudyMinutes(Math.max(0, Number(fallback.studyMinutes || 0)));
+        setActiveTab("clan");
+        setMobileTab("clan");
+        setClanMembers([{
+          user_id: currentUserId,
+          display_name: fallback.displayName || "Student",
+          study_minutes: Math.max(0, Number(fallback.studyMinutes || 0)),
+          joined_at: fallback.joinedAt || new Date().toISOString(),
+        }]);
+      } else {
+        setClanStorageMode(null);
+        setClan(null);
+        setClanMembers([]);
+        setClanStudyMinutes(0);
+        setClanError(err?.message || "Could not load your clan.");
+      }
+    } finally {
+      clanLoadedForUserIdRef.current = currentUserId;
+      setClanLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -1613,17 +1691,10 @@ export default function AcademicOSDashboard() {
     setClanError(null);
     setClanMessage(null);
 
-    const savedClan = readLocalClan(userId);
-    if (clan?.join_code) {
+    if (readLocalClan(userId)?.clan?.join_code) {
       setClanError("You are already in a clan. Leave it before creating another.");
       setClanLoading(false);
       return;
-    }
-    // If the UI shows the create/join form but an old local membership is
-    // still present, treat it as an orphaned membership rather than blocking
-    // the student forever. A real loaded clan is guarded above.
-    if (savedClan?.clan?.join_code) {
-      clearAllLocalClanStores(userId);
     }
 
     const code = generateLocalClanCode();
@@ -1641,6 +1712,12 @@ export default function AcademicOSDashboard() {
     };
 
     persistLocalClan(userId, nextClan);
+    clanLoadedForUserIdRef.current = userId;
+    try {
+      await saveClanMembershipToAccount(userId, nextClan);
+    } catch (err: any) {
+      setClanError(`Your clan was saved on this device, but account sync failed: ${err?.message || "network error"}`);
+    }
     setClanStorageMode("local");
     setActiveTab("clan");
     setMobileTab("clan");
@@ -1691,6 +1768,12 @@ export default function AcademicOSDashboard() {
     };
 
     persistLocalClan(userId, nextClan);
+    clanLoadedForUserIdRef.current = userId;
+    try {
+      await saveClanMembershipToAccount(userId, nextClan);
+    } catch (err: any) {
+      setClanError(`Your clan was saved on this device, but account sync failed: ${err?.message || "network error"}`);
+    }
     setClanStorageMode("local");
     setActiveTab("clan");
     setMobileTab("clan");
@@ -1720,6 +1803,11 @@ export default function AcademicOSDashboard() {
     }
 
     persistLocalClan(userId, null);
+    try {
+      await saveClanMembershipToAccount(userId, null);
+    } catch (err: any) {
+      setClanError(`You left this device's clan, but account sync failed: ${err?.message || "network error"}`);
+    }
     setClan(null);
     setClanMembers([]);
     setClanStudyMinutes(0);
@@ -1752,6 +1840,7 @@ export default function AcademicOSDashboard() {
         joinedAt: saved?.joinedAt || new Date().toISOString(),
       };
       persistLocalClan(userId, nextStore);
+      void saveClanMembershipToAccount(userId, nextStore).catch(() => undefined);
 
       const member: ClanMember = {
         user_id: userId,
@@ -2038,6 +2127,7 @@ export default function AcademicOSDashboard() {
     setStreaks([]);
     setStudySessions([]);
     setGamificationXp(0);
+    clanLoadedForUserIdRef.current = null;
     setGoogleCalendarEvents([]);
     setHiddenGoogleEventIds([]);
     setCalendarSyncState("idle");
@@ -2062,6 +2152,7 @@ export default function AcademicOSDashboard() {
       loadUserData(activeId);
     } else {
       loadedUserIdRef.current = null;
+      clanLoadedForUserIdRef.current = null;
       setClasses([]);
       setClubs([]);
       setTasks([]);
@@ -2160,6 +2251,7 @@ useEffect(() => {
 
 useEffect(() => {
   if (!isLoaded || !userId) return;
+  if (clanLoadedForUserIdRef.current !== userId) return;
 
   // Immediately lock local state from Realtime overwrites during the 600ms debounce
   isSavingRef.current = true;
@@ -2194,6 +2286,16 @@ useEffect(() => {
             gamificationXp,
             googleCalendarEvents,
             hiddenGoogleEventIds,
+            ...(clan && userId
+              ? {
+                  clan: {
+                    clan,
+                    displayName: clanDisplayName || "Student",
+                    studyMinutes: clanStudyMinutes,
+                    joinedAt: readLocalClan(userId)?.joinedAt || new Date().toISOString(),
+                  },
+                }
+              : {}),
           },
           updated_at: new Date().toISOString(),
         },
@@ -2219,6 +2321,9 @@ useEffect(() => {
   streaks,
   studySessions,
   gamificationXp,
+  clan,
+  clanDisplayName,
+  clanStudyMinutes,
   googleCalendarEvents,
   hiddenGoogleEventIds,
   isLoaded,
@@ -6780,5 +6885,4 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     </div>
   );
 }
-
 
