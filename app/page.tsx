@@ -1816,6 +1816,68 @@ export default function AcademicOSDashboard() {
     setClanLoading(false);
   };
 
+  const resetClan = async () => {
+    if (!userId) return;
+    const confirmed = window.confirm(
+      "Reset your saved clan connection on this account and this device? This will let you create or join a new clan."
+    );
+    if (!confirmed) return;
+
+    setClanLoading(true);
+    setClanError(null);
+    setClanMessage(null);
+
+    // Stop any active realtime connection before clearing the saved clan.
+    if (clanRealtimeRef.current) {
+      try {
+        await clanRealtimeRef.current.untrack();
+      } catch {
+        // Ignore cleanup errors; the channel is removed below.
+      }
+      supabase.removeChannel(clanRealtimeRef.current);
+      clanRealtimeRef.current = null;
+    }
+
+    // Clear the current clan from both browser storage and the account record.
+    persistLocalClan(userId, null);
+    try {
+      await saveClanMembershipToAccount(userId, null);
+    } catch (err: any) {
+      setClanError(
+        `Local clan state was reset, but the account record could not be cleared: ${
+          err?.message || "network error"
+        }`
+      );
+    }
+
+    // Clean up older clan-storage keys from previous app versions too.
+    try {
+      const legacyPrefixes = [
+        "wjstudy_clan_",
+        "wjstudy_clan_v1_",
+        "wjstudy_clan_v2_",
+      ];
+      for (const prefix of legacyPrefixes) {
+        localStorage.removeItem(`${prefix}${userId}`);
+      }
+    } catch {
+      // localStorage may be unavailable in some privacy modes.
+    }
+
+    clanLoadedForUserIdRef.current = userId;
+    setClan(null);
+    setClanMembers([]);
+    setClanStudyMinutes(0);
+    setClanStorageMode(null);
+    setClanDisplayName("");
+    setJoinClanCode("");
+    setNewClanName("");
+    setActiveTab("clan");
+    setMobileTab("clan");
+    setClanMessage("Clan data reset. You can now create or join a clan.");
+    setClanLoading(false);
+  };
+
   const copyClanCode = async () => {
     if (!clan?.join_code) return;
     try {
@@ -4967,7 +5029,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 <div className="space-y-4 pt-1">
                   <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-600/10 via-slate-950 to-slate-950 p-4 sm:p-5">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
+                      <div className="min-w-0">
                         <div className="flex items-center gap-2 text-sm font-bold text-white">
                           <Trophy size={18} className="text-violet-400" /> Study Clan
                         </div>
@@ -4975,6 +5037,15 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           Join a clan and compete on actual study time recorded by Focus sessions.
                         </p>
                       </div>
+                      <button
+                        type="button"
+                        onClick={resetClan}
+                        disabled={clanLoading || !userId}
+                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-rose-500/25 bg-rose-500/5 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                        title="Reset clan connection"
+                      >
+                        <RotateCcw size={14} /> Reset clan
+                      </button>
                       {clan && (
                         <div className="rounded-xl border border-violet-500/20 bg-slate-950/70 px-4 py-3 text-center">
                           <div className="text-[10px] uppercase tracking-wider text-slate-500">Your rank</div>
@@ -4994,7 +5065,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   )}
 
                   {!clan ? (
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
                       <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3">
                         <div className="text-sm font-bold text-white">Create a clan</div>
                         <input
@@ -5042,6 +5114,25 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         >
                           <span className="inline-flex items-center justify-center gap-2"><UserPlus size={15} /> Join clan</span>
                         </button>
+                      </div>
+
+                      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <div className="text-sm font-semibold text-white">Having trouble with an old clan?</div>
+                            <p className="mt-1 text-xs text-slate-400">
+                              Reset the saved clan connection on your account and this device, then start fresh.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={resetClan}
+                            disabled={clanLoading}
+                            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs font-semibold text-amber-300 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <RotateCcw size={14} /> Reset clan
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -6885,4 +6976,5 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     </div>
   );
 }
+
 
