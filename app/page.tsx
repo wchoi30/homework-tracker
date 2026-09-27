@@ -2549,7 +2549,7 @@ function MathText({ text, className = "" }: { text: string; className?: string }
 
 export default function AcademicOSDashboard() {
   const [mobileTab, setMobileTab] = useState<
-    "classes" | "clubs" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan"
+    "classes" | "clubs" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan" | "grades"
   >("calendar");
   const [activeTab, setActiveTab] = useState<
     "standards" | "calendar" | "timetable" | "grades" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan"
