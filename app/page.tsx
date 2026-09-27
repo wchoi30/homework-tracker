@@ -7265,7 +7265,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       ? "home"
       : mobileTab === "calendar" || mobileTab === "timetable" || mobileTab === "clubs"
         ? "calendar"
-        : mobileTab === "clan" || mobileTab === "streaks" || mobileTab === "tasks"
+        : mobileTab === "clan" || mobileTab === "streaks"
           ? "clan"
           : mobileTab === "learning" || mobileTab === "planner" || mobileTab === "analytics" || mobileTab === "simulator" || mobileTab === "ai"
             ? "learning"
@@ -8107,19 +8107,19 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             </div>
           )}
           {mobileBottomGroup === "calendar" && (
-            <div className="grid grid-cols-3 gap-1.5">
-              <button type="button" onClick={() => { setMobileTab("calendar"); setActiveTab("calendar"); }} className={`rounded-xl px-2.5 py-2 text-[11px] font-bold transition ${mobileTab === "calendar" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Calendar size={15} className="mx-auto mb-1" /><span>{tx("Calendar")}</span></button>
-              <button type="button" onClick={() => { setMobileTab("timetable"); setActiveTab("timetable"); }} className={`rounded-xl px-2.5 py-2 text-[11px] font-bold transition ${mobileTab === "timetable" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><CalendarDays size={15} className="mx-auto mb-1" /><span>{tx("Timetable")}</span></button>
-              <button type="button" onClick={() => { setMobileTab("clubs"); setActiveTab("calendar"); }} className={`rounded-xl px-2.5 py-2 text-[11px] font-bold transition ${mobileTab === "clubs" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Users size={15} className="mx-auto mb-1" /><span>{tx("Clubs")}</span></button>
+            <div className="grid grid-cols-4 gap-1.5">
+              <button type="button" onClick={() => { setMobileTab("calendar"); setActiveTab("calendar"); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "calendar" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Calendar size={15} className="mx-auto mb-1" /><span>{tx("Calendar")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("timetable"); setActiveTab("timetable"); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "timetable" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><CalendarDays size={15} className="mx-auto mb-1" /><span>{tx("Timetable")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("clubs"); setActiveTab("calendar"); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "clubs" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Users size={15} className="mx-auto mb-1" /><span>{tx("Clubs")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("tasks"); setActiveTab("calendar"); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "tasks" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><List size={15} className="mx-auto mb-1" /><span>{tx("Tasks")}</span></button>
             </div>
           )}
           {mobileBottomGroup === "clan" && (
-            <div className="grid grid-cols-5 gap-1">
-              <button type="button" onClick={() => { setMobileTab("clan"); setActiveTab("clan"); }} className={`rounded-xl px-1 py-2 text-[10px] font-bold transition ${mobileTab === "clan" ? "bg-violet-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Trophy size={15} className="mx-auto mb-1" /><span>{tx("Clan")}</span></button>
-              <button type="button" onClick={() => { setMobileTab("tasks"); setActiveTab("calendar"); }} className={`rounded-xl px-1 py-2 text-[10px] font-bold transition ${mobileTab === "tasks" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><List size={15} className="mx-auto mb-1" /><span>{tx("Tasks")}</span></button>
-              <button type="button" onClick={() => { setMobileTab("streaks"); setActiveTab("streaks"); }} className={`rounded-xl px-1 py-2 text-[10px] font-bold transition ${mobileTab === "streaks" ? "bg-orange-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Flame size={15} className="mx-auto mb-1" /><span>{tx("Streaks")}</span></button>
-              <button type="button" onClick={() => { setMobileTab("clan"); setActiveTab("clan"); }} className="rounded-xl px-1 py-2 text-[10px] font-bold text-slate-400 hover:bg-slate-800 hover:text-white transition"><Award size={15} className="mx-auto mb-1" /><span>{tx("XP")}</span></button>
-              <button type="button" onClick={() => { setMobileTab("clan"); setActiveTab("clan"); }} className="rounded-xl px-1 py-2 text-[10px] font-bold text-slate-400 hover:bg-slate-800 hover:text-white transition"><TrendingUp size={15} className="mx-auto mb-1" /><span>{tx("Level")}</span></button>
+            <div className="grid grid-cols-4 gap-1.5">
+              <button type="button" onClick={() => { setMobileTab("clan"); setActiveTab("clan"); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "clan" ? "bg-violet-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Trophy size={15} className="mx-auto mb-1" /><span>{tx("Clan")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("streaks"); setActiveTab("streaks"); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "streaks" ? "bg-orange-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Flame size={15} className="mx-auto mb-1" /><span>{tx("Streaks")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("clan"); setActiveTab("clan"); }} className="rounded-xl px-1.5 py-2 text-[10px] font-bold text-slate-400 hover:bg-slate-800 hover:text-white transition"><Award size={15} className="mx-auto mb-1" /><span>{tx("XP")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("clan"); setActiveTab("clan"); }} className="rounded-xl px-1.5 py-2 text-[10px] font-bold text-slate-400 hover:bg-slate-800 hover:text-white transition"><TrendingUp size={15} className="mx-auto mb-1" /><span>{tx("Level")}</span></button>
             </div>
           )}
           {mobileBottomGroup === "learning" && (
@@ -8264,9 +8264,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
         {/* RIGHT PANEL: CLASS ROSTER */}
         <aside
-          className={`${
-            mobileTab === "calendar" ? "block" : "hidden"
-          } lg:block lg:col-span-3 lg:col-start-10 lg:row-start-1 space-y-4 sm:space-y-6`}
+          className="hidden lg:block lg:col-span-3 lg:col-start-10 lg:row-start-1 space-y-4 sm:space-y-6"
         >
           {/* CLASS ROSTER WITH AI POWERSCHOOL PHOTO ANALYZER */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-4 space-y-4 shadow-sm">
