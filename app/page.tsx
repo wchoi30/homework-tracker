@@ -860,6 +860,8 @@ type AppSettings = {
   accent: AppAccent;
   profileName: string;
   profileAvatar: string;
+  weeklyStudyGoalHours: number;
+  onboardingCompleted: boolean;
   notifications: {
     taskReminders: boolean;
     deadlineAlerts: boolean;
@@ -873,6 +875,8 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   accent: "blue",
   profileName: "",
   profileAvatar: "🎓",
+  weeklyStudyGoalHours: 10,
+  onboardingCompleted: false,
   notifications: {
     taskReminders: true,
     deadlineAlerts: true,
@@ -1835,6 +1839,63 @@ const MAIN_WEEKDAY_TEXT: Record<AppLanguage, Record<string, string>> = {
   ja: { Monday: "月曜日", Tuesday: "火曜日", Wednesday: "水曜日", Thursday: "木曜日", Friday: "金曜日", Saturday: "土曜日", Sunday: "日曜日" },
 };
 
+const ONBOARDING_TEXT: Record<AppLanguage, Record<string, string>> = {
+  en: {
+    welcomeTitle: "Welcome to WJ Study", welcomeBody: "Let's set up your workspace in a few quick steps.",
+    stepClasses: "Add your classes", stepClassesBody: "Start with the classes you are taking. You can add more later.", classPlaceholder: "e.g. Biology", addClass: "Add class", classAdded: "Class added",
+    stepTasks: "Add a task", stepTasksBody: "Create your first assignment so your dashboard has something to track.", taskPlaceholder: "e.g. Read chapter 3", dueDate: "Due date", addTask: "Add task", taskAdded: "Task added",
+    stepCalendar: "Connect your calendar", stepCalendarBody: "Bring in events from Google Calendar. This is optional and can be done later from Calendar.", connectCalendar: "Connect Google Calendar", calendarConnected: "Calendar permission is available", continueWithout: "Continue without connecting",
+    stepGoal: "Set a study goal", stepGoalBody: "Choose a weekly study target. You can change this later.", hoursPerWeek: "hours per week",
+    finishTitle: "You're ready to study", finishBody: "Your WJ Study workspace is ready. You can always change these settings later.",
+    back: "Back", continue: "Continue", skip: "Skip setup", finish: "Finish setup", progress: "Step", of: "of",
+  },
+  vi: {
+    welcomeTitle: "Chào mừng đến với WJ Study", welcomeBody: "Hãy thiết lập không gian học tập của bạn trong vài bước nhanh.",
+    stepClasses: "Thêm lớp học", stepClassesBody: "Bắt đầu với các lớp bạn đang học. Bạn có thể thêm sau.", classPlaceholder: "VD: Sinh học", addClass: "Thêm lớp", classAdded: "Đã thêm lớp",
+    stepTasks: "Thêm nhiệm vụ", stepTasksBody: "Tạo bài tập đầu tiên để bảng điều khiển có nội dung theo dõi.", taskPlaceholder: "VD: Đọc chương 3", dueDate: "Hạn nộp", addTask: "Thêm nhiệm vụ", taskAdded: "Đã thêm nhiệm vụ",
+    stepCalendar: "Kết nối lịch", stepCalendarBody: "Nhập sự kiện từ Google Calendar. Bạn có thể làm sau trong Lịch.", connectCalendar: "Kết nối Google Calendar", calendarConnected: "Quyền lịch đã sẵn sàng", continueWithout: "Tiếp tục mà không kết nối",
+    stepGoal: "Đặt mục tiêu học", stepGoalBody: "Chọn mục tiêu học mỗi tuần. Bạn có thể thay đổi sau.", hoursPerWeek: "giờ mỗi tuần",
+    finishTitle: "Bạn đã sẵn sàng", finishBody: "Không gian WJ Study của bạn đã sẵn sàng.",
+    back: "Quay lại", continue: "Tiếp tục", skip: "Bỏ qua thiết lập", finish: "Hoàn tất", progress: "Bước", of: "trên",
+  },
+  es: {
+    welcomeTitle: "Bienvenido a WJ Study", welcomeBody: "Configuremos tu espacio de estudio en unos pasos rápidos.",
+    stepClasses: "Añade tus clases", stepClassesBody: "Empieza con las clases que cursas. Puedes añadir más después.", classPlaceholder: "p. ej., Biología", addClass: "Añadir clase", classAdded: "Clase añadida",
+    stepTasks: "Añade una tarea", stepTasksBody: "Crea tu primera tarea para empezar a seguir tu trabajo.", taskPlaceholder: "p. ej., Leer capítulo 3", dueDate: "Fecha límite", addTask: "Añadir tarea", taskAdded: "Tarea añadida",
+    stepCalendar: "Conecta tu calendario", stepCalendarBody: "Importa eventos de Google Calendar. Puedes hacerlo más tarde.", connectCalendar: "Conectar Google Calendar", calendarConnected: "Permiso del calendario disponible", continueWithout: "Continuar sin conectar",
+    stepGoal: "Define un objetivo de estudio", stepGoalBody: "Elige un objetivo semanal. Puedes cambiarlo después.", hoursPerWeek: "horas por semana",
+    finishTitle: "Ya estás listo", finishBody: "Tu espacio de WJ Study está listo.",
+    back: "Atrás", continue: "Continuar", skip: "Omitir configuración", finish: "Terminar", progress: "Paso", of: "de",
+  },
+  zh: {
+    welcomeTitle: "欢迎使用 WJ Study", welcomeBody: "只需几步即可设置你的学习空间。",
+    stepClasses: "添加你的课程", stepClassesBody: "先添加你正在上的课程，之后还可以继续添加。", classPlaceholder: "例如：生物", addClass: "添加课程", classAdded: "已添加课程",
+    stepTasks: "添加任务", stepTasksBody: "创建第一个作业，让你的主页开始有可追踪的内容。", taskPlaceholder: "例如：阅读第3章", dueDate: "截止日期", addTask: "添加任务", taskAdded: "已添加任务",
+    stepCalendar: "连接日历", stepCalendarBody: "导入 Google 日历活动。之后也可以在日历页面连接。", connectCalendar: "连接 Google 日历", calendarConnected: "日历权限可用", continueWithout: "不连接并继续",
+    stepGoal: "设置学习目标", stepGoalBody: "选择每周学习目标，之后可以修改。", hoursPerWeek: "每周小时",
+    finishTitle: "准备好了", finishBody: "你的 WJ Study 学习空间已准备就绪。",
+    back: "返回", continue: "继续", skip: "跳过设置", finish: "完成设置", progress: "步骤", of: "/",
+  },
+  ko: {
+    welcomeTitle: "WJ Study에 오신 것을 환영합니다", welcomeBody: "몇 단계만 거쳐 학습 공간을 설정해 보세요.",
+    stepClasses: "수업 추가", stepClassesBody: "현재 듣고 있는 수업부터 추가하세요. 나중에 더 추가할 수 있습니다.", classPlaceholder: "예: 생물학", addClass: "수업 추가", classAdded: "수업이 추가되었습니다",
+    stepTasks: "과제 추가", stepTasksBody: "첫 과제를 만들어 대시보드에서 학습을 추적하세요.", taskPlaceholder: "예: 3장 읽기", dueDate: "마감일", addTask: "과제 추가", taskAdded: "과제가 추가되었습니다",
+    stepCalendar: "캘린더 연결", stepCalendarBody: "Google 캘린더의 일정을 가져옵니다. 나중에 캘린더에서 연결할 수도 있습니다.", connectCalendar: "Google 캘린더 연결", calendarConnected: "캘린더 권한을 사용할 수 있습니다", continueWithout: "연결하지 않고 계속",
+    stepGoal: "학습 목표 설정", stepGoalBody: "주간 학습 목표를 선택하세요. 나중에 변경할 수 있습니다.", hoursPerWeek: "시간 / 주",
+    finishTitle: "준비가 끝났습니다", finishBody: "WJ Study 학습 공간이 준비되었습니다.",
+    back: "뒤로", continue: "계속", skip: "설정 건너뛰기", finish: "설정 완료", progress: "단계", of: "/",
+  },
+  ja: {
+    welcomeTitle: "WJ Studyへようこそ", welcomeBody: "いくつかの手順で学習スペースを設定しましょう。",
+    stepClasses: "授業を追加", stepClassesBody: "まず受講中の授業を追加してください。後から追加できます。", classPlaceholder: "例：生物", addClass: "授業を追加", classAdded: "授業を追加しました",
+    stepTasks: "タスクを追加", stepTasksBody: "最初の課題を作成して、ダッシュボードで管理しましょう。", taskPlaceholder: "例：3章を読む", dueDate: "期限", addTask: "タスクを追加", taskAdded: "タスクを追加しました",
+    stepCalendar: "カレンダーを接続", stepCalendarBody: "Google カレンダーの予定を取り込みます。後からカレンダーで設定できます。", connectCalendar: "Google カレンダーを接続", calendarConnected: "カレンダー権限を利用できます", continueWithout: "接続せずに続ける",
+    stepGoal: "学習目標を設定", stepGoalBody: "週間の学習目標を選びます。後から変更できます。", hoursPerWeek: "時間 / 週",
+    finishTitle: "準備完了です", finishBody: "WJ Studyの学習スペースが準備できました。",
+    back: "戻る", continue: "続ける", skip: "設定をスキップ", finish: "設定を完了", progress: "ステップ", of: "/",
+  },
+};
+
 const SUPPORT_EMAIL = "support@wjstudy.app";
 const APP_VERSION = "1.0.0";
 
@@ -2185,12 +2246,18 @@ function normalizeAppSettings(value: unknown): AppSettings {
   const accent: AppAccent = source.accent === "violet" || source.accent === "emerald" || source.accent === "rose" || source.accent === "amber" ? source.accent : "blue";
   const profileName = typeof source.profileName === "string" ? source.profileName.slice(0, 80) : "";
   const profileAvatar = typeof source.profileAvatar === "string" && source.profileAvatar.trim() ? source.profileAvatar.slice(0, 8) : "🎓";
+  const weeklyStudyGoalHours = typeof source.weeklyStudyGoalHours === "number" && Number.isFinite(source.weeklyStudyGoalHours)
+    ? Math.min(40, Math.max(1, Math.round(source.weeklyStudyGoalHours * 2) / 2))
+    : 10;
+  const onboardingCompleted = source.onboardingCompleted === true;
   return {
     language,
     theme,
     accent,
     profileName,
     profileAvatar,
+    weeklyStudyGoalHours,
+    onboardingCompleted,
     notifications: {
       taskReminders: source.notifications?.taskReminders !== false,
       deadlineAlerts: source.notifications?.deadlineAlerts !== false,
@@ -2467,6 +2534,15 @@ export default function AcademicOSDashboard() {
   const [showSettingsPage, setShowSettingsPage] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
+  const commandSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const taskTitleInputRef = useRef<HTMLInputElement | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [onboardingClassName, setOnboardingClassName] = useState("");
+  const [onboardingClassColor, setOnboardingClassColor] = useState("#3B82F6");
+  const [onboardingTaskTitle, setOnboardingTaskTitle] = useState("");
+  const [onboardingTaskDueDate, setOnboardingTaskDueDate] = useState("");
+  const [onboardingStudyGoalHours, setOnboardingStudyGoalHours] = useState("10");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [accountActionMessage, setAccountActionMessage] = useState<string | null>(null);
@@ -2851,6 +2927,30 @@ export default function AcademicOSDashboard() {
           useLocalWorkspace ? localWorkspaceCalendarEventOverrides : serverCalendarEventOverrides
         );
 
+        const serverWorkspace = data.data as Record<string, any>;
+        const hasExistingWorkspaceData = Boolean(
+          localWorkspaceClasses.length ||
+          localWorkspaceClubs.length ||
+          localWorkspaceTasks.length ||
+          localWorkspaceStreaks.length ||
+          localWorkspaceStudySessions.length ||
+          (Array.isArray(serverWorkspace.classes) && serverWorkspace.classes.length) ||
+          (Array.isArray(serverWorkspace.tasks) && serverWorkspace.tasks.length) ||
+          (Array.isArray(serverWorkspace.manualCalendarEvents) && serverWorkspace.manualCalendarEvents.length) ||
+          (Array.isArray(serverWorkspace.googleCalendarEvents) && serverWorkspace.googleCalendarEvents.length)
+        );
+        const effectiveSettings = useLocalWorkspace ? localWorkspaceSettings : serverAppSettings;
+        if (!effectiveSettings.onboardingCompleted && !hasExistingWorkspaceData) {
+          setOnboardingStep(0);
+          setOnboardingStudyGoalHours(String(effectiveSettings.weeklyStudyGoalHours || 10));
+          setShowOnboarding(true);
+        } else if (!effectiveSettings.onboardingCompleted && hasExistingWorkspaceData) {
+          setAppSettings({ ...effectiveSettings, onboardingCompleted: true });
+          setShowOnboarding(false);
+        } else {
+          setShowOnboarding(false);
+        }
+
         if (!useLocalWorkspace) {
           try {
             localStorage.setItem(
@@ -3038,6 +3138,21 @@ export default function AcademicOSDashboard() {
         setGoogleCalendarDeletionRules(localGoogleCalendarDeletionRules);
         setManualCalendarEvents(Array.isArray(localManualCalendarEvents) ? localManualCalendarEvents : []);
         setCalendarEventOverrides(localCalendarEventOverrides);
+        const hasLocalWorkspaceData = Boolean(
+          localClasses.length || localClubs.length || localTasks.length || localStreaks.length || localStudySessions.length ||
+          localManualCalendarEvents.length || localGoogleCalendarEvents.length
+        );
+        const localSettings = normalizeAppSettings(localAppSettings);
+        if (!localSettings.onboardingCompleted && !hasLocalWorkspaceData) {
+          setOnboardingStep(0);
+          setOnboardingStudyGoalHours(String(localSettings.weeklyStudyGoalHours || 10));
+          setShowOnboarding(true);
+        } else if (!localSettings.onboardingCompleted && hasLocalWorkspaceData) {
+          setAppSettings({ ...localSettings, onboardingCompleted: true });
+          setShowOnboarding(false);
+        } else {
+          setShowOnboarding(false);
+        }
         setSyncStatus("synced");
       }
     } catch (err) {
@@ -4221,6 +4336,7 @@ export default function AcademicOSDashboard() {
     setGamificationXp(0);
     setAppSettings(DEFAULT_APP_SETTINGS);
     setShowSettingsPage(false);
+    setShowOnboarding(false);
     clanLoadedForUserIdRef.current = null;
     setGoogleCalendarEvents([]);
     setHiddenGoogleEventIds([]);
@@ -4263,6 +4379,7 @@ export default function AcademicOSDashboard() {
       setGamificationXp(0);
       setAppSettings(DEFAULT_APP_SETTINGS);
       setShowSettingsPage(false);
+      setShowOnboarding(false);
       setLearningMaterials([]);
       setLearningBundles([]);
       setLearningClassId("");
@@ -4903,7 +5020,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       color: habit.color,
     })).sort((a, b) => b.current - a.current);
 
-    const weeklyGoalHours = 10;
+    const weeklyGoalHours = appSettings.weeklyStudyGoalHours;
     const weekHours = last7Days.reduce((sum, day) => sum + day.hours, 0);
     const weekCompleted = last7Days.reduce((sum, day) => sum + day.completed, 0);
     const weeklyMaxMinutes = Math.max(60, ...last7Days.map((day) => day.minutes));
@@ -4925,7 +5042,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       todayLabel: today.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
       weekLabel: `${weekDates[0].toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekDates[6].toLocaleDateString(undefined, { month: "short", day: "numeric" })}`,
     };
-  }, [classes, tasks, studySessions, streaks]);
+  }, [classes, tasks, studySessions, streaks, appSettings.weeklyStudyGoalHours]);
 
   const aiStudyPlan = useMemo(() => {
     const today = new Date();
@@ -6322,6 +6439,54 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     setCurrentCalendarDate(new Date());
   };
 
+  const completeOnboarding = () => {
+    const goal = Math.min(40, Math.max(1, Number(onboardingStudyGoalHours) || 10));
+    updateAppSettings({ weeklyStudyGoalHours: goal, onboardingCompleted: true });
+    setShowOnboarding(false);
+    setOnboardingStep(0);
+    setMobileTab("calendar");
+    setActiveTab("calendar");
+  };
+
+  const addOnboardingClass = () => {
+    if (!onboardingClassName.trim()) return;
+    const nextClass: ClassItem = {
+      id: Date.now().toString(),
+      name: onboardingClassName.trim(),
+      color: onboardingClassColor,
+      targetGrade: "A",
+      standards: [],
+      meetingTimes: [],
+    };
+    const nextClasses = [...classes, nextClass];
+    setClasses(nextClasses);
+    saveWorkspaceChangeImmediately({ classes: nextClasses });
+    setSelectedClassId(nextClass.id);
+    setOnboardingClassName("");
+  };
+
+  const addOnboardingTask = () => {
+    if (!onboardingTaskTitle.trim() || classes.length === 0) return;
+    const nextTask: Task = {
+      id: Date.now().toString(),
+      title: onboardingTaskTitle.trim(),
+      classId: classes[0].id,
+      dueDate: onboardingTaskDueDate,
+      type: "homework",
+      estimatedHours: 1,
+      actualHours: 0,
+      completed: false,
+    };
+    const nextTasks = [...tasks, nextTask];
+    setTasks(nextTasks);
+    saveWorkspaceChangeImmediately({ tasks: nextTasks });
+    setOnboardingTaskTitle("");
+    setOnboardingTaskDueDate("");
+  };
+
+  const txOnboarding = (key: string) =>
+    ONBOARDING_TEXT[appSettings.language]?.[key] ?? ONBOARDING_TEXT.en[key] ?? key;
+
   // --- RENDER UNAUTHENTICATED LOGIN / SIGNUP SCREEN ---
   if (!session || !userId) {
     // Wait for Supabase to report the session so the landing page doesn't flash for signed-in users
@@ -6605,6 +6770,10 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
   // Global command menu + desktop keyboard shortcuts. Typing inside an input/textarea/select never triggers navigation shortcuts.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (showOnboarding) {
+        if (event.key === "Escape") event.preventDefault();
+        return;
+      }
       const target = event.target as HTMLElement | null;
       const isTyping = Boolean(target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
       const key = event.key.toLowerCase();
@@ -6631,7 +6800,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [commandPaletteOpen, showSettingsPage, userId, tasks, selectedTimerTaskId, learningClassId, classes]);
+  }, [commandPaletteOpen, showSettingsPage, showOnboarding, userId, tasks, selectedTimerTaskId, learningClassId, classes]);
 
   useEffect(() => {
     if (!commandPaletteOpen) return;
@@ -6639,6 +6808,115 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
   }, [commandPaletteOpen]);
 
   // --- RENDER AUTHENTICATED DASHBOARD ---
+  if (showOnboarding && session && userId) {
+    const onboardingStepTitles = [
+      txOnboarding("welcomeTitle"),
+      txOnboarding("stepClasses"),
+      txOnboarding("stepTasks"),
+      txOnboarding("stepCalendar"),
+      txOnboarding("stepGoal"),
+    ];
+    const totalSteps = onboardingStepTitles.length;
+    const isLightOnboarding = appSettings.theme === "light";
+    const onboardingCard = isLightOnboarding ? "bg-white border-slate-200" : "bg-slate-900 border-slate-800";
+    const onboardingText = isLightOnboarding ? "text-slate-900" : "text-white";
+    const onboardingBody = isLightOnboarding ? "text-slate-600" : "text-slate-400";
+    const onboardingInput = isLightOnboarding ? "bg-white border-slate-300 text-slate-900" : "bg-slate-950 border-slate-700 text-white";
+    return (
+      <div className={`min-h-screen flex items-center justify-center p-4 font-sans ${isLightOnboarding ? "bg-slate-100" : "bg-slate-950"}`}>
+        <div className={`w-full max-w-2xl rounded-3xl border p-5 sm:p-8 shadow-2xl ${onboardingCard}`}>
+          <div className="flex items-center justify-between gap-4 mb-7">
+            <div className="flex items-center gap-3">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-600/15 text-2xl">🎓</div>
+              <div>
+                <div className={`text-sm font-extrabold ${onboardingText}`}>WJ Study</div>
+                <div className={`text-[11px] ${onboardingBody}`}>{txOnboarding("progress")} {Math.min(onboardingStep + 1, totalSteps)} {txOnboarding("of")} {totalSteps}</div>
+              </div>
+            </div>
+            <button type="button" onClick={completeOnboarding} className={`text-xs font-semibold px-3 py-2 rounded-lg border ${isLightOnboarding ? "border-slate-300 text-slate-600 hover:bg-slate-50" : "border-slate-700 text-slate-400 hover:bg-slate-800"}`}>
+              {txOnboarding("skip")}
+            </button>
+          </div>
+          <div className={`h-1.5 rounded-full mb-8 ${isLightOnboarding ? "bg-slate-200" : "bg-slate-800"}`}>
+            <div className="h-1.5 rounded-full bg-blue-600 transition-all" style={{ width: `${((onboardingStep + 1) / totalSteps) * 100}%` }} />
+          </div>
+
+          <div className="min-h-[330px] flex flex-col justify-center">
+            {onboardingStep === 0 && (
+              <div className="text-center space-y-5">
+                <div className="mx-auto grid h-20 w-20 place-items-center rounded-3xl bg-blue-600/15 text-4xl">👋</div>
+                <div>
+                  <h1 className={`text-3xl sm:text-4xl font-black tracking-tight ${onboardingText}`}>{txOnboarding("welcomeTitle")}</h1>
+                  <p className={`mt-3 text-sm sm:text-base max-w-lg mx-auto ${onboardingBody}`}>{txOnboarding("welcomeBody")}</p>
+                </div>
+              </div>
+            )}
+
+            {onboardingStep === 1 && (
+              <div className="space-y-5">
+                <div><h2 className={`text-2xl font-black ${onboardingText}`}>{txOnboarding("stepClasses")}</h2><p className={`mt-2 text-sm ${onboardingBody}`}>{txOnboarding("stepClassesBody")}</p></div>
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+                  <input value={onboardingClassName} onChange={(e) => setOnboardingClassName(e.target.value)} placeholder={txOnboarding("classPlaceholder")} className={`rounded-xl border px-3 py-3 text-sm outline-none focus:border-blue-500 ${onboardingInput}`} autoFocus />
+                  <div className="flex gap-2">
+                    <input type="color" value={onboardingClassColor} onChange={(e) => setOnboardingClassColor(e.target.value)} className="h-12 w-14 rounded-xl cursor-pointer bg-transparent" aria-label={txOnboarding("addClass")} />
+                    <button type="button" onClick={addOnboardingClass} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-500">{txOnboarding("addClass")}</button>
+                  </div>
+                </div>
+                {classes.length > 0 && <div className="flex flex-wrap gap-2">{classes.slice(0, 8).map((cls) => <span key={cls.id} className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-white" style={{ backgroundColor: cls.color }}>{cls.name}</span>)}</div>}
+              </div>
+            )}
+
+            {onboardingStep === 2 && (
+              <div className="space-y-5">
+                <div><h2 className={`text-2xl font-black ${onboardingText}`}>{txOnboarding("stepTasks")}</h2><p className={`mt-2 text-sm ${onboardingBody}`}>{classes.length === 0 ? txOnboarding("stepTasksBody") + " " + (appSettings.language === "en" ? "Add a class first to attach the task." : "") : txOnboarding("stepTasksBody")}</p></div>
+                <input value={onboardingTaskTitle} onChange={(e) => setOnboardingTaskTitle(e.target.value)} placeholder={txOnboarding("taskPlaceholder")} disabled={classes.length === 0} className={`w-full rounded-xl border px-3 py-3 text-sm outline-none focus:border-blue-500 disabled:opacity-50 ${onboardingInput}`} autoFocus />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className={`rounded-xl border px-3 py-2.5 ${onboardingInput}`}><span className={`block text-[11px] mb-1 ${onboardingBody}`}>{txOnboarding("dueDate")}</span><input type="date" value={onboardingTaskDueDate} onChange={(e) => setOnboardingTaskDueDate(e.target.value)} className="w-full bg-transparent outline-none text-sm" disabled={classes.length === 0} /></label>
+                  <button type="button" onClick={addOnboardingTask} disabled={classes.length === 0 || !onboardingTaskTitle.trim()} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-40">{txOnboarding("addTask")}</button>
+                </div>
+                {tasks.length > 0 && <div className={`rounded-xl border p-3 text-xs ${isLightOnboarding ? "border-slate-200 bg-slate-50 text-slate-700" : "border-slate-800 bg-slate-950 text-slate-300"}`}>{txOnboarding("taskAdded")} · {tasks[tasks.length - 1]?.title}</div>}
+              </div>
+            )}
+
+            {onboardingStep === 3 && (
+              <div className="space-y-6 text-center">
+                <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-blue-600/15"><CalendarDays size={30} className="text-blue-500" /></div>
+                <div><h2 className={`text-2xl font-black ${onboardingText}`}>{txOnboarding("stepCalendar")}</h2><p className={`mt-2 text-sm max-w-lg mx-auto ${onboardingBody}`}>{txOnboarding("stepCalendarBody")}</p></div>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button type="button" onClick={() => { if (session?.provider_token) { void handleGoogleCalendarSync(); } else { void handleGoogleSignIn(); } }} className="w-full sm:w-auto rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-500">{txOnboarding("connectCalendar")}</button>
+                  <button type="button" onClick={() => { setOnboardingStep(4); }} className={`w-full sm:w-auto rounded-xl border px-5 py-3 text-sm font-semibold ${isLightOnboarding ? "border-slate-300 text-slate-700 hover:bg-slate-50" : "border-slate-700 text-slate-300 hover:bg-slate-800"}`}>{txOnboarding("continueWithout")}</button>
+                </div>
+                {calendarSyncMessage && <div className={`text-xs ${calendarSyncState === "error" ? "text-rose-500" : "text-emerald-500"}`}>{calendarSyncMessage}</div>}
+              </div>
+            )}
+
+            {onboardingStep === 4 && (
+              <div className="space-y-6">
+                <div><h2 className={`text-2xl font-black ${onboardingText}`}>{txOnboarding("stepGoal")}</h2><p className={`mt-2 text-sm ${onboardingBody}`}>{txOnboarding("stepGoalBody")}</p></div>
+                <div className={`rounded-2xl border p-5 ${isLightOnboarding ? "border-slate-200 bg-slate-50" : "border-slate-800 bg-slate-950/60"}`}>
+                  <div className="flex items-end gap-3">
+                    <input type="number" min="1" max="40" step="0.5" value={onboardingStudyGoalHours} onChange={(e) => setOnboardingStudyGoalHours(e.target.value)} className={`w-32 rounded-xl border px-3 py-3 text-2xl font-black outline-none focus:border-blue-500 ${onboardingInput}`} />
+                    <span className={`pb-3 text-sm font-semibold ${onboardingBody}`}>{txOnboarding("hoursPerWeek")}</span>
+                  </div>
+                  <input type="range" min="1" max="40" step="0.5" value={Number(onboardingStudyGoalHours) || 10} onChange={(e) => setOnboardingStudyGoalHours(e.target.value)} className="mt-6 w-full accent-blue-600" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-8 flex items-center justify-between gap-3">
+            <button type="button" disabled={onboardingStep === 0} onClick={() => setOnboardingStep((step) => Math.max(0, step - 1))} className={`rounded-xl border px-4 py-3 text-sm font-semibold disabled:opacity-30 ${isLightOnboarding ? "border-slate-300 text-slate-700 hover:bg-slate-50" : "border-slate-700 text-slate-300 hover:bg-slate-800"}`}>{txOnboarding("back")}</button>
+            {onboardingStep < 4 ? (
+              <button type="button" onClick={() => setOnboardingStep((step) => Math.min(4, step + 1))} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-500">{txOnboarding("continue")}</button>
+            ) : (
+              <button type="button" onClick={completeOnboarding} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-500">{txOnboarding("finish")}</button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (showSettingsPage) {
     const settingsCopy = SETTINGS_TEXT[appSettings.language];
     const isLight = appSettings.theme === "light";
@@ -7108,7 +7386,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 <div className="px-4 py-8 text-center text-sm text-slate-500">{SETTINGS_TEXT[appSettings.language].noSearchResults}</div>
               ) : (
                 <div className="max-h-[60vh] overflow-y-auto p-2">
-                  {items.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" onClick={item.onClick} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800"><span className="grid h-9 w-9 place-items-center rounded-lg bg-slate-800 text-blue-400"><Icon size={16} /></span><span className="min-w-0 flex-1 truncate">{item.label}</span>{"meta" in item && item.meta ? <span className="text-[10px] text-slate-500">{item.meta}</span> : null}</button>; })}
+                  {items.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" onClick={item.onClick} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800"><span className="grid h-9 w-9 place-items-center rounded-lg bg-slate-800 text-blue-400"><Icon size={16} /></span><span className="min-w-0 flex-1 truncate">{item.label}</span>{"meta" in item && typeof item.meta === "string" && item.meta ? <span className="text-[10px] text-slate-500">{item.meta}</span> : null}</button>; })}
                 </div>
               );
             })()}
