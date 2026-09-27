@@ -65,6 +65,8 @@ import {
   LifeBuoy,
   Info,
   Search,
+  MoreHorizontal,
+  House,
   Keyboard,
   UserCircle2,
   UserRound,
@@ -2551,7 +2553,7 @@ function MathText({ text, className = "" }: { text: string; className?: string }
 
 export default function AcademicOSDashboard() {
   const [mobileTab, setMobileTab] = useState<
-    "classes" | "clubs" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan" | "grades"
+    "home" | "more" | "classes" | "clubs" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan" | "grades"
   >("calendar");
   const [activeTab, setActiveTab] = useState<
     "standards" | "calendar" | "timetable" | "grades" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan"
@@ -7258,6 +7260,19 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     }
   };
 
+  const mobileBottomGroup =
+    mobileTab === "home"
+      ? "home"
+      : mobileTab === "calendar" || mobileTab === "timetable" || mobileTab === "clubs"
+        ? "calendar"
+        : mobileTab === "clan" || mobileTab === "streaks" || mobileTab === "tasks"
+          ? "clan"
+          : mobileTab === "learning" || mobileTab === "planner" || mobileTab === "analytics" || mobileTab === "simulator" || mobileTab === "ai"
+            ? "learning"
+            : mobileTab === "more"
+              ? "more"
+              : "home";
+
   const updateProfileName = (value: string) => updateAppSettings({ profileName: value.slice(0, 80) });
   const updateProfileAvatar = (value: string) => updateAppSettings({ profileAvatar: value.slice(0, 8) || "🎓" });
 
@@ -7909,7 +7924,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       )}
 
       {/* TOP HEADER */}
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between px-3 py-3 sm:p-4 bg-slate-900/80 border-b border-slate-800 gap-3 sm:gap-4">
+      <header className="hidden lg:flex flex-col lg:flex-row lg:items-center justify-between px-3 py-3 sm:p-4 bg-slate-900/80 border-b border-slate-800 gap-3 sm:gap-4">
         <div>
           <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2">
             <span>🎓</span>{tx("WJ Study")}</h1>
@@ -8050,8 +8065,170 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         </div>
       </header>
 
+      {/* MOBILE APP HEADER */}
+      <header className="lg:hidden sticky top-0 z-40 border-b border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur-md">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-600/15 text-blue-400 border border-blue-500/20">
+                <GraduationCap size={18} />
+              </span>
+              <div className="min-w-0">
+                <div className="truncate text-base font-extrabold text-white">WJ Study</div>
+                <div className="truncate text-[10px] text-slate-500">{appSettings.profileName || session?.user?.email || "Student"}</div>
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setCommandPaletteOpen(true); setCommandQuery(""); }}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-800 bg-slate-900 text-slate-300 transition hover:border-slate-700 hover:text-white"
+            aria-label="Search WJ Study"
+          >
+            <Search size={18} />
+          </button>
+        </div>
+      </header>
+
       {/* MAIN LAYOUT GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 p-3 sm:p-4 max-w-[1600px] mx-auto w-full flex-1 items-start">
+        {/* MOBILE SECTION NAVIGATION */}
+        <div className="lg:hidden col-span-full rounded-2xl border border-slate-800 bg-slate-900/80 p-2 shadow-sm">
+          {mobileTab === "home" && (
+            <div className="px-2 py-1.5">
+              <div className="text-sm font-extrabold text-white">{tx("Home")}</div>
+              <div className="mt-0.5 text-[11px] text-slate-500">Your focus, classes, grades, and study target.</div>
+            </div>
+          )}
+          {mobileTab === "more" && (
+            <div className="px-2 py-1.5">
+              <div className="text-sm font-extrabold text-white">{tx("More")}</div>
+              <div className="mt-0.5 text-[11px] text-slate-500">Account, settings, support, and app information.</div>
+            </div>
+          )}
+          {mobileBottomGroup === "calendar" && (
+            <div className="grid grid-cols-3 gap-1.5">
+              <button type="button" onClick={() => { setMobileTab("calendar"); setActiveTab("calendar"); }} className={`rounded-xl px-2.5 py-2 text-[11px] font-bold transition ${mobileTab === "calendar" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Calendar size={15} className="mx-auto mb-1" /><span>{tx("Calendar")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("timetable"); setActiveTab("timetable"); }} className={`rounded-xl px-2.5 py-2 text-[11px] font-bold transition ${mobileTab === "timetable" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><CalendarDays size={15} className="mx-auto mb-1" /><span>{tx("Timetable")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("clubs"); setActiveTab("calendar"); }} className={`rounded-xl px-2.5 py-2 text-[11px] font-bold transition ${mobileTab === "clubs" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Users size={15} className="mx-auto mb-1" /><span>{tx("Clubs")}</span></button>
+            </div>
+          )}
+          {mobileBottomGroup === "clan" && (
+            <div className="grid grid-cols-5 gap-1">
+              <button type="button" onClick={() => { setMobileTab("clan"); setActiveTab("clan"); }} className={`rounded-xl px-1 py-2 text-[10px] font-bold transition ${mobileTab === "clan" ? "bg-violet-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Trophy size={15} className="mx-auto mb-1" /><span>{tx("Clan")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("tasks"); setActiveTab("calendar"); }} className={`rounded-xl px-1 py-2 text-[10px] font-bold transition ${mobileTab === "tasks" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><List size={15} className="mx-auto mb-1" /><span>{tx("Tasks")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("streaks"); setActiveTab("streaks"); }} className={`rounded-xl px-1 py-2 text-[10px] font-bold transition ${mobileTab === "streaks" ? "bg-orange-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Flame size={15} className="mx-auto mb-1" /><span>{tx("Streaks")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("clan"); setActiveTab("clan"); }} className="rounded-xl px-1 py-2 text-[10px] font-bold text-slate-400 hover:bg-slate-800 hover:text-white transition"><Award size={15} className="mx-auto mb-1" /><span>{tx("XP")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("clan"); setActiveTab("clan"); }} className="rounded-xl px-1 py-2 text-[10px] font-bold text-slate-400 hover:bg-slate-800 hover:text-white transition"><TrendingUp size={15} className="mx-auto mb-1" /><span>{tx("Level")}</span></button>
+            </div>
+          )}
+          {mobileBottomGroup === "learning" && (
+            <div className="grid grid-cols-4 gap-1.5">
+              <button type="button" onClick={() => { setMobileTab("planner"); setActiveTab("planner"); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "planner" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Brain size={15} className="mx-auto mb-1" /><span>{tx("AI Planner")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("analytics"); setActiveTab("analytics"); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "analytics" ? "bg-violet-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><BarChart3 size={15} className="mx-auto mb-1" /><span>{tx("Analytics")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("learning"); setActiveTab("learning"); if (!learningClassId && classes[0]?.id) setLearningClassId(classes[0].id); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "learning" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><BookOpen size={15} className="mx-auto mb-1" /><span>{tx("Learning")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("simulator"); setActiveTab("simulator"); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "simulator" ? "bg-emerald-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Sliders size={15} className="mx-auto mb-1" /><span>{tx("Grade Simulator")}</span></button>
+            </div>
+          )}
+        </div>
+        {/* MOBILE HOME */}
+        {mobileTab === "home" && (
+          <div className="lg:hidden col-span-full space-y-4">
+            <section className="rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-600/10 via-slate-900 to-slate-950 p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-blue-300"><Flame size={15} /> {tx("Focus Timer")}</div>
+                  <div className="mt-2 font-mono text-4xl font-black tracking-tight text-blue-400">{String(Math.floor(timeLeft / 60)).padStart(2, "0")}:{String(timeLeft % 60).padStart(2, "0")}</div>
+                  <div className="mt-1 text-[11px] text-slate-500">{timerMode === "work" ? tx("Focus session") : tx("Break")}</div>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button type="button" onClick={toggleTimer} className="grid h-11 w-11 place-items-center rounded-xl bg-blue-600 text-white shadow-md" aria-label={isTimerRunning ? "Pause focus timer" : "Start focus timer"}>{isTimerRunning ? <Pause size={17} /> : <Play size={17} />}</button>
+                  <button type="button" onClick={resetTimer} className="grid h-11 w-11 place-items-center rounded-xl bg-slate-800 text-slate-300" aria-label={tx("Reset focus timer")}><RotateCcw size={17} /></button>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-sm font-bold text-white"><Target size={17} className="text-blue-400" /> {tx("Focus Target")}</div>
+              <p className="mt-1 text-[11px] text-slate-500">Choose what you are working on right now.</p>
+              <select value={selectedTimerTaskId} onChange={(e) => setSelectedTimerTaskId(e.target.value)} className="mt-3 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 text-sm font-semibold text-white outline-none focus:border-blue-500">
+                <option value="">{tx("-- Choose a task --")}</option>
+                {tasks.filter((task) => !task.completed).map((task) => <option key={task.id} value={task.id}>[{task.type.toUpperCase()}] {task.title}</option>)}
+              </select>
+            </section>
+
+            <div className="grid grid-cols-2 gap-3">
+              <section className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-emerald-300"><GraduationCap size={14} /> {tx("Cumulative GPA")}</div>
+                <div className="mt-2 text-2xl font-black text-emerald-400">{cumulativeGPA > 0 ? cumulativeGPA.toFixed(2) : "N/A"}</div>
+                <div className="mt-1 text-[11px] text-slate-500">{cumulativeGPA > 0 ? pointsToLetter(cumulativeGPA) : tx("No grades yet")}</div>
+              </section>
+              <section className="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-4">
+                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-violet-300"><Award size={14} /> {tx("Level")}</div>
+                <div className="mt-2 text-2xl font-black text-violet-300">{gamification.level}</div>
+                <div className="mt-1 text-[11px] text-slate-500">{gamification.totalXp.toLocaleString()} XP</div>
+              </section>
+            </div>
+
+            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-white"><UserRound size={17} className="text-blue-400" /> {tx("Class Roster")}</div>
+                  <div className="mt-1 text-[11px] text-slate-500">Your classes and current grades.</div>
+                </div>
+                <span className="rounded-full bg-slate-800 px-2.5 py-1 text-[10px] font-bold text-slate-400">{classes.length}</span>
+              </div>
+              <div className="mt-3 space-y-2">
+                {classes.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-700 p-4 text-center text-xs text-slate-500">{tx("No classes yet.")}</div>
+                ) : classes.map((cls) => {
+                  const sbgGrade = calculateOverallGrade(cls.standards);
+                  const currentGrade = cls.manualGrade ?? sbgGrade.letter;
+                  return (
+                    <div key={cls.id} className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                      <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: cls.color }} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-bold text-white">{cls.name}</div>
+                        <div className="mt-0.5 truncate text-[10px] text-slate-500">{cls.professorName || "No teacher listed"}{cls.roomNumber ? ` · Rm ${cls.roomNumber}` : ""}</div>
+                      </div>
+                      <select value={cls.manualGrade ?? ""} onChange={(e) => updateManualGrade(cls.id, e.target.value)} className="w-16 rounded-lg border border-slate-800 bg-slate-900 px-1.5 py-2 text-center text-xs font-black text-emerald-400 outline-none">
+                        <option value="">{currentGrade}</option>
+                        {Object.keys(LETTER_POINTS).map((lvl) => <option key={lvl} value={lvl}>{lvl}</option>)}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* MOBILE MORE */}
+        {mobileTab === "more" && (
+          <div className="lg:hidden col-span-full space-y-3">
+            <button type="button" onClick={() => setShowSettingsPage(true)} className="flex w-full items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 text-left transition hover:border-slate-700">
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-blue-500/10 text-blue-400"><Settings size={19} /></span>
+              <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-white">{SETTINGS_TEXT[appSettings.language].settings}</span><span className="mt-0.5 block text-[11px] text-slate-500">Profile, appearance, language, notifications, and account controls.</span></span>
+              <ChevronRight size={18} className="text-slate-600" />
+            </button>
+            <button type="button" onClick={() => setShowSettingsPage(true)} className="flex w-full items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 text-left transition hover:border-slate-700">
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-sky-500/10 text-sky-400"><LifeBuoy size={19} /></span>
+              <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-white">{SETTINGS_TEXT[appSettings.language].helpFeedback}</span><span className="mt-0.5 block text-[11px] text-slate-500">{SETTINGS_TEXT[appSettings.language].helpFeedbackDescription}</span></span>
+              <ChevronRight size={18} className="text-slate-600" />
+            </button>
+            <button type="button" onClick={() => setShowSettingsPage(true)} className="flex w-full items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 text-left transition hover:border-slate-700">
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-violet-500/10 text-violet-400"><Info size={19} /></span>
+              <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-white">{SETTINGS_TEXT[appSettings.language].about}</span><span className="mt-0.5 block text-[11px] text-slate-500">v{APP_VERSION} · {SETTINGS_TEXT[appSettings.language].changelog}</span></span>
+              <ChevronRight size={18} className="text-slate-600" />
+            </button>
+            <button type="button" onClick={() => { setCommandPaletteOpen(true); setCommandQuery(""); }} className="flex w-full items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 text-left transition hover:border-slate-700">
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-slate-800 text-slate-300"><Search size={19} /></span>
+              <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-white">{SETTINGS_TEXT[appSettings.language].commandSearch}</span><span className="mt-0.5 block text-[11px] text-slate-500">Search tasks, classes, events, clubs, and learning materials.</span></span>
+              <ChevronRight size={18} className="text-slate-600" />
+            </button>
+          </div>
+        )}
+
         {/* DESKTOP SIDEBAR NAVIGATION */}
         <aside className="hidden lg:flex lg:col-span-2 lg:col-start-1 lg:row-start-1 sticky top-4 self-start">
           <div className="w-full rounded-2xl border border-slate-800 bg-slate-900/95 shadow-sm backdrop-blur-sm overflow-hidden">
@@ -11431,15 +11608,13 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       )}
 
       {/* MOBILE BOTTOM NAVIGATION */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-800 bg-slate-900/95 px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur-md lg:hidden shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
-        <div className="mx-auto grid max-w-xl grid-cols-7 items-center">
-          <button type="button" onClick={() => { setMobileTab("clubs"); setActiveTab("calendar"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "clubs" ? "text-blue-400" : "text-slate-400"}`}><Users size={18} /><span>{tx("Clubs")}</span></button>
-          <button type="button" onClick={() => setMobileTab("tasks")} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "tasks" ? "text-blue-400" : "text-slate-400"}`}><List size={18} /><span>{tx("Tasks")}</span></button>
-          <button type="button" onClick={() => { setMobileTab("learning"); setActiveTab("learning"); if (!learningClassId && classes[0]?.id) setLearningClassId(classes[0].id); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "learning" ? "text-blue-400" : "text-slate-400"}`}><BookOpen size={18} /><span>{tx("Learn")}</span></button>
-          <button type="button" onClick={() => { setMobileTab("planner"); setActiveTab("planner"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "planner" ? "text-blue-400" : "text-slate-400"}`}><Brain size={18} /><span>{tx("Planner")}</span></button>
-          <button type="button" onClick={() => { setMobileTab("analytics"); setActiveTab("analytics"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "analytics" ? "text-violet-400" : "text-slate-400"}`}><BarChart3 size={18} /><span>{tx("Analytics")}</span></button>
-          <button type="button" onClick={() => { setMobileTab("calendar"); setActiveTab("calendar"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "calendar" && activeTab === "calendar" ? "text-blue-400" : "text-slate-400"}`}><Calendar size={18} /><span>{tx("Calendar")}</span></button>
-          <button type="button" onClick={() => { setMobileTab("clan"); setActiveTab("clan"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "clan" ? "text-violet-400" : "text-slate-400"}`}><Trophy size={18} /><span>{tx("Clan")}</span></button>
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-800 bg-slate-900/95 px-2 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom))] backdrop-blur-md lg:hidden shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
+        <div className="mx-auto grid max-w-xl grid-cols-5 items-center gap-1">
+          <button type="button" onClick={() => setMobileTab("home")} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-bold transition ${mobileBottomGroup === "home" ? "bg-blue-600/15 text-blue-400" : "text-slate-500 hover:bg-slate-800 hover:text-slate-200"}`}><House size={18} /><span>{tx("Home")}</span></button>
+          <button type="button" onClick={() => { setMobileTab("calendar"); setActiveTab("calendar"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-bold transition ${mobileBottomGroup === "calendar" ? "bg-blue-600/15 text-blue-400" : "text-slate-500 hover:bg-slate-800 hover:text-slate-200"}`}><Calendar size={18} /><span>{tx("Calendar")}</span></button>
+          <button type="button" onClick={() => { setMobileTab("clan"); setActiveTab("clan"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-bold transition ${mobileBottomGroup === "clan" ? "bg-violet-600/15 text-violet-400" : "text-slate-500 hover:bg-slate-800 hover:text-slate-200"}`}><Trophy size={18} /><span>{tx("Clan")}</span></button>
+          <button type="button" onClick={() => { setMobileTab("learning"); setActiveTab("learning"); if (!learningClassId && classes[0]?.id) setLearningClassId(classes[0].id); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-bold transition ${mobileBottomGroup === "learning" ? "bg-blue-600/15 text-blue-400" : "text-slate-500 hover:bg-slate-800 hover:text-slate-200"}`}><BookOpen size={18} /><span>{tx("Learning")}</span></button>
+          <button type="button" onClick={() => setMobileTab("more")} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-bold transition ${mobileBottomGroup === "more" ? "bg-slate-700/70 text-white" : "text-slate-500 hover:bg-slate-800 hover:text-slate-200"}`}><MoreHorizontal size={19} /><span>{tx("More")}</span></button>
         </div>
       </nav>
     </div>
