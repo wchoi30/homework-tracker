@@ -1973,14 +1973,23 @@ type CalendarEventOverride = {
   title?: string;
   color?: string;
   icon?: string;
+  date?: string;
   startTime?: string;
   endTime?: string;
   allDay?: boolean;
+  // Metadata used when moving recurring Class/Club occurrences to a different date.
+  sourceDate?: string;
+  sourceDay?: DayOfWeek;
+  sourceId?: string;
+  sourceStartTime?: string;
+  sourceEndTime?: string;
+  sourceKind?: "class" | "club";
 };
 
 type CalendarEventDisplay = {
   key: string;
   title: string;
+  date: string;
   color: string;
   icon: string;
   startTime?: string;
@@ -2548,19 +2557,9 @@ export default function AcademicOSDashboard() {
   const [accountActionMessage, setAccountActionMessage] = useState<string | null>(null);
   const [accountActionError, setAccountActionError] = useState<string | null>(null);
   const [deletingAccount, setDeletingAccount] = useState(false);
-  // Keep the server and first client render identical. The browser permission
-  // value is filled in after hydration so existing users do not hit a
-  // hydration/runtime failure just because their browser already has a
-  // notification permission value.
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("unsupported");
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if ("Notification" in window) {
-      setNotificationPermission(Notification.permission);
-    } else {
-      setNotificationPermission("unsupported");
-    }
-  }, []);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">(
+    typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported"
+  );
 
   // Main-page translation helper. It reads the same language state used by Settings,
   // so changing language immediately re-renders the dashboard without leaving the page.
@@ -2850,11 +2849,7 @@ export default function AcademicOSDashboard() {
               ? Math.max(0, Math.floor(data.data.gamificationXp))
               : 0
         );
-        setAppSettings(
-          useLocalWorkspace
-            ? normalizeAppSettings(localWorkspaceSettings)
-            : serverAppSettings
-        );
+        setAppSettings(useLocalWorkspace ? localWorkspaceSettings : serverAppSettings);
         const serverLearningMaterials =
           Array.isArray(data.data.learningMaterials)
             ? data.data.learningMaterials.filter(
@@ -2941,28 +2936,19 @@ export default function AcademicOSDashboard() {
           useLocalWorkspace ? localWorkspaceCalendarEventOverrides : serverCalendarEventOverrides
         );
 
-        const serverWorkspace =
-          data.data && typeof data.data === "object" && !Array.isArray(data.data)
-            ? (data.data as Record<string, any>)
-            : {};
-        const hasNonEmptyServerField = Object.entries(serverWorkspace).some(([key, value]) => {
-          if (key === "appSettings") return false;
-          if (Array.isArray(value)) return value.length > 0;
-          if (value && typeof value === "object") return Object.keys(value).length > 0;
-          return value !== null && value !== undefined && value !== "";
-        });
+        const serverWorkspace = data.data as Record<string, any>;
         const hasExistingWorkspaceData = Boolean(
-          hasNonEmptyServerField ||
           localWorkspaceClasses.length ||
           localWorkspaceClubs.length ||
           localWorkspaceTasks.length ||
           localWorkspaceStreaks.length ||
           localWorkspaceStudySessions.length ||
-          Object.keys(localWorkspaceCalendarEventOverrides).length > 0
+          (Array.isArray(serverWorkspace.classes) && serverWorkspace.classes.length) ||
+          (Array.isArray(serverWorkspace.tasks) && serverWorkspace.tasks.length) ||
+          (Array.isArray(serverWorkspace.manualCalendarEvents) && serverWorkspace.manualCalendarEvents.length) ||
+          (Array.isArray(serverWorkspace.googleCalendarEvents) && serverWorkspace.googleCalendarEvents.length)
         );
-        const effectiveSettings = useLocalWorkspace
-          ? normalizeAppSettings(localWorkspaceSettings)
-          : serverAppSettings;
+        const effectiveSettings = useLocalWorkspace ? localWorkspaceSettings : serverAppSettings;
         if (!effectiveSettings.onboardingCompleted && !hasExistingWorkspaceData) {
           setOnboardingStep(0);
           setOnboardingStudyGoalHours(String(effectiveSettings.weeklyStudyGoalHours || 10));
@@ -3162,16 +3148,8 @@ export default function AcademicOSDashboard() {
         setManualCalendarEvents(Array.isArray(localManualCalendarEvents) ? localManualCalendarEvents : []);
         setCalendarEventOverrides(localCalendarEventOverrides);
         const hasLocalWorkspaceData = Boolean(
-          localClasses.length ||
-          localClubs.length ||
-          localTasks.length ||
-          localStreaks.length ||
-          localStudySessions.length ||
-          localLearningMaterials.length ||
-          localLearningBundles.length ||
-          localManualCalendarEvents.length ||
-          localGoogleCalendarEvents.length ||
-          Object.keys(localCalendarEventOverrides).length > 0
+          localClasses.length || localClubs.length || localTasks.length || localStreaks.length || localStudySessions.length ||
+          localManualCalendarEvents.length || localGoogleCalendarEvents.length
         );
         const localSettings = normalizeAppSettings(localAppSettings);
         if (!localSettings.onboardingCompleted && !hasLocalWorkspaceData) {
@@ -4037,6 +4015,7 @@ export default function AcademicOSDashboard() {
     return {
       key: calendarItemKey,
       title: override.title ?? base.title,
+      date: override.date ?? base.date,
       color: override.color ?? base.color,
       icon: override.icon ?? base.icon,
       startTime: override.startTime ?? base.startTime,
@@ -4396,8 +4375,6 @@ export default function AcademicOSDashboard() {
       // clan should never redirect the user away from the calendar.
       setActiveTab("calendar");
       setMobileTab("calendar");
-      setShowOnboarding(false);
-      setShowSettingsPage(false);
       setIsLoaded(false);
       void loadUserData(activeId);
       void loadClan(activeId);
@@ -6212,18 +6189,26 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
   const zoomedGoogleEvents = useMemo(
     () =>
       zoomedCalendarDate
-        ? googleCalendarEvents.filter((event) =>
-            googleEventOccursOnDate(event, zoomedCalendarDate)
-          )
+        ? googleCalendarEvents.filter((event) => {
+            const key = `g-${event.id}`;
+            const override = calendarEventOverrides[key] || {};
+            return override.date
+              ? override.date === zoomedCalendarDate
+              : googleEventOccursOnDate(event, zoomedCalendarDate);
+          })
         : [],
-    [googleCalendarEvents, zoomedCalendarDate]
+    [googleCalendarEvents, zoomedCalendarDate, calendarEventOverrides]
   );
   const zoomedManualEvents = useMemo(
     () =>
       zoomedCalendarDate
-        ? manualCalendarEvents.filter((event) => event.date === zoomedCalendarDate)
+        ? manualCalendarEvents.filter((event) => {
+            const key = `m-${event.id}`;
+            const override = calendarEventOverrides[key] || {};
+            return override.date ? override.date === zoomedCalendarDate : event.date === zoomedCalendarDate;
+          })
         : [],
-    [manualCalendarEvents, zoomedCalendarDate]
+    [manualCalendarEvents, zoomedCalendarDate, calendarEventOverrides]
   );
 
   // Day-of-week + academic status for the zoomed day, so we can pull in the
@@ -6254,41 +6239,107 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
   }, [zoomedCalendarDate]);
 
   const zoomedTasks = useMemo(
-    () => (zoomedCalendarDate ? tasks.filter((t) => t.dueDate === zoomedCalendarDate) : []),
-    [tasks, zoomedCalendarDate]
+    () =>
+      zoomedCalendarDate
+        ? tasks.filter((task) => {
+            const key = `t-${task.id}`;
+            const override = calendarEventOverrides[key] || {};
+            return override.date ? override.date === zoomedCalendarDate : task.dueDate === zoomedCalendarDate;
+          })
+        : [],
+    [tasks, zoomedCalendarDate, calendarEventOverrides]
   );
 
   // Same source of truth as the "Add Class Session to Timetable" form: each
-  // class's meetingTimes. This is what keeps the Calendar day view in sync
-  // with whatever has been added on the Timetable tab.
+  // class's meetingTimes. Individual occurrences can be moved to a different
+  // date without changing the underlying recurring timetable.
+  const getClassMeetingsForDate = (dateStr: string, dayOfWeekName: DayOfWeek | null, academicStatusType?: string) => {
+    if (!dayOfWeekName || academicStatusType === "break" || academicStatusType === "staff_only") {
+      return [] as { cls: ClassItem; slot: MeetingTime; key: string }[];
+    }
+
+    const regular = classes.flatMap((cls) =>
+      (cls.meetingTimes || [])
+        .filter((slot) => slot.day === dayOfWeekName)
+        .map((slot) => {
+          const key = `c-${cls.id}-${dateStr}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
+          const override = calendarEventOverrides[key] || {};
+          if (override.date && override.date !== dateStr) return null;
+          return { cls, slot, key };
+        })
+        .filter((item): item is { cls: ClassItem; slot: MeetingTime; key: string } => Boolean(item))
+    );
+
+    const moved = Object.entries(calendarEventOverrides).flatMap(([key, override]) => {
+      if (override.sourceKind !== "class" || override.date !== dateStr || override.sourceId === undefined) return [];
+      if (override.sourceDate === dateStr || !key.startsWith("c-")) return [];
+      const cls = classes.find((item) => item.id === override.sourceId);
+      if (!cls || !override.sourceDay) return [];
+      const slot = (cls.meetingTimes || []).find(
+        (item) =>
+          item.day === override.sourceDay &&
+          item.startTime === (override.sourceStartTime || "") &&
+          item.endTime === (override.sourceEndTime || "")
+      );
+      return slot ? [{ cls, slot, key }] : [];
+    });
+
+    return [...regular, ...moved];
+  };
+
   const zoomedClassMeetings = useMemo(() => {
     const { dayOfWeekName, academicStatus } = zoomedDayInfo;
-    if (!dayOfWeekName || academicStatus?.type === "break" || academicStatus?.type === "staff_only") {
-      return [] as { cls: ClassItem; slot: MeetingTime }[];
-    }
-    return classes.flatMap((cls) =>
-      (cls.meetingTimes || [])
-        .filter((mt) => mt.day === dayOfWeekName)
-        .map((slot) => ({ cls, slot }))
-    );
-  }, [classes, zoomedDayInfo]);
+    return zoomedCalendarDate
+      ? getClassMeetingsForDate(zoomedCalendarDate, dayOfWeekName, academicStatus?.type)
+      : [];
+  }, [classes, zoomedDayInfo, zoomedCalendarDate, calendarEventOverrides]);
 
-  const zoomedClubMeetings = useMemo(() => {
-    const { dayOfWeekName, academicStatus } = zoomedDayInfo;
-    if (!dayOfWeekName || academicStatus?.type === "break" || academicStatus?.type === "staff_only") {
-      return [] as { club: ClubItem; slot: ClubMeetingTime }[];
+  const getClubMeetingsForDate = (dateStr: string, dayOfWeekName: DayOfWeek | null, academicStatusType?: string) => {
+    if (!dayOfWeekName || academicStatusType === "break" || academicStatusType === "staff_only") {
+      return [] as { club: ClubItem; slot: ClubMeetingTime; key: string }[];
     }
-    return clubs.flatMap((club) => {
-      const matchingSlots = (club.meetingTimes || []).filter((mt) => mt.day === dayOfWeekName);
+
+    const regular = clubs.flatMap((club) => {
+      const matchingSlots = (club.meetingTimes || []).filter((slot) => slot.day === dayOfWeekName);
       if (matchingSlots.length > 0) {
-        return matchingSlots.map((slot) => ({ club, slot }));
+        return matchingSlots.flatMap((slot) => {
+          const key = `cl-${club.id}-${dateStr}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
+          const override = calendarEventOverrides[key] || {};
+          return override.date && override.date !== dateStr ? [] : [{ club, slot, key }];
+        });
       }
-      if (zoomedCalendarDate && club.attendance?.[zoomedCalendarDate]) {
-        return [{ club, slot: { day: dayOfWeekName, startTime: "", endTime: "" } }];
+      if (club.attendance?.[dateStr]) {
+        const slot = { day: dayOfWeekName, startTime: "", endTime: "" };
+        const key = `cl-${club.id}-${dateStr}-all-day-`;
+        const override = calendarEventOverrides[key] || {};
+        return override.date && override.date !== dateStr ? [] : [{ club, slot, key }];
       }
       return [];
     });
-  }, [clubs, zoomedDayInfo, zoomedCalendarDate]);
+
+    const moved = Object.entries(calendarEventOverrides).flatMap(([key, override]) => {
+      if (override.sourceKind !== "club" || override.date !== dateStr || override.sourceId === undefined) return [];
+      if (override.sourceDate === dateStr || !key.startsWith("cl-")) return [];
+      const club = clubs.find((item) => item.id === override.sourceId);
+      if (!club || !override.sourceDay) return [];
+      const slot = (club.meetingTimes || []).find(
+        (item) =>
+          item.day === override.sourceDay &&
+          item.startTime === (override.sourceStartTime || "") &&
+          item.endTime === (override.sourceEndTime || "")
+      );
+      return slot ? [{ club, slot, key }] : [];
+    });
+
+    return [...regular, ...moved];
+  };
+
+  const zoomedClubMeetings = useMemo(() => {
+    const { dayOfWeekName, academicStatus } = zoomedDayInfo;
+    return zoomedCalendarDate
+      ? getClubMeetingsForDate(zoomedCalendarDate, dayOfWeekName, academicStatus?.type)
+      : [];
+  }, [clubs, zoomedDayInfo, zoomedCalendarDate, calendarEventOverrides]);
 
   type ZoomedDayItem =
     | { kind: "google"; sortKey: string; id: string; event: SyncedGoogleCalendarEvent; display: CalendarEventDisplay }
@@ -6310,6 +6361,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         event,
         display: getCalendarEventDisplay(key, {
           title: event.title,
+          date: event.startDate,
           color: event.color,
           icon: event.icon,
           startTime: event.startTime,
@@ -6329,6 +6381,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         event,
         display: getCalendarEventDisplay(key, {
           title: event.name,
+          date: event.date,
           color: getManualEventColor(event.type),
           icon: "✦",
           startTime: event.startTime,
@@ -6348,6 +6401,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         task,
         display: getCalendarEventDisplay(key, {
           title: task.title,
+          date: task.dueDate,
           color: task.type === "test" ? "#E11D48" : "#2563EB",
           icon: task.type === "test" ? "📝" : "📚",
           startTime: undefined,
@@ -6357,8 +6411,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         }),
       });
     });
-    zoomedClassMeetings.forEach(({ cls, slot }) => {
-      const key = `c-${cls.id}-${zoomedCalendarDate}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
+    zoomedClassMeetings.forEach(({ cls, slot, key }) => {
       items.push({
         kind: "class",
         sortKey: slot.startTime || "0000",
@@ -6367,6 +6420,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         slot,
         display: getCalendarEventDisplay(key, {
           title: cls.name,
+          date: zoomedCalendarDate || formatDateKey(new Date()),
           color: cls.color || "#3B82F6",
           icon: "📘",
           startTime: slot.startTime,
@@ -6376,8 +6430,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         }),
       });
     });
-    zoomedClubMeetings.forEach(({ club, slot }) => {
-      const key = `cl-${club.id}-${zoomedCalendarDate}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
+    zoomedClubMeetings.forEach(({ club, slot, key }) => {
       items.push({
         kind: "club",
         sortKey: slot.startTime || "0000",
@@ -6386,6 +6439,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         slot,
         display: getCalendarEventDisplay(key, {
           title: club.name,
+          date: zoomedCalendarDate || formatDateKey(new Date()),
           color: club.color || "#8B5CF6",
           icon: club.icon || "👥",
           startTime: slot.startTime,
@@ -6519,6 +6573,46 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
   const txOnboarding = (key: string) =>
     ONBOARDING_TEXT[appSettings.language]?.[key] ?? ONBOARDING_TEXT.en[key] ?? key;
+
+  // Global command menu + desktop keyboard shortcuts. Typing inside an input/textarea/select never triggers navigation shortcuts.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (showOnboarding) {
+        if (event.key === "Escape") event.preventDefault();
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      const isTyping = Boolean(target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+      const key = event.key.toLowerCase();
+
+      if ((event.metaKey || event.ctrlKey) && key === "k") {
+        event.preventDefault();
+        setCommandPaletteOpen((open) => !open);
+        setCommandQuery("");
+        return;
+      }
+      if (event.key === "Escape") {
+        if (commandPaletteOpen) { setCommandPaletteOpen(false); setCommandQuery(""); return; }
+        if (showSettingsPage) { setShowSettingsPage(false); return; }
+        return;
+      }
+      if (isTyping || event.metaKey || event.ctrlKey || event.altKey) return;
+
+      if (key === "c") openSectionFromCommand("calendar");
+      else if (key === "t") openSectionFromCommand("tasks");
+      else if (key === "l") openSectionFromCommand("learning");
+      else if (key === "f") openSectionFromCommand("focus");
+      else if (key === "a") openSectionFromCommand("analytics");
+      else if (key === "n") openNewTaskFromCommand();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [commandPaletteOpen, showSettingsPage, showOnboarding, userId, tasks, selectedTimerTaskId, learningClassId, classes]);
+
+  useEffect(() => {
+    if (!commandPaletteOpen) return;
+    setTimeout(() => commandSearchInputRef.current?.focus(), 0);
+  }, [commandPaletteOpen]);
 
   // --- RENDER UNAUTHENTICATED LOGIN / SIGNUP SCREEN ---
   if (!session || !userId) {
@@ -6800,62 +6894,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     }
   };
 
-  // Global command menu + desktop keyboard shortcuts. Typing inside an input/textarea/select never triggers navigation shortcuts.
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (showOnboarding) {
-        if (event.key === "Escape") event.preventDefault();
-        return;
-      }
-      const target = event.target as HTMLElement | null;
-      const isTyping = Boolean(target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
-      const key = event.key.toLowerCase();
-
-      if ((event.metaKey || event.ctrlKey) && key === "k") {
-        event.preventDefault();
-        setCommandPaletteOpen((open) => !open);
-        setCommandQuery("");
-        return;
-      }
-      if (event.key === "Escape") {
-        if (commandPaletteOpen) { setCommandPaletteOpen(false); setCommandQuery(""); return; }
-        if (showSettingsPage) { setShowSettingsPage(false); return; }
-        return;
-      }
-      if (isTyping || event.metaKey || event.ctrlKey || event.altKey) return;
-
-      if (key === "c") openSectionFromCommand("calendar");
-      else if (key === "t") openSectionFromCommand("tasks");
-      else if (key === "l") openSectionFromCommand("learning");
-      else if (key === "f") openSectionFromCommand("focus");
-      else if (key === "a") openSectionFromCommand("analytics");
-      else if (key === "n") openNewTaskFromCommand();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [commandPaletteOpen, showSettingsPage, showOnboarding, userId, tasks, selectedTimerTaskId, learningClassId, classes]);
-
-  useEffect(() => {
-    if (!commandPaletteOpen) return;
-    setTimeout(() => commandSearchInputRef.current?.focus(), 0);
-  }, [commandPaletteOpen]);
-
   // --- RENDER AUTHENTICATED DASHBOARD ---
-  // Do not render a partially initialized workspace while an authenticated
-  // user's saved data is still loading. This is especially important for
-  // existing accounts because their settings/workspace may use an older
-  // schema than a brand-new account.
-  if (session && userId && !isLoaded) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center p-6 font-sans ${appSettings.theme === "light" ? "bg-slate-100" : "bg-slate-950"}`}>
-        <div className={`flex items-center gap-3 rounded-2xl border px-5 py-4 shadow-xl ${appSettings.theme === "light" ? "border-slate-200 bg-white text-slate-700" : "border-slate-800 bg-slate-900 text-slate-200"}`}>
-          <Loader2 size={20} className="animate-spin text-blue-500" />
-          <span className="text-sm font-semibold">Loading your WJ Study workspace...</span>
-        </div>
-      </div>
-    );
-  }
-
   if (showOnboarding && session && userId) {
     const onboardingStepTitles = [
       txOnboarding("welcomeTitle"),
@@ -9130,40 +9169,33 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       // Academic status lookup
                       const academicStatus = getCalendarDayStatus(dateStr, isWeekend);
 
-                      // Filtered events
-                      const dayTasks = tasks.filter((t) => t.dueDate === dateStr);
-                      const dayGoogleEvents = googleCalendarEvents.filter((event) =>
-                        googleEventOccursOnDate(event, dateStr)
-                      );
-                      const dayManualEvents = manualCalendarEvents.filter(
-                        (event) => event.date === dateStr
+                      // Filtered events. Date overrides move an individual occurrence in WJ Study
+                      // without changing the underlying Task, Google event, Class, or Club record.
+                      const dayTasks = tasks.filter((task) => {
+                        const override = calendarEventOverrides[`t-${task.id}`] || {};
+                        return override.date ? override.date === dateStr : task.dueDate === dateStr;
+                      });
+                      const dayGoogleEvents = googleCalendarEvents.filter((event) => {
+                        const override = calendarEventOverrides[`g-${event.id}`] || {};
+                        return override.date ? override.date === dateStr : googleEventOccursOnDate(event, dateStr);
+                      });
+                      const dayManualEvents = manualCalendarEvents.filter((event) => {
+                        const override = calendarEventOverrides[`m-${event.id}`] || {};
+                        return override.date ? override.date === dateStr : event.date === dateStr;
+                      });
+
+                      const dayClubMeetings = getClubMeetingsForDate(
+                        dateStr,
+                        dayOfWeekName,
+                        academicStatus.type
                       );
 
-                      const dayClubMeetings =
-                        academicStatus.type === "break" || academicStatus.type === "staff_only"
-                          ? []
-                          : clubs.flatMap((club) => {
-                              const matchingSlots = (club.meetingTimes || []).filter(
-                                (mt) => mt.day === dayOfWeekName
-                              );
-                              if (matchingSlots.length > 0) {
-                                return matchingSlots.map((slot) => ({ club, slot }));
-                              }
-                              if (club.attendance?.[dateStr]) {
-                                return [{ club, slot: { day: dayOfWeekName, startTime: "", endTime: "" } }];
-                              }
-                              return [];
-                            });
-
-                      // Weekly class sessions from the Timetable tab
-                      const dayClassMeetings =
-                        academicStatus.type === "break" || academicStatus.type === "staff_only"
-                          ? []
-                          : classes.flatMap((cls) =>
-                              (cls.meetingTimes || [])
-                                .filter((mt) => mt.day === dayOfWeekName)
-                                .map((slot) => ({ cls, slot }))
-                            );
+                      // Weekly class sessions from the Timetable tab, including moved individual occurrences.
+                      const dayClassMeetings = getClassMeetingsForDate(
+                        dateStr,
+                        dayOfWeekName,
+                        academicStatus.type
+                      );
 
                       let dayBoxStyle = "bg-slate-950/80 border-slate-800/80";
                       let dayHeaderStyle = "text-slate-400";
@@ -9299,8 +9331,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               );
                             })}
 
-                            {dayClassMeetings.map(({ cls, slot }) => {
-                              const key = `c-${cls.id}-${dateStr}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
+                            {dayClassMeetings.map(({ cls, slot, key }) => {
                               const override = calendarEventOverrides[key] || {};
                               const title = override.title ?? cls.name;
                               const icon = override.icon ?? "📘";
@@ -9325,8 +9356,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               );
                             })}
 
-                            {dayClubMeetings.map(({ club, slot }) => {
-                              const key = `cl-${club.id}-${dateStr}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
+                            {dayClubMeetings.map(({ club, slot, key }) => {
                               const override = calendarEventOverrides[key] || {};
                               const title = override.title ?? club.name;
                               const icon = override.icon ?? club.icon ?? "👥";
@@ -10969,6 +10999,42 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               <p className="text-[11px] text-slate-400">{display.sourceLabel} · changes are saved in this app only</p>
                             </div>
                           </div>
+
+                          <label className="block text-xs font-semibold text-slate-300">{tx("Date")}<input
+                              type="date"
+                              value={display.date}
+                              onChange={(changeEvent) => {
+                                const nextDate = changeEvent.target.value;
+                                if (!nextDate) return;
+                                const source: CalendarEventOverride = {
+                                  date: display.date,
+                                  sourceDate: display.date,
+                                };
+                                if (editingCalendarItem.kind === "class") {
+                                  source.sourceKind = "class";
+                                  source.sourceId = editingCalendarItem.cls.id;
+                                  source.sourceDay = editingCalendarItem.slot.day;
+                                  source.sourceStartTime = editingCalendarItem.slot.startTime || "";
+                                  source.sourceEndTime = editingCalendarItem.slot.endTime || "";
+                                } else if (editingCalendarItem.kind === "club") {
+                                  source.sourceKind = "club";
+                                  source.sourceId = editingCalendarItem.club.id;
+                                  source.sourceDay = editingCalendarItem.slot.day;
+                                  source.sourceStartTime = editingCalendarItem.slot.startTime || "";
+                                  source.sourceEndTime = editingCalendarItem.slot.endTime || "";
+                                } else if (editingCalendarItem.kind === "google") {
+                                  source.sourceId = editingCalendarItem.event.id;
+                                } else if (editingCalendarItem.kind === "manual") {
+                                  source.sourceId = editingCalendarItem.event.id;
+                                } else if (editingCalendarItem.kind === "task") {
+                                  source.sourceId = editingCalendarItem.task.id;
+                                }
+                                updateCalendarEventOverride(editingCalendarItem.id, { ...source, date: nextDate });
+                                setZoomedCalendarDate(nextDate);
+                              }}
+                              className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-violet-400"
+                            />
+                          </label>
 
                           <label className="block text-xs font-semibold text-slate-300">{tx("Name")}<input
                               value={display.title}
