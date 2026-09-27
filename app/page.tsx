@@ -2548,9 +2548,19 @@ export default function AcademicOSDashboard() {
   const [accountActionMessage, setAccountActionMessage] = useState<string | null>(null);
   const [accountActionError, setAccountActionError] = useState<string | null>(null);
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">(
-    typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported"
-  );
+  // Keep the server and first client render identical. The browser permission
+  // value is filled in after hydration so existing users do not hit a
+  // hydration/runtime failure just because their browser already has a
+  // notification permission value.
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("unsupported");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if ("Notification" in window) {
+      setNotificationPermission(Notification.permission);
+    } else {
+      setNotificationPermission("unsupported");
+    }
+  }, []);
 
   // Main-page translation helper. It reads the same language state used by Settings,
   // so changing language immediately re-renders the dashboard without leaving the page.
@@ -2840,7 +2850,11 @@ export default function AcademicOSDashboard() {
               ? Math.max(0, Math.floor(data.data.gamificationXp))
               : 0
         );
-        setAppSettings(useLocalWorkspace ? localWorkspaceSettings : serverAppSettings);
+        setAppSettings(
+          useLocalWorkspace
+            ? normalizeAppSettings(localWorkspaceSettings)
+            : serverAppSettings
+        );
         const serverLearningMaterials =
           Array.isArray(data.data.learningMaterials)
             ? data.data.learningMaterials.filter(
@@ -2927,19 +2941,28 @@ export default function AcademicOSDashboard() {
           useLocalWorkspace ? localWorkspaceCalendarEventOverrides : serverCalendarEventOverrides
         );
 
-        const serverWorkspace = data.data as Record<string, any>;
+        const serverWorkspace =
+          data.data && typeof data.data === "object" && !Array.isArray(data.data)
+            ? (data.data as Record<string, any>)
+            : {};
+        const hasNonEmptyServerField = Object.entries(serverWorkspace).some(([key, value]) => {
+          if (key === "appSettings") return false;
+          if (Array.isArray(value)) return value.length > 0;
+          if (value && typeof value === "object") return Object.keys(value).length > 0;
+          return value !== null && value !== undefined && value !== "";
+        });
         const hasExistingWorkspaceData = Boolean(
+          hasNonEmptyServerField ||
           localWorkspaceClasses.length ||
           localWorkspaceClubs.length ||
           localWorkspaceTasks.length ||
           localWorkspaceStreaks.length ||
           localWorkspaceStudySessions.length ||
-          (Array.isArray(serverWorkspace.classes) && serverWorkspace.classes.length) ||
-          (Array.isArray(serverWorkspace.tasks) && serverWorkspace.tasks.length) ||
-          (Array.isArray(serverWorkspace.manualCalendarEvents) && serverWorkspace.manualCalendarEvents.length) ||
-          (Array.isArray(serverWorkspace.googleCalendarEvents) && serverWorkspace.googleCalendarEvents.length)
+          Object.keys(localWorkspaceCalendarEventOverrides).length > 0
         );
-        const effectiveSettings = useLocalWorkspace ? localWorkspaceSettings : serverAppSettings;
+        const effectiveSettings = useLocalWorkspace
+          ? normalizeAppSettings(localWorkspaceSettings)
+          : serverAppSettings;
         if (!effectiveSettings.onboardingCompleted && !hasExistingWorkspaceData) {
           setOnboardingStep(0);
           setOnboardingStudyGoalHours(String(effectiveSettings.weeklyStudyGoalHours || 10));
@@ -3139,8 +3162,16 @@ export default function AcademicOSDashboard() {
         setManualCalendarEvents(Array.isArray(localManualCalendarEvents) ? localManualCalendarEvents : []);
         setCalendarEventOverrides(localCalendarEventOverrides);
         const hasLocalWorkspaceData = Boolean(
-          localClasses.length || localClubs.length || localTasks.length || localStreaks.length || localStudySessions.length ||
-          localManualCalendarEvents.length || localGoogleCalendarEvents.length
+          localClasses.length ||
+          localClubs.length ||
+          localTasks.length ||
+          localStreaks.length ||
+          localStudySessions.length ||
+          localLearningMaterials.length ||
+          localLearningBundles.length ||
+          localManualCalendarEvents.length ||
+          localGoogleCalendarEvents.length ||
+          Object.keys(localCalendarEventOverrides).length > 0
         );
         const localSettings = normalizeAppSettings(localAppSettings);
         if (!localSettings.onboardingCompleted && !hasLocalWorkspaceData) {
@@ -4365,6 +4396,8 @@ export default function AcademicOSDashboard() {
       // clan should never redirect the user away from the calendar.
       setActiveTab("calendar");
       setMobileTab("calendar");
+      setShowOnboarding(false);
+      setShowSettingsPage(false);
       setIsLoaded(false);
       void loadUserData(activeId);
       void loadClan(activeId);
@@ -6808,6 +6841,21 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
   }, [commandPaletteOpen]);
 
   // --- RENDER AUTHENTICATED DASHBOARD ---
+  // Do not render a partially initialized workspace while an authenticated
+  // user's saved data is still loading. This is especially important for
+  // existing accounts because their settings/workspace may use an older
+  // schema than a brand-new account.
+  if (session && userId && !isLoaded) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center p-6 font-sans ${appSettings.theme === "light" ? "bg-slate-100" : "bg-slate-950"}`}>
+        <div className={`flex items-center gap-3 rounded-2xl border px-5 py-4 shadow-xl ${appSettings.theme === "light" ? "border-slate-200 bg-white text-slate-700" : "border-slate-800 bg-slate-900 text-slate-200"}`}>
+          <Loader2 size={20} className="animate-spin text-blue-500" />
+          <span className="text-sm font-semibold">Loading your WJ Study workspace...</span>
+        </div>
+      </div>
+    );
+  }
+
   if (showOnboarding && session && userId) {
     const onboardingStepTitles = [
       txOnboarding("welcomeTitle"),
@@ -11054,5 +11102,4 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     </div>
   );
 }
-
 
