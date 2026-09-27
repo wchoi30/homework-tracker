@@ -2017,6 +2017,7 @@ type CalendarEventOverride = {
   title?: string;
   color?: string;
   icon?: string;
+  date?: string;
   startTime?: string;
   endTime?: string;
   allDay?: boolean;
@@ -2027,6 +2028,7 @@ type CalendarEventDisplay = {
   title: string;
   color: string;
   icon: string;
+  date: string;
   startTime?: string;
   endTime?: string;
   allDay: boolean;
@@ -4084,6 +4086,7 @@ export default function AcademicOSDashboard() {
       title: override.title ?? base.title,
       color: override.color ?? base.color,
       icon: override.icon ?? base.icon,
+      date: override.date ?? base.date,
       startTime: override.startTime ?? base.startTime,
       endTime: override.endTime ?? base.endTime,
       allDay: override.allDay ?? base.allDay,
@@ -6703,18 +6706,25 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
   const zoomedGoogleEvents = useMemo(
     () =>
       zoomedCalendarDate
-        ? googleCalendarEvents.filter((event) =>
-            googleEventOccursOnDate(event, zoomedCalendarDate)
-          )
+        ? googleCalendarEvents.filter((event) => {
+            const key = `g-${event.id}`;
+            const movedDate = calendarEventOverrides[key]?.date;
+            return movedDate
+              ? movedDate === zoomedCalendarDate
+              : googleEventOccursOnDate(event, zoomedCalendarDate);
+          })
         : [],
-    [googleCalendarEvents, zoomedCalendarDate]
+    [googleCalendarEvents, zoomedCalendarDate, calendarEventOverrides]
   );
   const zoomedManualEvents = useMemo(
     () =>
       zoomedCalendarDate
-        ? manualCalendarEvents.filter((event) => event.date === zoomedCalendarDate)
+        ? manualCalendarEvents.filter((event) => {
+            const key = `m-${event.id}`;
+            return (calendarEventOverrides[key]?.date ?? event.date) === zoomedCalendarDate;
+          })
         : [],
-    [manualCalendarEvents, zoomedCalendarDate]
+    [manualCalendarEvents, zoomedCalendarDate, calendarEventOverrides]
   );
 
   // Day-of-week + academic status for the zoomed day, so we can pull in the
@@ -6797,6 +6807,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           title: event.title,
           color: event.color,
           icon: event.icon,
+          date: event.startDate,
           startTime: event.startTime,
           endTime: event.endTime,
           allDay: event.allDay,
@@ -6816,6 +6827,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           title: event.name,
           color: getManualEventColor(event.type),
           icon: "✦",
+          date: event.date,
           startTime: event.startTime,
           endTime: event.endTime,
           allDay: false,
@@ -6836,6 +6848,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           title: cls.name,
           color: cls.color || "#3B82F6",
           icon: "📘",
+          date: zoomedCalendarDate || "",
           startTime: slot.startTime,
           endTime: slot.endTime,
           allDay: !slot.startTime,
@@ -6855,6 +6868,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           title: club.name,
           color: club.color || "#8B5CF6",
           icon: club.icon || "👥",
+          date: zoomedCalendarDate || "",
           startTime: slot.startTime,
           endTime: slot.endTime,
           allDay: !slot.startTime,
@@ -8059,7 +8073,6 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               <button type="button" onClick={() => { setActiveTab("streaks"); setMobileTab("streaks"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "streaks" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><Flame size={16} /><span>{tx("Streaks")}</span></button>
               <button type="button" onClick={() => { setActiveTab("learning"); setMobileTab("learning"); if (!learningClassId && classes[0]?.id) setLearningClassId(classes[0].id); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "learning" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><BookOpen size={16} /><span>{tx("Learning")}</span></button>
               <button type="button" onClick={() => { setActiveTab("timetable"); setMobileTab("timetable"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "timetable" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><CalendarDays size={16} /><span>{tx("Timetable")}</span></button>
-              <button type="button" onClick={() => { setActiveTab("grades"); setMobileTab("grades"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "grades" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><Calculator size={16} /><span>{tx("Grades")}</span></button>
               <button type="button" onClick={() => { setActiveTab("simulator"); setMobileTab("simulator"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "simulator" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><Sliders size={16} /><span>{tx("Grade Simulator")}</span></button>
               <button type="button" onClick={() => { setActiveTab("planner"); setMobileTab("planner"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "planner" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><Brain size={16} /><span>{tx("AI Planner")}</span></button>
               <button type="button" onClick={() => { setActiveTab("analytics"); setMobileTab("analytics"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "analytics" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><BarChart3 size={16} /><span>{tx("Analytics")}</span></button>
@@ -9500,12 +9513,17 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       const academicStatus = getCalendarDayStatus(dateStr, isWeekend);
 
                       // Calendar events only. Task management lives in the Tasks section.
-                      const dayGoogleEvents = googleCalendarEvents.filter((event) =>
-                        googleEventOccursOnDate(event, dateStr)
-                      );
-                      const dayManualEvents = manualCalendarEvents.filter(
-                        (event) => event.date === dateStr
-                      );
+                      const dayGoogleEvents = googleCalendarEvents.filter((event) => {
+                        const key = `g-${event.id}`;
+                        const movedDate = calendarEventOverrides[key]?.date;
+                        return movedDate
+                          ? movedDate === dateStr
+                          : googleEventOccursOnDate(event, dateStr);
+                      });
+                      const dayManualEvents = manualCalendarEvents.filter((event) => {
+                        const key = `m-${event.id}`;
+                        return (calendarEventOverrides[key]?.date ?? event.date) === dateStr;
+                      });
 
                       const dayClubMeetings =
                         academicStatus.type === "break" || academicStatus.type === "staff_only"
@@ -11294,6 +11312,18 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                             />
                           </label>
 
+                          <label className="mt-3 block text-xs font-semibold text-slate-300">{tx("Date")}<input
+                              type="date"
+                              value={display.date}
+                              onChange={(changeEvent) => {
+                                const nextDate = changeEvent.target.value;
+                                updateCalendarEventOverride(editingCalendarItem.id, { date: nextDate });
+                                if (nextDate) setZoomedCalendarDate(nextDate);
+                              }}
+                              className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-violet-400"
+                            />
+                          </label>
+
                           <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]">
                             <label className="block text-xs font-semibold text-slate-300">{tx("Logo / icon")}<input
                                 value={display.icon}
@@ -11391,7 +11421,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   </div>
                 ) : (
                   <div className="grid place-items-center rounded-xl border border-dashed border-slate-700 p-6 text-center text-sm text-slate-500">
-                    Select any calendar event to customize its name, color, logo, and time. These calendar customizations are saved in WJ Study and do not change the original task, class, or club data.
+                    Select any calendar event to customize its name, color, logo, date, and time. Date changes for Google and personal events are saved in WJ Study and do not change the original calendar source.
                   </div>
                 )}
               </div>
