@@ -55,6 +55,12 @@ import {
   Trophy,
   Copy,
   RefreshCw,
+  Settings,
+  Languages,
+  Moon,
+  SunMedium,
+  Bell,
+  Palette,
 } from "lucide-react";
 
 // Place right below imports, before: export default function Page() { ...
@@ -837,6 +843,71 @@ const safeStorageGet = <T,>(key: string, fallback: T): T => {
   }
 };
 
+type AppLanguage = "en" | "vi" | "ko" | "ja";
+type AppThemeMode = "dark" | "light";
+type AppAccent = "blue" | "violet" | "emerald" | "rose" | "amber";
+
+type AppSettings = {
+  language: AppLanguage;
+  theme: AppThemeMode;
+  accent: AppAccent;
+  notifications: {
+    taskReminders: boolean;
+    deadlineAlerts: boolean;
+    focusReminders: boolean;
+  };
+};
+
+const DEFAULT_APP_SETTINGS: AppSettings = {
+  language: "en",
+  theme: "dark",
+  accent: "blue",
+  notifications: {
+    taskReminders: true,
+    deadlineAlerts: true,
+    focusReminders: false,
+  },
+};
+
+const APP_ACCENT_VALUES: Record<AppAccent, string> = {
+  blue: "#2563EB",
+  violet: "#7C3AED",
+  emerald: "#059669",
+  rose: "#E11D48",
+  amber: "#D97706",
+};
+
+const SETTINGS_TEXT: Record<AppLanguage, Record<string, string>> = {
+  en: {
+    settings: "Settings", back: "Back", language: "Language", languageDescription: "Choose the language used by WJ Study settings and supported interface labels.",
+    appearance: "Appearance", appearanceDescription: "Change the look of WJ Study.", dark: "Dark", light: "Light", accent: "Accent color",
+    notifications: "Notifications", notificationsDescription: "Choose which reminders and alerts WJ Study should keep enabled.",
+    taskReminders: "Task reminders", taskRemindersDescription: "Reminders for upcoming tasks.", deadlineAlerts: "Deadline alerts", deadlineAlertsDescription: "Alerts for tasks approaching their due date.", focusReminders: "Focus reminders", focusRemindersDescription: "Reminders to start or return to a focus session.",
+    english: "English", vietnamese: "Vietnamese", korean: "Korean", japanese: "Japanese", saved: "Saved automatically",
+  },
+  vi: {
+    settings: "Cài đặt", back: "Quay lại", language: "Ngôn ngữ", languageDescription: "Chọn ngôn ngữ dùng cho cài đặt và các nhãn giao diện được hỗ trợ của WJ Study.",
+    appearance: "Giao diện", appearanceDescription: "Thay đổi giao diện của WJ Study.", dark: "Tối", light: "Sáng", accent: "Màu nhấn",
+    notifications: "Thông báo", notificationsDescription: "Chọn các lời nhắc và cảnh báo muốn bật trong WJ Study.",
+    taskReminders: "Nhắc việc", taskRemindersDescription: "Nhắc nhở về các công việc sắp tới.", deadlineAlerts: "Cảnh báo hạn", deadlineAlertsDescription: "Cảnh báo khi công việc sắp đến hạn.", focusReminders: "Nhắc tập trung", focusRemindersDescription: "Nhắc bắt đầu hoặc quay lại phiên tập trung.",
+    english: "Tiếng Anh", vietnamese: "Tiếng Việt", korean: "Tiếng Hàn", japanese: "Tiếng Nhật", saved: "Tự động lưu",
+  },
+  ko: {
+    settings: "설정", back: "뒤로", language: "언어", languageDescription: "WJ Study 설정 및 지원되는 인터페이스 언어를 선택하세요.",
+    appearance: "화면", appearanceDescription: "WJ Study의 모양을 변경합니다.", dark: "어두운 모드", light: "밝은 모드", accent: "강조 색상",
+    notifications: "알림", notificationsDescription: "WJ Study에서 사용할 알림과 리마인더를 선택하세요.",
+    taskReminders: "할 일 알림", taskRemindersDescription: "다가오는 할 일을 알려줍니다.", deadlineAlerts: "마감 알림", deadlineAlertsDescription: "마감일이 다가오는 할 일을 알려줍니다.", focusReminders: "집중 알림", focusRemindersDescription: "집중 세션 시작 또는 재개를 알려줍니다.",
+    english: "영어", vietnamese: "베트남어", korean: "한국어", japanese: "일본어", saved: "자동 저장됨",
+  },
+  ja: {
+    settings: "設定", back: "戻る", language: "言語", languageDescription: "WJ Studyの設定と対応インターフェースで使用する言語を選択します。",
+    appearance: "外観", appearanceDescription: "WJ Studyの見た目を変更します。", dark: "ダーク", light: "ライト", accent: "アクセントカラー",
+    notifications: "通知", notificationsDescription: "WJ Studyで有効にするリマインダーと通知を選択します。",
+    taskReminders: "タスクのリマインダー", taskRemindersDescription: "今後のタスクを知らせます。", deadlineAlerts: "締切通知", deadlineAlertsDescription: "締切が近いタスクを知らせます。", focusReminders: "集中リマインダー", focusRemindersDescription: "集中セッションの開始や再開を知らせます。",
+    english: "英語", vietnamese: "ベトナム語", korean: "韓国語", japanese: "日本語", saved: "自動保存",
+  },
+};
+
 type SyncedGoogleCalendarEvent = {
   id: string;
   title: string;
@@ -860,6 +931,27 @@ type ManualCalendarEvent = {
   startTime: string;
   endTime: string;
   type: "Study" | "Test" | "Homework" | "Class" | "Club" | "Personal" | "Other";
+};
+
+type CalendarEventOverride = {
+  title?: string;
+  color?: string;
+  icon?: string;
+  startTime?: string;
+  endTime?: string;
+  allDay?: boolean;
+};
+
+type CalendarEventDisplay = {
+  key: string;
+  title: string;
+  color: string;
+  icon: string;
+  startTime?: string;
+  endTime?: string;
+  allDay: boolean;
+  details?: string;
+  sourceLabel: string;
 };
 
 function getManualEventColor(type: ManualCalendarEvent["type"]): string {
@@ -1108,6 +1200,24 @@ function googleEventError(message: string): Error {
   } catch {
     return new Error("Google Calendar could not be read.");
   }
+}
+
+function normalizeAppSettings(value: unknown): AppSettings {
+  if (!value || typeof value !== "object") return DEFAULT_APP_SETTINGS;
+  const source = value as Partial<AppSettings> & { notifications?: Partial<AppSettings["notifications"]> };
+  const language: AppLanguage = source.language === "vi" || source.language === "ko" || source.language === "ja" ? source.language : "en";
+  const theme: AppThemeMode = source.theme === "light" ? "light" : "dark";
+  const accent: AppAccent = source.accent === "violet" || source.accent === "emerald" || source.accent === "rose" || source.accent === "amber" ? source.accent : "blue";
+  return {
+    language,
+    theme,
+    accent,
+    notifications: {
+      taskReminders: source.notifications?.taskReminders !== false,
+      deadlineAlerts: source.notifications?.deadlineAlerts !== false,
+      focusReminders: source.notifications?.focusReminders === true,
+    },
+  };
 }
 
 // --- MAIN COMPONENT ---
@@ -1391,6 +1501,9 @@ export default function AcademicOSDashboard() {
   // old data or adding existing work does not give a new user free XP.
   const [gamificationXp, setGamificationXp] = useState(0);
 
+  const [appSettings, setAppSettings] = useState<AppSettings>(DEFAULT_APP_SETTINGS);
+  const [showSettingsPage, setShowSettingsPage] = useState(false);
+
   const [learningMaterials, setLearningMaterials] = useState<LearningMaterial[]>([]);
   const [learningBundles, setLearningBundles] = useState<LearningBundle[]>([]);
   const [learningClassId, setLearningClassId] = useState("");
@@ -1451,7 +1564,8 @@ export default function AcademicOSDashboard() {
   const [calendarSyncState, setCalendarSyncState] = useState<"idle" | "syncing" | "success" | "error">("idle");
   const [calendarSyncMessage, setCalendarSyncMessage] = useState<string | null>(null);
   const [zoomedCalendarDate, setZoomedCalendarDate] = useState<string | null>(null);
-  const [editingGoogleEventId, setEditingGoogleEventId] = useState<string | null>(null);
+  const [editingCalendarItemKey, setEditingCalendarItemKey] = useState<string | null>(null);
+  const [calendarEventOverrides, setCalendarEventOverrides] = useState<Record<string, CalendarEventOverride>>({});
   const [calendarDeleteEventId, setCalendarDeleteEventId] = useState<string | null>(null);
   const [manualCalendarEvents, setManualCalendarEvents] = useState<ManualCalendarEvent[]>([]);
   const [showManualEventModal, setShowManualEventModal] = useState(false);
@@ -1601,6 +1715,21 @@ export default function AcademicOSDashboard() {
           `tracker_gamification_xp_v1_${currentUserId}`,
           0
         );
+        const localWorkspaceSettings = safeStorageGet<AppSettings>(
+          `tracker_app_settings_v1_${currentUserId}`,
+          DEFAULT_APP_SETTINGS
+        );
+        const serverAppSettings = normalizeAppSettings(data.data.appSettings);
+        const localWorkspaceCalendarEventOverrides = safeStorageGet<Record<string, CalendarEventOverride>>(
+          `tracker_calendar_event_overrides_v1_${currentUserId}`,
+          {}
+        );
+        const serverCalendarEventOverrides =
+          data.data.calendarEventOverrides &&
+          typeof data.data.calendarEventOverrides === "object" &&
+          !Array.isArray(data.data.calendarEventOverrides)
+            ? (data.data.calendarEventOverrides as Record<string, CalendarEventOverride>)
+            : {};
         const useLocalWorkspace =
           localWorkspaceSavedAt > 0 && localWorkspaceSavedAt > serverUpdatedAt;
 
@@ -1658,6 +1787,7 @@ export default function AcademicOSDashboard() {
               ? Math.max(0, Math.floor(data.data.gamificationXp))
               : 0
         );
+        setAppSettings(useLocalWorkspace ? localWorkspaceSettings : serverAppSettings);
         const serverLearningMaterials =
           Array.isArray(data.data.learningMaterials)
             ? data.data.learningMaterials.filter(
@@ -1740,6 +1870,9 @@ export default function AcademicOSDashboard() {
               )
             : []
         );
+        setCalendarEventOverrides(
+          useLocalWorkspace ? localWorkspaceCalendarEventOverrides : serverCalendarEventOverrides
+        );
 
         if (!useLocalWorkspace) {
           try {
@@ -1799,6 +1932,14 @@ export default function AcademicOSDashboard() {
                   : 0
               )
             );
+            localStorage.setItem(
+              `tracker_app_settings_v1_${currentUserId}`,
+              JSON.stringify(serverAppSettings)
+            );
+            localStorage.setItem(
+              `tracker_calendar_event_overrides_v1_${currentUserId}`,
+              JSON.stringify(serverCalendarEventOverrides)
+            );
           } catch {
             // Device cache is only a resilience layer; account data remains usable.
           }
@@ -1832,6 +1973,10 @@ export default function AcademicOSDashboard() {
           `tracker_gamification_xp_v1_${currentUserId}`,
           0
         );
+        const localAppSettings = safeStorageGet<AppSettings>(
+          `tracker_app_settings_v1_${currentUserId}`,
+          DEFAULT_APP_SETTINGS
+        );
         const localLearningMaterials = safeStorageGet<LearningMaterial[]>(
           `tracker_learning_materials_v1_${currentUserId}`,
           []
@@ -1855,6 +2000,10 @@ export default function AcademicOSDashboard() {
         const localManualCalendarEvents = safeStorageGet<ManualCalendarEvent[]>(
           `tracker_manual_calendar_events_v1_${currentUserId}`,
           []
+        );
+        const localCalendarEventOverrides = safeStorageGet<Record<string, CalendarEventOverride>>(
+          `tracker_calendar_event_overrides_v1_${currentUserId}`,
+          {}
         );
 
         try {
@@ -1884,6 +2033,7 @@ export default function AcademicOSDashboard() {
             ? Math.max(0, Math.floor(localGamificationXp))
             : 0
         );
+        setAppSettings(normalizeAppSettings(localAppSettings));
         setLearningMaterials(Array.isArray(localLearningMaterials) ? localLearningMaterials : []);
         setLearningBundles(Array.isArray(localLearningBundles) ? localLearningBundles : []);
         if (localLearningMaterials.length || localLearningBundles.length) {
@@ -1910,6 +2060,7 @@ export default function AcademicOSDashboard() {
         setHiddenGoogleEventIds(localHiddenGoogleEventIds);
         setGoogleCalendarDeletionRules(localGoogleCalendarDeletionRules);
         setManualCalendarEvents(Array.isArray(localManualCalendarEvents) ? localManualCalendarEvents : []);
+        setCalendarEventOverrides(localCalendarEventOverrides);
         setSyncStatus("synced");
       }
     } catch (err) {
@@ -2601,20 +2752,63 @@ export default function AcademicOSDashboard() {
     }
   };
 
-  const openCalendarDay = (date: string, googleEventId?: string) => {
-    setZoomedCalendarDate(date);
-    setEditingGoogleEventId(googleEventId || null);
+  const updateAppSettings = (updates: Partial<AppSettings>) => {
+    setAppSettings((current) => normalizeAppSettings({
+      ...current,
+      ...updates,
+      notifications: updates.notifications
+        ? { ...current.notifications, ...updates.notifications }
+        : current.notifications,
+    }));
   };
 
-  const updateGoogleCalendarEvent = (
-    eventId: string,
-    updates: Partial<Pick<SyncedGoogleCalendarEvent, "title" | "color" | "icon">>
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.dataset.wjTheme = appSettings.theme;
+    document.documentElement.dataset.wjAccent = appSettings.accent;
+    document.documentElement.style.setProperty("--wj-accent", APP_ACCENT_VALUES[appSettings.accent]);
+    document.documentElement.style.setProperty("color-scheme", appSettings.theme);
+  }, [appSettings.theme, appSettings.accent]);
+
+  const openCalendarDay = (date: string, calendarItemKey?: string) => {
+    setZoomedCalendarDate(date);
+    setEditingCalendarItemKey(calendarItemKey || null);
+  };
+
+  const updateCalendarEventOverride = (
+    calendarItemKey: string,
+    updates: CalendarEventOverride
   ) => {
-    setGoogleCalendarEvents((currentEvents) =>
-      currentEvents.map((event) =>
-        event.id === eventId ? { ...event, ...updates } : event
-      )
-    );
+    setCalendarEventOverrides((current) => ({
+      ...current,
+      [calendarItemKey]: { ...current[calendarItemKey], ...updates },
+    }));
+  };
+
+  const resetCalendarEventOverride = (calendarItemKey: string) => {
+    setCalendarEventOverrides((current) => {
+      const next = { ...current };
+      delete next[calendarItemKey];
+      return next;
+    });
+  };
+
+  const getCalendarEventDisplay = (
+    calendarItemKey: string,
+    base: Omit<CalendarEventDisplay, "key">
+  ): CalendarEventDisplay => {
+    const override = calendarEventOverrides[calendarItemKey] || {};
+    return {
+      key: calendarItemKey,
+      title: override.title ?? base.title,
+      color: override.color ?? base.color,
+      icon: override.icon ?? base.icon,
+      startTime: override.startTime ?? base.startTime,
+      endTime: override.endTime ?? base.endTime,
+      allDay: override.allDay ?? base.allDay,
+      details: base.details,
+      sourceLabel: base.sourceLabel,
+    };
   };
 
   const openGoogleCalendarDeleteDialog = (eventId: string) => {
@@ -2645,7 +2839,7 @@ export default function AcademicOSDashboard() {
       );
       setCalendarSyncMessage(`Hidden “${eventToDelete.title}” from WJ Study.`);
       setCalendarDeleteEventId(null);
-      setEditingGoogleEventId(null);
+      setEditingCalendarItemKey(null);
       return;
     }
 
@@ -2701,7 +2895,7 @@ export default function AcademicOSDashboard() {
         : `Hidden “${eventToDelete.title}” and all following occurrences from WJ Study.`
     );
     setCalendarDeleteEventId(null);
-    setEditingGoogleEventId(null);
+    setEditingCalendarItemKey(null);
   };
 
   // --- ORGANIZE WITH AI: match synced Google events to your classes/clubs
@@ -2832,6 +3026,18 @@ export default function AcademicOSDashboard() {
     setCalendarReviewOpen(true);
   };
 
+  // Re-scan the current calendar contents while the review modal is open.
+  // This intentionally re-runs the grouping/title suggestion logic from scratch
+  // so a fresh Google sync or a user's edits can produce the same or a new
+  // organizing name without applying any merge automatically.
+  const refreshCalendarReview = () => {
+    const groups = buildCalendarReviewGroups(googleCalendarEvents);
+    setCalendarReviewGroups(groups);
+    setCalendarReviewSelected(
+      Object.fromEntries(groups.map((group) => [group.id, true]))
+    );
+  };
+
   const toggleCalendarReviewGroup = (groupId: string) => {
     setCalendarReviewSelected((current) => ({ ...current, [groupId]: !current[groupId] }));
   };
@@ -2891,7 +3097,7 @@ export default function AcademicOSDashboard() {
     setHiddenGoogleEventIds(nextHiddenGoogleEventIds);
     setGoogleCalendarMergeRules(nextMergeRules);
     setCalendarReviewOpen(false);
-    setEditingGoogleEventId(null);
+    setEditingCalendarItemKey(null);
     setCalendarReviewGroups([]);
     setCalendarReviewSelected({});
 
@@ -2923,6 +3129,8 @@ export default function AcademicOSDashboard() {
     setStreaks([]);
     setStudySessions([]);
     setGamificationXp(0);
+    setAppSettings(DEFAULT_APP_SETTINGS);
+    setShowSettingsPage(false);
     clanLoadedForUserIdRef.current = null;
     setGoogleCalendarEvents([]);
     setHiddenGoogleEventIds([]);
@@ -2963,6 +3171,8 @@ export default function AcademicOSDashboard() {
       setStreaks([]);
       setStudySessions([]);
       setGamificationXp(0);
+      setAppSettings(DEFAULT_APP_SETTINGS);
+      setShowSettingsPage(false);
       setLearningMaterials([]);
       setLearningBundles([]);
       setLearningClassId("");
@@ -3052,12 +3262,23 @@ useEffect(() => {
               );
             if (!localWorkspaceIsNewer && typeof payload.new.data.gamificationXp === "number")
               setGamificationXp(Math.max(0, Math.floor(payload.new.data.gamificationXp)));
+            if (!localWorkspaceIsNewer && payload.new.data.appSettings)
+              setAppSettings(normalizeAppSettings(payload.new.data.appSettings));
             if (Array.isArray(payload.new.data.learningMaterials))
               setLearningMaterials(payload.new.data.learningMaterials);
             if (Array.isArray(payload.new.data.learningBundles))
               setLearningBundles(payload.new.data.learningBundles);
-            if (Array.isArray(payload.new.data.manualCalendarEvents))
+            if (!localWorkspaceIsNewer && Array.isArray(payload.new.data.manualCalendarEvents))
               setManualCalendarEvents(payload.new.data.manualCalendarEvents);
+            if (!localWorkspaceIsNewer) {
+              const realtimeCalendarEventOverrides =
+                payload.new.data.calendarEventOverrides &&
+                typeof payload.new.data.calendarEventOverrides === "object" &&
+                !Array.isArray(payload.new.data.calendarEventOverrides)
+                  ? (payload.new.data.calendarEventOverrides as Record<string, CalendarEventOverride>)
+                  : {};
+              setCalendarEventOverrides(realtimeCalendarEventOverrides);
+            }
             const updatedHiddenGoogleEventIds = normalizeGoogleEventIds(
               payload.new.data.hiddenGoogleEventIds
             );
@@ -3133,6 +3354,7 @@ useEffect(() => {
   localStorage.setItem(`tracker_streaks_v8_${userId}`, JSON.stringify(streaks));
   localStorage.setItem(`tracker_study_sessions_v1_${userId}`, JSON.stringify(studySessions));
   localStorage.setItem(`tracker_gamification_xp_v1_${userId}`, JSON.stringify(gamificationXp));
+  localStorage.setItem(`tracker_app_settings_v1_${userId}`, JSON.stringify(appSettings));
   localStorage.setItem(`tracker_learning_materials_v1_${userId}`, JSON.stringify(learningMaterials));
   localStorage.setItem(`tracker_learning_bundles_v1_${userId}`, JSON.stringify(learningBundles));
   localStorage.setItem(
@@ -3154,6 +3376,10 @@ useEffect(() => {
   localStorage.setItem(
     `tracker_manual_calendar_events_v1_${userId}`,
     JSON.stringify(manualCalendarEvents)
+  );
+  localStorage.setItem(
+    `tracker_calendar_event_overrides_v1_${userId}`,
+    JSON.stringify(calendarEventOverrides)
   );
 
   async function saveData() {
@@ -3185,6 +3411,7 @@ useEffect(() => {
         streaks,
         studySessions,
         gamificationXp,
+        appSettings,
         learningMaterials,
         learningBundles,
         googleCalendarEvents,
@@ -3192,6 +3419,7 @@ useEffect(() => {
         googleCalendarDeletionRules,
         googleCalendarMergeRules,
         manualCalendarEvents,
+        calendarEventOverrides,
       };
 
       // Only replace/delete the Clan field after Clan has actually finished
@@ -3237,6 +3465,7 @@ useEffect(() => {
   streaks,
   studySessions,
   gamificationXp,
+  appSettings,
   learningMaterials,
   learningBundles,
   clan,
@@ -3247,6 +3476,7 @@ useEffect(() => {
   googleCalendarDeletionRules,
   googleCalendarMergeRules,
   manualCalendarEvents,
+  calendarEventOverrides,
   isLoaded,
   userId,
 ]);
@@ -4821,59 +5051,121 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
   }, [clubs, zoomedDayInfo, zoomedCalendarDate]);
 
   type ZoomedDayItem =
-    | { kind: "google"; sortKey: string; id: string; event: SyncedGoogleCalendarEvent }
-    | { kind: "manual"; sortKey: string; id: string; event: ManualCalendarEvent }
-    | { kind: "task"; sortKey: string; id: string; task: Task }
-    | { kind: "class"; sortKey: string; id: string; cls: ClassItem; slot: MeetingTime }
-    | { kind: "club"; sortKey: string; id: string; club: ClubItem; slot: ClubMeetingTime };
+    | { kind: "google"; sortKey: string; id: string; event: SyncedGoogleCalendarEvent; display: CalendarEventDisplay }
+    | { kind: "manual"; sortKey: string; id: string; event: ManualCalendarEvent; display: CalendarEventDisplay }
+    | { kind: "task"; sortKey: string; id: string; task: Task; display: CalendarEventDisplay }
+    | { kind: "class"; sortKey: string; id: string; cls: ClassItem; slot: MeetingTime; display: CalendarEventDisplay }
+    | { kind: "club"; sortKey: string; id: string; club: ClubItem; slot: ClubMeetingTime; display: CalendarEventDisplay };
 
   // Everything on the zoomed day — Google Calendar events, tasks, Timetable
   // class sessions, and club meetings — merged into one time-ordered list.
   const zoomedDayItems = useMemo<ZoomedDayItem[]>(() => {
     const items: ZoomedDayItem[] = [];
     zoomedGoogleEvents.forEach((event) => {
+      const key = `g-${event.id}`;
       items.push({
         kind: "google",
         sortKey: event.allDay ? "0000" : event.startTime || "0000",
-        id: `g-${event.id}`,
+        id: key,
         event,
+        display: getCalendarEventDisplay(key, {
+          title: event.title,
+          color: event.color,
+          icon: event.icon,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          allDay: event.allDay,
+          details: event.description,
+          sourceLabel: "Google Calendar",
+        }),
       });
     });
     zoomedManualEvents.forEach((event) => {
+      const key = `m-${event.id}`;
       items.push({
         kind: "manual",
         sortKey: event.startTime || "0000",
-        id: `m-${event.id}`,
+        id: key,
         event,
+        display: getCalendarEventDisplay(key, {
+          title: event.name,
+          color: getManualEventColor(event.type),
+          icon: "✦",
+          startTime: event.startTime,
+          endTime: event.endTime,
+          allDay: false,
+          details: event.details,
+          sourceLabel: "Personal event",
+        }),
       });
     });
     zoomedTasks.forEach((task) => {
-      items.push({ kind: "task", sortKey: "0000", id: `t-${task.id}`, task });
+      const key = `t-${task.id}`;
+      items.push({
+        kind: "task",
+        sortKey: (calendarEventOverrides[key]?.startTime || "0000"),
+        id: key,
+        task,
+        display: getCalendarEventDisplay(key, {
+          title: task.title,
+          color: task.type === "test" ? "#E11D48" : "#2563EB",
+          icon: task.type === "test" ? "📝" : "📚",
+          startTime: undefined,
+          endTime: undefined,
+          allDay: true,
+          sourceLabel: task.type === "test" ? "Test" : "Homework",
+        }),
+      });
     });
-    zoomedClassMeetings.forEach(({ cls, slot }, idx) => {
+    zoomedClassMeetings.forEach(({ cls, slot }) => {
+      const key = `c-${cls.id}-${zoomedCalendarDate}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
       items.push({
         kind: "class",
         sortKey: slot.startTime || "0000",
-        id: `c-${cls.id}-${idx}`,
+        id: key,
         cls,
         slot,
+        display: getCalendarEventDisplay(key, {
+          title: cls.name,
+          color: cls.color || "#3B82F6",
+          icon: "📘",
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          allDay: !slot.startTime,
+          sourceLabel: "Class",
+        }),
       });
     });
-    zoomedClubMeetings.forEach(({ club, slot }, idx) => {
+    zoomedClubMeetings.forEach(({ club, slot }) => {
+      const key = `cl-${club.id}-${zoomedCalendarDate}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
       items.push({
         kind: "club",
         sortKey: slot.startTime || "0000",
-        id: `cl-${club.id}-${idx}`,
+        id: key,
         club,
         slot,
+        display: getCalendarEventDisplay(key, {
+          title: club.name,
+          color: club.color || "#8B5CF6",
+          icon: club.icon || "👥",
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          allDay: !slot.startTime,
+          sourceLabel: "Club",
+        }),
       });
     });
-    return items.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-  }, [zoomedGoogleEvents, zoomedManualEvents, zoomedTasks, zoomedClassMeetings, zoomedClubMeetings]);
+    return items.sort((a, b) => {
+      const aTime = a.display.allDay ? "0000" : a.display.startTime || "0000";
+      const bTime = b.display.allDay ? "0000" : b.display.startTime || "0000";
+      return aTime.localeCompare(bTime) || a.display.title.localeCompare(b.display.title);
+    });
+  }, [zoomedGoogleEvents, zoomedManualEvents, zoomedTasks, zoomedClassMeetings, zoomedClubMeetings, zoomedCalendarDate, calendarEventOverrides]);
 
-  const editingGoogleEvent = googleCalendarEvents.find(
-    (event) => event.id === editingGoogleEventId
+  const editingCalendarItem = zoomedDayItems.find(
+    (item) => item.id === editingCalendarItemKey
   );
+
   const zoomedDateLabel = zoomedCalendarDate
     ? new Intl.DateTimeFormat(undefined, {
         weekday: "long",
@@ -4917,7 +5209,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     setManualCalendarEvents(nextEvents);
     setShowManualEventModal(false);
     setZoomedCalendarDate(manualEventDate);
-    setEditingGoogleEventId(null);
+    setEditingCalendarItemKey(null);
   };
 
   const deleteManualCalendarEvent = (eventId: string) => {
@@ -5105,8 +5397,231 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
   }
 
   // --- RENDER AUTHENTICATED DASHBOARD ---
+  if (showSettingsPage) {
+    const settingsCopy = SETTINGS_TEXT[appSettings.language];
+    const setNotification = (key: keyof AppSettings["notifications"], value: boolean) =>
+      updateAppSettings({ notifications: { ...appSettings.notifications, [key]: value } });
+
+    return (
+      <div
+        className={`min-h-screen font-sans ${
+          appSettings.theme === "light"
+            ? "bg-slate-100 text-slate-900"
+            : "bg-slate-950 text-slate-100"
+        }`}
+        style={{ ["--wj-accent" as string]: APP_ACCENT_VALUES[appSettings.accent] } as React.CSSProperties}
+      >
+        <style jsx global>{`
+          [data-wj-theme="light"] body { background: #f1f5f9 !important; }
+          [data-wj-theme="light"] [class~="bg-slate-950"] { background-color: #ffffff !important; }
+          [data-wj-theme="light"] [class~="bg-slate-950/80"] { background-color: rgba(255,255,255,.9) !important; }
+          [data-wj-theme="light"] [class~="bg-slate-950/90"] { background-color: rgba(255,255,255,.94) !important; }
+          [data-wj-theme="light"] [class~="bg-slate-900"] { background-color: #ffffff !important; }
+          [data-wj-theme="light"] [class~="bg-slate-900/80"] { background-color: rgba(255,255,255,.92) !important; }
+          [data-wj-theme="light"] [class~="border-slate-800"],
+          [data-wj-theme="light"] [class~="border-slate-700"] { border-color: #dbe2ea !important; }
+          [data-wj-theme="light"] [class~="text-slate-100"] { color: #0f172a !important; }
+          [data-wj-theme="light"] [class~="text-slate-200"] { color: #1e293b !important; }
+          [data-wj-theme="light"] [class~="text-slate-300"] { color: #334155 !important; }
+          [data-wj-theme="light"] [class~="text-slate-400"] { color: #64748b !important; }
+          [data-wj-theme="light"] [class~="text-slate-500"] { color: #94a3b8 !important; }
+          [data-wj-theme="light"] input,
+          [data-wj-theme="light"] select,
+          [data-wj-theme="light"] textarea { color: #0f172a !important; }
+          [data-wj-theme="light"] .wj-accent-bg { background-color: var(--wj-accent) !important; }
+          [data-wj-theme="light"] .wj-accent-text { color: var(--wj-accent) !important; }
+        [data-wj-accent] [class~="bg-blue-600"] { background-color: var(--wj-accent) !important; }
+        [data-wj-accent] [class~="hover:bg-blue-500"]:hover { background-color: var(--wj-accent) !important; filter: brightness(1.08); }
+        [data-wj-accent] [class~="text-blue-400"] { color: var(--wj-accent) !important; }
+        [data-wj-accent] [class~="border-blue-500"],
+        [data-wj-accent] [class~="border-blue-500/30"],
+        [data-wj-accent] [class~="border-blue-500/40"] { border-color: color-mix(in srgb, var(--wj-accent) 55%, transparent) !important; }
+        `}</style>
+
+        <header className="sticky top-0 z-20 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md">
+          <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
+            <button
+              type="button"
+              onClick={() => setShowSettingsPage(false)}
+              className="inline-flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-800/70 hover:text-white"
+            >
+              <ChevronLeft size={17} /> {settingsCopy.back}
+            </button>
+            <div className="flex items-center gap-2 text-sm font-bold">
+              <Settings size={17} className="wj-accent-text" style={{ color: APP_ACCENT_VALUES[appSettings.accent] }} />
+              <span>{settingsCopy.settings}</span>
+            </div>
+            <span className="text-[11px] font-semibold text-slate-500">{settingsCopy.saved}</span>
+          </div>
+        </header>
+
+        <main className="mx-auto w-full max-w-4xl space-y-5 px-4 py-6 sm:px-6 sm:py-8">
+          <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm sm:p-6">
+            <div className="flex items-start gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-500/10 text-blue-400">
+                <Languages size={19} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base font-bold">{settingsCopy.language}</h2>
+                <p className="mt-1 text-xs leading-relaxed text-slate-400">{settingsCopy.languageDescription}</p>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+              {[
+                ["en", settingsCopy.english],
+                ["vi", settingsCopy.vietnamese],
+                ["ko", settingsCopy.korean],
+                ["ja", settingsCopy.japanese],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => updateAppSettings({ language: value as AppLanguage })}
+                  className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                    appSettings.language === value
+                      ? "border-blue-500/60 bg-blue-500/10 text-white"
+                      : "border-slate-800 bg-slate-950/50 text-slate-300 hover:border-slate-700"
+                  }`}
+                >
+                  <span>{label}</span>
+                  {appSettings.language === value && <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: APP_ACCENT_VALUES[appSettings.accent] }} />}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm sm:p-6">
+            <div className="flex items-start gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-500/10 text-violet-400">
+                <Palette size={19} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base font-bold">{settingsCopy.appearance}</h2>
+                <p className="mt-1 text-xs leading-relaxed text-slate-400">{settingsCopy.appearanceDescription}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {([
+                ["dark", settingsCopy.dark, Moon],
+                ["light", settingsCopy.light, SunMedium],
+              ] as const).map(([value, label, Icon]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => updateAppSettings({ theme: value })}
+                  className={`flex items-center gap-3 rounded-xl border px-4 py-4 text-left transition ${
+                    appSettings.theme === value
+                      ? "border-violet-500/60 bg-violet-500/10"
+                      : "border-slate-800 bg-slate-950/50 hover:border-slate-700"
+                  }`}
+                >
+                  <div className="grid h-10 w-10 place-items-center rounded-lg bg-slate-800 text-slate-200">
+                    <Icon size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold">{label}</div>
+                    <div className="mt-0.5 text-[11px] text-slate-500">{value === "dark" ? "Low-light friendly" : "Brighter interface"}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-5">
+              <div className="mb-2 flex items-center gap-2 text-xs font-bold text-slate-300">
+                <Palette size={14} /> {settingsCopy.accent}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(APP_ACCENT_VALUES) as AppAccent[]).map((accent) => (
+                  <button
+                    key={accent}
+                    type="button"
+                    onClick={() => updateAppSettings({ accent })}
+                    className={`h-10 min-w-10 rounded-full border-2 transition ${appSettings.accent === accent ? "border-white scale-105" : "border-transparent opacity-80 hover:opacity-100"}`}
+                    style={{ backgroundColor: APP_ACCENT_VALUES[accent] }}
+                    title={accent}
+                    aria-label={`${settingsCopy.accent}: ${accent}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm sm:p-6">
+            <div className="flex items-start gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-400">
+                <Bell size={19} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base font-bold">{settingsCopy.notifications}</h2>
+                <p className="mt-1 text-xs leading-relaxed text-slate-400">{settingsCopy.notificationsDescription}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 divide-y divide-slate-800/80">
+              {[
+                ["taskReminders", settingsCopy.taskReminders, settingsCopy.taskRemindersDescription],
+                ["deadlineAlerts", settingsCopy.deadlineAlerts, settingsCopy.deadlineAlertsDescription],
+                ["focusReminders", settingsCopy.focusReminders, settingsCopy.focusRemindersDescription],
+              ].map(([key, label, description]) => {
+                const enabled = appSettings.notifications[key as keyof AppSettings["notifications"]];
+                return (
+                  <div key={key} className="flex items-center justify-between gap-4 py-4">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold">{label}</div>
+                      <div className="mt-0.5 text-[11px] leading-relaxed text-slate-500">{description}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNotification(key as keyof AppSettings["notifications"], !enabled)}
+                      className={`relative h-7 w-12 shrink-0 rounded-full transition ${enabled ? "wj-accent-bg" : "bg-slate-700"}`}
+                      aria-pressed={enabled}
+                    >
+                      <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${enabled ? "left-6" : "left-1"}`} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen overflow-x-hidden bg-slate-950 text-slate-100 flex flex-col pb-24 lg:pb-6 font-sans">
+    <div className={`min-h-screen overflow-x-hidden text-slate-100 flex flex-col pb-24 lg:pb-6 font-sans ${
+      appSettings.theme === "light" ? "wj-study-theme-light bg-slate-100" : "wj-study-theme-dark bg-slate-950"
+    }`}
+      style={{ ["--wj-accent" as string]: APP_ACCENT_VALUES[appSettings.accent] } as React.CSSProperties}
+    >
+      <style jsx global>{`
+        [data-wj-theme="light"] body { background: #f1f5f9 !important; }
+        [data-wj-theme="light"] [class~="bg-slate-950"] { background-color: #ffffff !important; }
+        [data-wj-theme="light"] [class~="bg-slate-950/80"] { background-color: rgba(255,255,255,.9) !important; }
+        [data-wj-theme="light"] [class~="bg-slate-950/90"] { background-color: rgba(255,255,255,.94) !important; }
+        [data-wj-theme="light"] [class~="bg-slate-900"] { background-color: #ffffff !important; }
+        [data-wj-theme="light"] [class~="bg-slate-900/80"] { background-color: rgba(255,255,255,.92) !important; }
+        [data-wj-theme="light"] [class~="border-slate-800"],
+        [data-wj-theme="light"] [class~="border-slate-700"] { border-color: #dbe2ea !important; }
+        [data-wj-theme="light"] [class~="text-slate-100"] { color: #0f172a !important; }
+        [data-wj-theme="light"] [class~="text-slate-200"] { color: #1e293b !important; }
+        [data-wj-theme="light"] [class~="text-slate-300"] { color: #334155 !important; }
+        [data-wj-theme="light"] [class~="text-slate-400"] { color: #64748b !important; }
+        [data-wj-theme="light"] [class~="text-slate-500"] { color: #94a3b8 !important; }
+        [data-wj-theme="light"] input,
+        [data-wj-theme="light"] select,
+        [data-wj-theme="light"] textarea { color: #0f172a !important; }
+        [data-wj-theme="light"] .wj-accent-bg { background-color: var(--wj-accent) !important; }
+        [data-wj-theme="light"] .wj-accent-text { color: var(--wj-accent) !important; }
+        [data-wj-accent] [class~="bg-blue-600"] { background-color: var(--wj-accent) !important; }
+        [data-wj-accent] [class~="hover:bg-blue-500"]:hover { background-color: var(--wj-accent) !important; filter: brightness(1.08); }
+        [data-wj-accent] [class~="text-blue-400"] { color: var(--wj-accent) !important; }
+        [data-wj-accent] [class~="border-blue-500"],
+        [data-wj-accent] [class~="border-blue-500/30"],
+        [data-wj-accent] [class~="border-blue-500/40"] { border-color: color-mix(in srgb, var(--wj-accent) 55%, transparent) !important; }
+      `}</style>
+
       {/* TOP HEADER */}
       <header className="flex flex-col lg:flex-row lg:items-center justify-between px-3 py-3 sm:p-4 bg-slate-900/80 border-b border-slate-800 gap-3 sm:gap-4">
         <div>
@@ -5120,6 +5635,17 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
         {/* Header Widgets */}
         <div className="flex w-full lg:w-auto flex-nowrap items-center gap-2.5 overflow-x-auto pb-1 self-start lg:self-auto">
+          {/* Settings */}
+          <button
+            type="button"
+            onClick={() => setShowSettingsPage(true)}
+            className="shrink-0 grid h-10 w-10 place-items-center rounded-lg border border-slate-800 bg-slate-950/80 text-slate-300 transition hover:border-slate-600 hover:text-white"
+            title={SETTINGS_TEXT[appSettings.language].settings}
+            aria-label={SETTINGS_TEXT[appSettings.language].settings}
+          >
+            <Settings size={17} />
+          </button>
+
           {/* User Account & Logout */}
           <div className="shrink-0 flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-3 py-2 rounded-lg text-xs min-h-10">
             <Users size={14} className="text-blue-400" />
@@ -6947,85 +7473,132 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                           {/* Assignments & Clubs Only */}
                           <div className="space-y-1 mt-0.5">
-                            {dayGoogleEvents.map((event) => (
-                              <button
-                                type="button"
-                                key={event.id}
-                                onClick={(clickEvent) => {
-                                  clickEvent.stopPropagation();
-                                  openCalendarDay(dateStr, event.id);
-                                }}
-                                className="w-full text-left text-[9px] truncate px-1.5 py-0.5 rounded text-white font-medium transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/70"
-                                style={{ backgroundColor: event.color }}
-                                title={`${event.title}${event.startTime ? ` (${event.startTime}${event.endTime ? `–${event.endTime}` : ""})` : ""}${event.description ? `\n${event.description}` : ""}`}
-                              >
-                                <span className="mr-1 opacity-80">{event.icon}</span>
-                                {event.title}
-                                {event.startTime && (
-                                  <span className="ml-1 font-mono opacity-80">{event.startTime}</span>
-                                )}
-                              </button>
-                            ))}
-                            {dayManualEvents.map((event) => (
-                              <button
-                                key={`manual-${event.id}`}
-                                type="button"
-                                onClick={(clickEvent) => {
-                                  clickEvent.stopPropagation();
-                                  openCalendarDay(dateStr);
-                                }}
-                                className="w-full text-left text-[9px] px-1.5 py-1 rounded-lg border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 transition"
-                                title={`${event.name} · ${event.startTime} – ${event.endTime}`}
-                              >
-                                <span className="font-semibold text-slate-200 truncate block">{event.name}</span>
-                                <span className="text-slate-500 font-mono">{event.startTime}</span>
-                              </button>
-                            ))}
-                            {dayTasks.map((t) => (
-                              <div
-                                key={t.id}
-                                className={`text-[9px] truncate px-1.5 py-0.5 rounded text-white font-medium ${
-                                  t.type === "test"
-                                    ? "bg-rose-600/90"
-                                    : "bg-blue-600/90"
-                                }`}
-                                title={`Task: ${t.title}`}
-                              >
-                                {t.title}
-                              </div>
-                            ))}
+                            {dayGoogleEvents.map((event) => {
+                              const key = `g-${event.id}`;
+                              const override = calendarEventOverrides[key] || {};
+                              const title = override.title ?? event.title;
+                              const icon = override.icon ?? event.icon;
+                              const color = override.color ?? event.color;
+                              const startTime = override.startTime ?? event.startTime;
+                              const endTime = override.endTime ?? event.endTime;
+                              return (
+                                <button
+                                  type="button"
+                                  key={event.id}
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
+                                    openCalendarDay(dateStr, key);
+                                  }}
+                                  className="w-full text-left text-[9px] truncate px-1.5 py-0.5 rounded text-white font-medium transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/70"
+                                  style={{ backgroundColor: color }}
+                                  title={`${title}${startTime ? ` (${startTime}${endTime ? `–${endTime}` : ""})` : ""}${event.description ? `\n${event.description}` : ""}`}
+                                >
+                                  <span className="mr-1 opacity-80">{icon}</span>{title}
+                                  {startTime && <span className="ml-1 font-mono opacity-80">{startTime}</span>}
+                                </button>
+                              );
+                            })}
+                            {dayManualEvents.map((event) => {
+                              const key = `m-${event.id}`;
+                              const override = calendarEventOverrides[key] || {};
+                              const title = override.title ?? event.name;
+                              const icon = override.icon ?? "✦";
+                              const color = override.color ?? getManualEventColor(event.type);
+                              const startTime = override.startTime ?? event.startTime;
+                              const endTime = override.endTime ?? event.endTime;
+                              return (
+                                <button
+                                  key={`manual-${event.id}`}
+                                  type="button"
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
+                                    openCalendarDay(dateStr, key);
+                                  }}
+                                  className="w-full text-left text-[9px] px-1.5 py-1 rounded-lg border border-emerald-500/20 transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/70"
+                                  style={{ backgroundColor: `${color}33` }}
+                                  title={`${title} · ${startTime} – ${endTime}`}
+                                >
+                                  <span className="font-semibold text-slate-200 truncate block"><span className="mr-1">{icon}</span>{title}</span>
+                                  <span className="text-slate-400 font-mono">{startTime}</span>
+                                </button>
+                              );
+                            })}
+                            {dayTasks.map((t) => {
+                              const key = `t-${t.id}`;
+                              const override = calendarEventOverrides[key] || {};
+                              const title = override.title ?? t.title;
+                              const icon = override.icon ?? (t.type === "test" ? "📝" : "📚");
+                              const color = override.color ?? (t.type === "test" ? "#E11D48" : "#2563EB");
+                              const startTime = override.startTime;
+                              return (
+                                <button
+                                  type="button"
+                                  key={key}
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
+                                    openCalendarDay(dateStr, key);
+                                  }}
+                                  className="w-full text-left text-[9px] truncate px-1.5 py-0.5 rounded text-white font-medium transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/70"
+                                  style={{ backgroundColor: color }}
+                                  title={`Task: ${title}${startTime ? ` (${startTime})` : ""}`}
+                                >
+                                  <span className="mr-1 opacity-80">{icon}</span>{title}
+                                  {startTime && <span className="ml-1 font-mono opacity-80">{startTime}</span>}
+                                </button>
+                              );
+                            })}
 
-                            {dayClassMeetings.map(({ cls, slot }, idx) => (
-                              <div
-                                key={`k-${cls.id}-${idx}`}
-                                className="text-[9px] truncate px-1.5 py-0.5 rounded text-white font-semibold flex justify-between items-center"
-                                style={{ backgroundColor: `${cls.color}CC` }}
-                                title={`${cls.name} ${slot.startTime ? `(${slot.startTime}-${slot.endTime})` : ""}`}
-                              >
-                                <span className="truncate">📘 {cls.name}</span>
-                                {slot.startTime && (
-                                  <span className="text-[8px] font-mono opacity-80 shrink-0 ml-1">
-                                    {slot.startTime}
-                                  </span>
-                                )}
-                              </div>
-                            ))}
+                            {dayClassMeetings.map(({ cls, slot }) => {
+                              const key = `c-${cls.id}-${dateStr}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
+                              const override = calendarEventOverrides[key] || {};
+                              const title = override.title ?? cls.name;
+                              const icon = override.icon ?? "📘";
+                              const color = override.color ?? cls.color;
+                              const startTime = override.startTime ?? slot.startTime;
+                              const endTime = override.endTime ?? slot.endTime;
+                              return (
+                                <button
+                                  type="button"
+                                  key={key}
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
+                                    openCalendarDay(dateStr, key);
+                                  }}
+                                  className="w-full text-left text-[9px] truncate px-1.5 py-0.5 rounded text-white font-semibold flex justify-between items-center transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/70"
+                                  style={{ backgroundColor: `${color}CC` }}
+                                  title={`${title} ${startTime ? `(${startTime}-${endTime})` : ""}`}
+                                >
+                                  <span className="truncate"><span className="mr-1">{icon}</span>{title}</span>
+                                  {startTime && <span className="text-[8px] font-mono opacity-80 shrink-0 ml-1">{startTime}</span>}
+                                </button>
+                              );
+                            })}
 
-                            {dayClubMeetings.map(({ club, slot }, idx) => (
-                              <div
-                                key={`c-${club.id}-${idx}`}
-                                className="text-[9px] truncate px-1.5 py-0.5 rounded text-white font-semibold flex justify-between items-center"
-                                style={{ backgroundColor: `${club.color || "#8B5CF6"}CC` }}
-                                title={`${club.name} ${slot.startTime ? `(${slot.startTime}-${slot.endTime})` : ""}`}
-                              >
-                                <span className="truncate">{club.icon || "👥"} {club.name}</span>
-                                {slot.startTime && (
-                                  <span className="text-[8px] font-mono opacity-80 shrink-0 ml-1">
-                                    {slot.startTime}
-                                  </span>
-                                )}
-                              </div>
-                            ))}
+                            {dayClubMeetings.map(({ club, slot }) => {
+                              const key = `cl-${club.id}-${dateStr}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
+                              const override = calendarEventOverrides[key] || {};
+                              const title = override.title ?? club.name;
+                              const icon = override.icon ?? club.icon ?? "👥";
+                              const color = override.color ?? club.color ?? "#8B5CF6";
+                              const startTime = override.startTime ?? slot.startTime;
+                              const endTime = override.endTime ?? slot.endTime;
+                              return (
+                                <button
+                                  type="button"
+                                  key={key}
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
+                                    openCalendarDay(dateStr, key);
+                                  }}
+                                  className="w-full text-left text-[9px] truncate px-1.5 py-0.5 rounded text-white font-semibold flex justify-between items-center transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/70"
+                                  style={{ backgroundColor: `${color}CC` }}
+                                  title={`${title} ${startTime ? `(${startTime}-${endTime})` : ""}`}
+                                >
+                                  <span className="truncate"><span className="mr-1">{icon}</span>{title}</span>
+                                  {startTime && <span className="text-[8px] font-mono opacity-80 shrink-0 ml-1">{startTime}</span>}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       );
@@ -8264,7 +8837,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             aria-labelledby="calendar-review-title"
           >
             <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-wider text-violet-400">Calendar cleanup</p>
                 <h2 id="calendar-review-title" className="mt-1 text-xl font-bold text-white">Review similar events</h2>
                 <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-400">
@@ -8272,14 +8845,29 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   Different dates stay separate; after a merge, only one matching event is kept per day.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setCalendarReviewOpen(false)}
-                className="rounded-lg border border-slate-700 p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
-                aria-label="Close calendar review"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={refreshCalendarReview}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                  title="Re-check the current calendar events and regenerate organizing suggestions"
+                >
+                  <RefreshCw size={14} />
+                  Refresh
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCalendarReviewOpen(false)}
+                  className="rounded-lg border border-slate-700 p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                  aria-label="Close calendar review"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-[10px] leading-relaxed text-slate-500">
+              <span className="font-semibold text-slate-300">Refresh</span> re-checks the events currently in your calendar and regenerates the suggested organizing names. It does not merge or rename anything by itself.
             </div>
 
             {calendarReviewGroups.length === 0 ? (
@@ -8471,7 +9059,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-6"
           onClick={() => {
             setZoomedCalendarDate(null);
-            setEditingGoogleEventId(null);
+            setEditingCalendarItemKey(null);
           }}
           role="presentation"
         >
@@ -8504,7 +9092,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 type="button"
                 onClick={() => {
                   setZoomedCalendarDate(null);
-                  setEditingGoogleEventId(null);
+                  setEditingCalendarItemKey(null);
                 }}
                 className="rounded-lg border border-slate-700 p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
                 aria-label="Close day view"
@@ -8529,9 +9117,9 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         <button
                           key={item.id}
                           type="button"
-                          onClick={() => setEditingGoogleEventId(event.id)}
+                          onClick={() => setEditingCalendarItemKey(item.id)}
                           className={`w-full rounded-xl border p-3 text-left transition ${
-                            editingGoogleEventId === event.id
+                            editingCalendarItemKey === item.id
                               ? "border-violet-400 bg-slate-800"
                               : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
                           }`}
@@ -8556,32 +9144,45 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                     if (item.kind === "manual") {
                       const event = item.event;
+                      const display = item.display;
                       return (
                         <div
                           key={item.id}
-                          className="w-full rounded-xl border border-emerald-500/20 bg-slate-950/60 p-3 text-left"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setEditingCalendarItemKey(item.id)}
+                          onKeyDown={(keyEvent) => {
+                            if (keyEvent.key === "Enter" || keyEvent.key === " ") setEditingCalendarItemKey(item.id);
+                          }}
+                          className={`w-full rounded-xl border p-3 text-left transition ${
+                            editingCalendarItemKey === item.id
+                              ? "border-violet-400 bg-slate-800"
+                              : "border-emerald-500/20 bg-slate-950/60 hover:border-slate-700"
+                          }`}
                         >
                           <div className="flex items-start gap-2">
                             <span
                               className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white"
-                              style={{ backgroundColor: getManualEventColor(event.type) }}
+                              style={{ backgroundColor: display.color }}
                             >
-                              ✦
+                              {display.icon}
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm font-semibold text-slate-100">{event.name}</span>
+                              <span className="block truncate text-sm font-semibold text-slate-100">{display.title}</span>
                               <span className="mt-0.5 block text-xs text-slate-400">
-                                {event.type} · {event.startTime} – {event.endTime}
+                                {event.type} · {display.startTime || "Time not set"}{display.endTime ? ` – ${display.endTime}` : ""}
                               </span>
-                              {event.details && (
-                                <span className="mt-1 block whitespace-pre-wrap text-xs text-slate-500">{event.details}</span>
+                              {display.details && (
+                                <span className="mt-1 block whitespace-pre-wrap text-xs text-slate-500">{display.details}</span>
                               )}
                             </span>
                             <button
                               type="button"
-                              onClick={() => {
-                                if (window.confirm(`Delete “${event.name}”?`)) {
+                              onClick={(clickEvent) => {
+                                clickEvent.stopPropagation();
+                                if (window.confirm(`Delete “${display.title}”?`)) {
                                   deleteManualCalendarEvent(event.id);
+                                  setEditingCalendarItemKey(null);
                                 }
                               }}
                               className="shrink-0 rounded-lg p-2 text-slate-500 transition hover:bg-rose-500/10 hover:text-rose-300"
@@ -8596,160 +9197,234 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                     if (item.kind === "task") {
                       const task = item.task;
+                      const display = item.display;
                       const taskClass = classes.find((c) => c.id === task.classId);
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={item.id}
-                          className="w-full rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-left"
+                          onClick={() => setEditingCalendarItemKey(item.id)}
+                          className={`w-full rounded-xl border p-3 text-left transition ${
+                            editingCalendarItemKey === item.id
+                              ? "border-violet-400 bg-slate-800"
+                              : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+                          }`}
                         >
                           <div className="flex items-start gap-2">
-                            <span
-                              className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white ${
-                                task.type === "test" ? "bg-rose-600" : "bg-blue-600"
-                              }`}
-                            >
-                              {task.type === "test" ? "📝" : "📚"}
+                            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white" style={{ backgroundColor: display.color }}>
+                              {display.icon}
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm font-semibold text-slate-100">{task.title}</span>
+                              <span className="block truncate text-sm font-semibold text-slate-100">{display.title}</span>
                               <span className="mt-0.5 block text-xs text-slate-400">
-                                {taskClass ? `${taskClass.name} · ` : ""}{task.type === "test" ? "Test" : "Homework"}
+                                {taskClass ? `${taskClass.name} · ` : ""}{task.type === "test" ? "Test" : "Homework"}{display.startTime ? ` · ${display.startTime}${display.endTime ? ` – ${display.endTime}` : ""}` : ""}
                               </span>
                             </span>
                           </div>
-                        </div>
+                        </button>
                       );
                     }
 
                     if (item.kind === "class") {
-                      const { cls, slot } = item;
+                      const display = item.display;
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={item.id}
-                          className="w-full rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-left"
+                          onClick={() => setEditingCalendarItemKey(item.id)}
+                          className={`w-full rounded-xl border p-3 text-left transition ${
+                            editingCalendarItemKey === item.id
+                              ? "border-violet-400 bg-slate-800"
+                              : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+                          }`}
                         >
                           <div className="flex items-start gap-2">
-                            <span
-                              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white"
-                              style={{ backgroundColor: cls.color }}
-                            >
-                              📘
+                            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white" style={{ backgroundColor: display.color }}>
+                              {display.icon}
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm font-semibold text-slate-100">{cls.name}</span>
-                              <span className="mt-0.5 block text-xs text-slate-400">
-                                Class (Timetable){slot.startTime ? ` · ${slot.startTime}${slot.endTime ? ` – ${slot.endTime}` : ""}` : ""}
-                              </span>
+                              <span className="block truncate text-sm font-semibold text-slate-100">{display.title}</span>
+                              <span className="mt-0.5 block text-xs text-slate-400">Class · {display.startTime || "Time not set"}{display.endTime ? ` – ${display.endTime}` : ""}</span>
                             </span>
                           </div>
-                        </div>
+                        </button>
                       );
                     }
 
-                    const { club, slot } = item;
+                    const display = item.display;
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={item.id}
-                        className="w-full rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-left"
+                        onClick={() => setEditingCalendarItemKey(item.id)}
+                        className={`w-full rounded-xl border p-3 text-left transition ${
+                          editingCalendarItemKey === item.id
+                            ? "border-violet-400 bg-slate-800"
+                            : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+                        }`}
                       >
                         <div className="flex items-start gap-2">
-                          <span
-                            className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white"
-                            style={{ backgroundColor: club.color || "#8B5CF6" }}
-                          >
-                            {club.icon || "👥"}
+                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white" style={{ backgroundColor: display.color }}>
+                            {display.icon}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-semibold text-slate-100">{club.name}</span>
+                            <span className="block truncate text-sm font-semibold text-slate-100">{display.title}</span>
                             <span className="mt-0.5 block text-xs text-slate-400">
-                              Club{slot.startTime ? ` · ${slot.startTime}${slot.endTime ? ` – ${slot.endTime}` : ""}` : ""}
+                              Club{display.startTime ? ` · ${display.startTime}${display.endTime ? ` – ${display.endTime}` : ""}` : ""}
                             </span>
                           </span>
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
 
-                {editingGoogleEvent ? (
+                {editingCalendarItem ? (
                   <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-                    <div className="mb-4 flex items-center gap-2">
-                      <span
-                        className="grid h-8 w-8 place-items-center rounded-lg text-base font-bold text-white"
-                        style={{ backgroundColor: editingGoogleEvent.color }}
-                      >
-                        {editingGoogleEvent.icon}
-                      </span>
-                      <div>
-                        <h3 className="text-sm font-bold text-white">Customize event</h3>
-                        <p className="text-[11px] text-slate-400">Saved in this app only</p>
-                      </div>
-                    </div>
+                    {(() => {
+                      const display = editingCalendarItem.display;
+                      const override = calendarEventOverrides[editingCalendarItem.id] || {};
+                      const supportsAllDayToggle = editingCalendarItem.kind === "google" || editingCalendarItem.kind === "task";
+                      const hasTime = Boolean(display.startTime || display.endTime);
+                      return (
+                        <>
+                          <div className="mb-4 flex items-center gap-2">
+                            <span
+                              className="grid h-9 w-9 place-items-center rounded-lg text-base font-bold text-white"
+                              style={{ backgroundColor: display.color }}
+                            >
+                              {display.icon}
+                            </span>
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-bold text-white">Customize event</h3>
+                              <p className="text-[11px] text-slate-400">{display.sourceLabel} · changes are saved in this app only</p>
+                            </div>
+                          </div>
 
-                    <label className="block text-xs font-semibold text-slate-300">
-                      Name
-                      <input
-                        value={editingGoogleEvent.title}
-                        onChange={(changeEvent) =>
-                          updateGoogleCalendarEvent(editingGoogleEvent.id, {
-                            title: changeEvent.target.value,
-                          })
-                        }
-                        className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-violet-400"
-                      />
-                    </label>
+                          <label className="block text-xs font-semibold text-slate-300">
+                            Name
+                            <input
+                              value={display.title}
+                              onChange={(changeEvent) =>
+                                updateCalendarEventOverride(editingCalendarItem.id, {
+                                  title: changeEvent.target.value,
+                                })
+                              }
+                              className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-violet-400"
+                            />
+                          </label>
 
-                    <div className="mt-3 grid grid-cols-[1fr_auto] gap-3">
-                      <label className="block text-xs font-semibold text-slate-300">
-                        Logo / icon
-                        <input
-                          value={editingGoogleEvent.icon}
-                          onChange={(changeEvent) =>
-                            updateGoogleCalendarEvent(editingGoogleEvent.id, {
-                              icon: changeEvent.target.value.slice(0, 4) || "G",
-                            })
-                          }
-                          maxLength={4}
-                          className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-violet-400"
-                        />
-                      </label>
-                      <label className="block text-xs font-semibold text-slate-300">
-                        Color
-                        <input
-                          type="color"
-                          value={editingGoogleEvent.color}
-                          onChange={(changeEvent) =>
-                            updateGoogleCalendarEvent(editingGoogleEvent.id, {
-                              color: changeEvent.target.value,
-                            })
-                          }
-                          className="mt-1.5 h-9 w-14 cursor-pointer rounded-lg border border-slate-700 bg-slate-900 p-1"
-                        />
-                      </label>
-                    </div>
+                          <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]">
+                            <label className="block text-xs font-semibold text-slate-300">
+                              Logo / icon
+                              <input
+                                value={display.icon}
+                                onChange={(changeEvent) =>
+                                  updateCalendarEventOverride(editingCalendarItem.id, {
+                                    icon: changeEvent.target.value.slice(0, 4) || "✦",
+                                  })
+                                }
+                                maxLength={4}
+                                className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-violet-400"
+                                placeholder="📚"
+                              />
+                            </label>
+                            <label className="block text-xs font-semibold text-slate-300">
+                              Color
+                              <input
+                                type="color"
+                                value={display.color}
+                                onChange={(changeEvent) =>
+                                  updateCalendarEventOverride(editingCalendarItem.id, {
+                                    color: changeEvent.target.value,
+                                  })
+                                }
+                                className="mt-1.5 h-9 w-14 cursor-pointer rounded-lg border border-slate-700 bg-slate-900 p-1"
+                              />
+                            </label>
+                          </div>
 
-                    <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/70 p-3 text-xs text-slate-400">
-                      <p>
-                        {editingGoogleEvent.allDay
-                          ? "All-day event"
-                          : `${editingGoogleEvent.startTime || "Time not set"}${editingGoogleEvent.endTime ? ` – ${editingGoogleEvent.endTime}` : ""}`}
-                      </p>
-                      {editingGoogleEvent.description && (
-                        <p className="mt-2 whitespace-pre-wrap text-slate-300">{editingGoogleEvent.description}</p>
-                      )}
-                    </div>
+                          <div className="mt-3 grid grid-cols-2 gap-3">
+                            <label className="block text-xs font-semibold text-slate-300">
+                              Start time
+                              <input
+                                type="time"
+                                value={display.startTime || ""}
+                                onChange={(changeEvent) =>
+                                  updateCalendarEventOverride(editingCalendarItem.id, {
+                                    startTime: changeEvent.target.value,
+                                    allDay: false,
+                                  })
+                                }
+                                className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-violet-400"
+                              />
+                            </label>
+                            <label className="block text-xs font-semibold text-slate-300">
+                              End time
+                              <input
+                                type="time"
+                                value={display.endTime || ""}
+                                onChange={(changeEvent) =>
+                                  updateCalendarEventOverride(editingCalendarItem.id, {
+                                    endTime: changeEvent.target.value,
+                                    allDay: false,
+                                  })
+                                }
+                                className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-violet-400"
+                              />
+                            </label>
+                          </div>
 
-                    <button
-                      type="button"
-                      onClick={() => openGoogleCalendarDeleteDialog(editingGoogleEvent.id)}
-                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
-                    >
-                      <Trash2 size={14} /> Delete from this app
-                    </button>
+                          {supportsAllDayToggle && (
+                            <label className="mt-3 flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2.5 text-xs font-semibold text-slate-300">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(display.allDay && !hasTime)}
+                                onChange={(changeEvent) =>
+                                  updateCalendarEventOverride(editingCalendarItem.id, {
+                                    allDay: changeEvent.target.checked,
+                                    ...(changeEvent.target.checked ? { startTime: "", endTime: "" } : {}),
+                                  })
+                                }
+                                className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-violet-500 focus:ring-violet-500"
+                              />
+                              All-day event
+                            </label>
+                          )}
+
+                          {display.details && (
+                            <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/70 p-3 text-xs text-slate-400">
+                              <p className="font-semibold text-slate-300">Details</p>
+                              <p className="mt-1 whitespace-pre-wrap">{display.details}</p>
+                            </div>
+                          )}
+
+                          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                            <button
+                              type="button"
+                              onClick={() => resetCalendarEventOverride(editingCalendarItem.id)}
+                              disabled={Object.keys(override).length === 0}
+                              className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              Reset customization
+                            </button>
+                            {(editingCalendarItem.kind === "google") && (
+                              <button
+                                type="button"
+                                onClick={() => openGoogleCalendarDeleteDialog(editingCalendarItem.event.id)}
+                                className="flex-1 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
+                              >
+                                <Trash2 size={14} className="mr-1.5 inline" />Delete
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 ) : (
                   <div className="grid place-items-center rounded-xl border border-dashed border-slate-700 p-6 text-center text-sm text-slate-500">
-                    Select a Google Calendar event to customize it. Classes, tasks, and club meetings are managed from their own tabs.
+                    Select any calendar event to customize its name, color, logo, and time. These calendar customizations are saved in WJ Study and do not change the original task, class, or club data.
                   </div>
                 )}
               </div>
