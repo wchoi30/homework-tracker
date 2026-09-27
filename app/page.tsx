@@ -877,6 +877,953 @@ const APP_ACCENT_VALUES: Record<AppAccent, string> = {
   amber: "#D97706",
 };
 
+
+const MAIN_UI_TEXT: Record<AppLanguage, Record<string, string>> = {
+  "en": {},
+  "vi": {
+    "Sign in": "Đăng nhập",
+    "Sign up": "Đăng ký",
+    "Built for students": "Dành cho học sinh",
+    "Study smarter.": "Học thông minh hơn.",
+    "Know exactly where you stand.": "Biết chính xác bạn đang ở đâu.",
+    "Get started free": "Bắt đầu miễn phí",
+    "I already have an account": "Tôi đã có tài khoản",
+    "Target Grade Simulator": "Mô phỏng điểm mục tiêu",
+    "Example": "Ví dụ",
+    "Current grade": "Điểm hiện tại",
+    "Target grade": "Điểm mục tiêu",
+    "Required average on upcoming standards": "Điểm trung bình cần đạt ở các tiêu chuẩn sắp tới",
+    "about": "khoảng",
+    "pts": "điểm",
+    "Everything you need to stay on top of school": "Mọi thứ bạn cần để theo sát việc học",
+    "How it works": "Cách hoạt động",
+    "Ready to level up your grades?": "Sẵn sàng nâng điểm của bạn?",
+    "Create your WJ Study account and set up your first class in minutes.": "Tạo tài khoản WJ Study và thiết lập lớp học đầu tiên trong vài phút.",
+    "Create your account": "Tạo tài khoản",
+    "Privacy Policy": "Chính sách bảo mật",
+    "School Email": "Email trường",
+    "Password": "Mật khẩu",
+    "Create Account": "Tạo tài khoản",
+    "Sign In": "Đăng nhập",
+    "Or continue with": "Hoặc tiếp tục với",
+    "Sign in with Google": "Đăng nhập bằng Google",
+    "Already have an account?": "Đã có tài khoản?",
+    "Don't have an account yet?": "Chưa có tài khoản?",
+    "Back to home": "Về trang chủ",
+    "Student": "Học sinh",
+    "Cum GPA / Grade": "GPA tích lũy / Điểm",
+    "Level": "Cấp",
+    "XP": "XP",
+    "Focus": "Tập trung",
+    "Work": "Học",
+    "Break": "Nghỉ",
+    "Focus Target": "Mục tiêu tập trung",
+    "-- Choose a task --": "-- Chọn nhiệm vụ --",
+    "Synced": "Đã đồng bộ",
+    "Syncing...": "Đang đồng bộ...",
+    "Error": "Lỗi",
+    "Class Roster": "Danh sách lớp",
+    "AI PowerSchool Scan": "Quét PowerSchool bằng AI",
+    "Add": "Thêm",
+    "AI PowerSchool Photo Analyzer": "Phân tích ảnh PowerSchool bằng AI",
+    "Click to upload PowerSchool screenshot": "Nhấp để tải ảnh chụp PowerSchool",
+    "Supports PNG, JPG, WEBP screenshots": "Hỗ trợ ảnh PNG, JPG, WEBP",
+    "Cancel": "Hủy",
+    "Save": "Lưu",
+    "Exp:": "Mã:",
+    "Rm:": "Phòng:",
+    "Prof:": "GV:",
+    "Grade:": "Điểm:",
+    "Auto": "Tự động",
+    "Standards": "Tiêu chuẩn",
+    "Clubs": "Câu lạc bộ",
+    "AI SchoolsBuddy Scan": "Quét SchoolsBuddy bằng AI",
+    "AI SchoolsBuddy Photo Analyzer": "Phân tích ảnh SchoolsBuddy bằng AI",
+    "Click to upload SchoolsBuddy screenshot": "Nhấp để tải ảnh chụp SchoolsBuddy",
+    "Add Timeslot:": "Thêm khung giờ:",
+    "Add Club": "Thêm CLB",
+    "No timeslots assigned": "Chưa có khung giờ",
+    "Slot": "Khung giờ",
+    "Recommended Focus Target": "Mục tiêu tập trung đề xuất",
+    "Focus on:": "Tập trung vào:",
+    "Start Focus": "Bắt đầu tập trung",
+    "Quick Add Assignment": "Thêm nhanh bài tập",
+    "Task title...": "Tên nhiệm vụ...",
+    "Add a class first": "Trước tiên hãy thêm một lớp",
+    "Homework": "Bài tập",
+    "Test / Exam": "Bài kiểm tra / Thi",
+    "hrs": "giờ",
+    "Add Task": "Thêm nhiệm vụ",
+    "Schedule & Tasks": "Lịch & Nhiệm vụ",
+    "All": "Tất cả",
+    "Active": "Đang làm",
+    "Done": "Đã xong",
+    "No tasks match the filter.": "Không có nhiệm vụ phù hợp.",
+    "Due:": "Hạn:",
+    "Calendar": "Lịch",
+    "Streaks": "Chuỗi",
+    "Learning": "Học tập",
+    "Timetable": "Thời khóa biểu",
+    "Grades": "Điểm",
+    "Grade Simulator": "Mô phỏng điểm",
+    "AI Planner": "Trình lập kế hoạch AI",
+    "Analytics": "Phân tích",
+    "Clan": "Nhóm",
+    "Study Clan": "Nhóm học tập",
+    "Join a clan and compete on actual study time recorded by Focus sessions.": "Tham gia nhóm và thi đua dựa trên thời gian học thực tế từ các phiên tập trung.",
+    "Reset clan": "Đặt lại nhóm",
+    "Your rank": "Xếp hạng của bạn",
+    "Create a clan": "Tạo nhóm",
+    "Clan name": "Tên nhóm",
+    "Your display name": "Tên hiển thị",
+    "Create clan": "Tạo nhóm",
+    "Join a clan": "Tham gia nhóm",
+    "6-character join code": "Mã tham gia 6 ký tự",
+    "Join clan": "Tham gia nhóm",
+    "Having trouble with an old clan?": "Gặp vấn đề với nhóm cũ?",
+    "Study leaderboard": "Bảng xếp hạng học tập",
+    "Focus time": "Thời gian tập trung",
+    "No members yet.": "Chưa có thành viên.",
+    "AI Study Planner": "Trình lập kế hoạch học tập AI",
+    "Tasks": "Nhiệm vụ",
+    "Planned time": "Thời gian dự kiến",
+    "Use this as catch-up, review, or rest time.": "Dùng thời gian này để bù bài, ôn tập hoặc nghỉ.",
+    "Start focus on this task": "Bắt đầu tập trung cho nhiệm vụ này",
+    "Some work does not fit in the next 7 days": "Một số việc không thể xếp trong 7 ngày tới",
+    "Study time": "Thời gian học",
+    "actual logged study time": "thời gian học thực tế đã ghi nhận",
+    "Task completion": "Hoàn thành nhiệm vụ",
+    "This week": "Tuần này",
+    "Missed deadlines": "Trễ hạn",
+    "unfinished past due": "chưa hoàn thành và đã quá hạn",
+    "Weekly study time": "Thời gian học tuần này",
+    "Focus minutes recorded during the current Monday–Sunday week": "Số phút tập trung được ghi nhận trong tuần Thứ Hai–Chủ Nhật hiện tại",
+    "Goal": "Mục tiêu",
+    "Study time vs. grades": "Thời gian học so với điểm",
+    "Up to 8 of your classes, ranked by logged study time": "Tối đa 8 lớp, xếp theo thời gian học đã ghi nhận",
+    "Add a class to see its grade and study-time comparison.": "Thêm lớp để xem điểm và so sánh thời gian học.",
+    "Create a habit to start tracking streaks.": "Tạo thói quen để bắt đầu theo dõi chuỗi.",
+    "Best": "Tốt nhất",
+    "No unfinished tasks are past due.": "Không có nhiệm vụ chưa hoàn thành nào bị quá hạn.",
+    "Open": "Mở",
+    "Academic Calendar showing school days, official breaks, and holidays.": "Lịch học hiển thị ngày học, kỳ nghỉ và ngày lễ chính thức.",
+    "Add Event": "Thêm sự kiện",
+    "Review & Organize": "Xem xét & Sắp xếp",
+    "Today": "Hôm nay",
+    "Legend:": "Chú thích:",
+    "School Day": "Ngày học",
+    "School Break / Holiday": "Nghỉ học / Ngày lễ",
+    "Staff PD (No Students)": "Đào tạo giáo viên (Không có học sinh)",
+    "Early Dismissal": "Tan học sớm",
+    "Standards-Based Grade Evaluation": "Đánh giá điểm theo tiêu chuẩn",
+    "No standards added yet.": "Chưa có tiêu chuẩn nào.",
+    "No class selected.": "Chưa chọn lớp.",
+    "Habit Streaks": "Chuỗi thói quen",
+    "This Week": "Tuần này",
+    "Add New Habit Streak": "Thêm chuỗi thói quen",
+    "Create Streak": "Tạo chuỗi",
+    "Click checkmark to toggle": "Nhấn dấu kiểm để bật/tắt",
+    "No habit streaks created yet. Create one above to begin!": "Chưa có chuỗi thói quen nào. Hãy tạo một chuỗi ở trên để bắt đầu!",
+    "Best:": "Tốt nhất:",
+    "Learning Lab": "Phòng học tập",
+    "AI-generated from your materials": "Được AI tạo từ tài liệu của bạn",
+    "Class": "Lớp",
+    "Add class material": "Thêm tài liệu lớp",
+    "Add material": "Thêm tài liệu",
+    "Materials for this class": "Tài liệu của lớp này",
+    "Your class material library is empty.": "Thư viện tài liệu của lớp đang trống.",
+    "Regenerate": "Tạo lại",
+    "Notes": "Ghi chú",
+    "Flashcards": "Thẻ ghi nhớ",
+    "AI Quiz": "Quiz AI",
+    "No flashcards were generated.": "Chưa tạo thẻ ghi nhớ nào.",
+    "Tap to flip": "Chạm để lật",
+    "Previous": "Trước",
+    "Next": "Tiếp",
+    "Score:": "Điểm:",
+    "Why:": "Giải thích:",
+    "Reset quiz": "Đặt lại quiz",
+    "Your learning pack will appear here": "Bộ học tập của bạn sẽ xuất hiện ở đây",
+    "Select a class, add your materials, then generate custom notes, flashcards, and a practice quiz.": "Chọn lớp, thêm tài liệu rồi tạo ghi chú, thẻ ghi nhớ và quiz luyện tập tùy chỉnh.",
+    "Weekly Class Schedule": "Lịch học hàng tuần",
+    "Add Class Session to Timetable": "Thêm buổi học vào thời khóa biểu",
+    "Select Class": "Chọn lớp",
+    "Day": "Ngày",
+    "Start Time": "Giờ bắt đầu",
+    "End Time": "Giờ kết thúc",
+    "Add Slot": "Thêm khung giờ",
+    "Time": "Thời gian",
+    "All day": "Cả ngày",
+    "Academic Performance Summary": "Tổng quan kết quả học tập",
+    "Cumulative GPA": "GPA tích lũy",
+    "Target Grade": "Điểm mục tiêu",
+    "Current Grade": "Điểm hiện tại",
+    "Status:": "Trạng thái:",
+    "No evaluations yet": "Chưa có đánh giá",
+    "On Track for Target": "Đang đạt mục tiêu",
+    "Below Target": "Dưới mục tiêu",
+    "standards tracked": "tiêu chuẩn được theo dõi",
+    "Course Parameters": "Thông số môn học",
+    "Active Course": "Môn đang chọn",
+    "Current Grade Level": "Mức điểm hiện tại",
+    "Desired Target Grade": "Điểm mục tiêu mong muốn",
+    "Select Standard(s) Being Tested:": "Chọn tiêu chuẩn được kiểm tra:",
+    "SIMULATION RESULT": "KẾT QUẢ MÔ PHỎNG",
+    "Required Score on Selected Standard(s)": "Điểm cần đạt trên tiêu chuẩn đã chọn",
+    "Target Breakdown:": "Phân tích mục tiêu:",
+    "selected standard(s).": "tiêu chuẩn đã chọn.",
+    "Add event": "Thêm sự kiện",
+    "Create a personal calendar event without Google Calendar.": "Tạo sự kiện lịch cá nhân không cần Google Calendar.",
+    "Name": "Tên",
+    "Type": "Loại",
+    "Study": "Học",
+    "Test": "Kiểm tra",
+    "Club": "CLB",
+    "Personal": "Cá nhân",
+    "Other": "Khác",
+    "Event details": "Chi tiết sự kiện",
+    "Date": "Ngày",
+    "Start": "Bắt đầu",
+    "End": "Kết thúc",
+    "Save event": "Lưu sự kiện",
+    "Calendar cleanup": "Dọn lịch",
+    "Review similar events": "Xem các sự kiện tương tự",
+    "Refresh": "Làm mới",
+    "No similar event groups found": "Không tìm thấy nhóm sự kiện tương tự",
+    "Your imported event names are currently distinct enough to keep separate.": "Tên các sự kiện đã nhập hiện đủ khác nhau để giữ riêng.",
+    "Possible match": "Có thể trùng",
+    "Merge into this name": "Gộp thành tên này",
+    "Times:": "Thời gian:",
+    "Dates:": "Ngày:",
+    "Keep separate": "Giữ riêng",
+    "Merge selected": "Gộp đã chọn",
+    "Delete event": "Xóa sự kiện",
+    "Day view": "Chế độ ngày",
+    "Events": "Sự kiện",
+    "Customize event": "Tùy chỉnh sự kiện",
+    "Logo / icon": "Logo / biểu tượng",
+    "Color": "Màu",
+    "Start time": "Giờ bắt đầu",
+    "End time": "Giờ kết thúc",
+    "All-day event": "Sự kiện cả ngày",
+    "Details": "Chi tiết",
+    "Reset customization": "Đặt lại tùy chỉnh",
+    "Delete": "Xóa",
+    "Classes": "Lớp học",
+    "Learn": "Học",
+    "Planner": "Lập kế hoạch"
+  },
+  "es": {
+    "Sign in": "Iniciar sesión",
+    "Sign up": "Registrarse",
+    "Built for students": "Creado para estudiantes",
+    "Study smarter.": "Estudia de forma más inteligente.",
+    "Know exactly where you stand.": "Sabe exactamente dónde estás.",
+    "Get started free": "Empieza gratis",
+    "I already have an account": "Ya tengo una cuenta",
+    "Target Grade Simulator": "Simulador de nota objetivo",
+    "Example": "Ejemplo",
+    "Current grade": "Nota actual",
+    "Target grade": "Nota objetivo",
+    "Required average on upcoming standards": "Promedio necesario en los próximos estándares",
+    "about": "aprox.",
+    "pts": "pts",
+    "Everything you need to stay on top of school": "Todo lo que necesitas para llevar el control de la escuela",
+    "How it works": "Cómo funciona",
+    "Ready to level up your grades?": "¿Listo para mejorar tus notas?",
+    "Create your WJ Study account and set up your first class in minutes.": "Crea tu cuenta de WJ Study y configura tu primera clase en minutos.",
+    "Create your account": "Crear tu cuenta",
+    "Privacy Policy": "Política de privacidad",
+    "School Email": "Correo escolar",
+    "Password": "Contraseña",
+    "Create Account": "Crear cuenta",
+    "Sign In": "Iniciar sesión",
+    "Or continue with": "O continúa con",
+    "Sign in with Google": "Iniciar sesión con Google",
+    "Already have an account?": "¿Ya tienes una cuenta?",
+    "Don't have an account yet?": "¿Aún no tienes una cuenta?",
+    "Back to home": "Volver al inicio",
+    "Student": "Estudiante",
+    "Cum GPA / Grade": "GPA acumulado / Nota",
+    "Level": "Nivel",
+    "Focus": "Enfoque",
+    "Work": "Trabajo",
+    "Break": "Descanso",
+    "Focus Target": "Objetivo de enfoque",
+    "-- Choose a task --": "-- Elige una tarea --",
+    "Synced": "Sincronizado",
+    "Syncing...": "Sincronizando...",
+    "Error": "Error",
+    "Class Roster": "Lista de clases",
+    "AI PowerSchool Scan": "Escaneo de PowerSchool con IA",
+    "Add": "Añadir",
+    "AI PowerSchool Photo Analyzer": "Analizador de fotos de PowerSchool con IA",
+    "Click to upload PowerSchool screenshot": "Haz clic para subir una captura de PowerSchool",
+    "Supports PNG, JPG, WEBP screenshots": "Admite capturas PNG, JPG y WEBP",
+    "Cancel": "Cancelar",
+    "Save": "Guardar",
+    "Grade:": "Nota:",
+    "Auto": "Automático",
+    "Standards": "Estándares",
+    "Clubs": "Clubes",
+    "AI SchoolsBuddy Scan": "Escaneo de SchoolsBuddy con IA",
+    "AI SchoolsBuddy Photo Analyzer": "Analizador de fotos de SchoolsBuddy con IA",
+    "Click to upload SchoolsBuddy screenshot": "Haz clic para subir una captura de SchoolsBuddy",
+    "Add Timeslot:": "Añadir horario:",
+    "Add Club": "Añadir club",
+    "No timeslots assigned": "No hay horarios asignados",
+    "Slot": "Horario",
+    "Recommended Focus Target": "Objetivo de enfoque recomendado",
+    "Focus on:": "Enfócate en:",
+    "Start Focus": "Iniciar enfoque",
+    "Quick Add Assignment": "Añadir tarea rápidamente",
+    "Task title...": "Título de la tarea...",
+    "Add a class first": "Añade una clase primero",
+    "Homework": "Tarea",
+    "Test / Exam": "Prueba / Examen",
+    "hrs": "h",
+    "Add Task": "Añadir tarea",
+    "Schedule & Tasks": "Horario y tareas",
+    "All": "Todas",
+    "Active": "Activas",
+    "Done": "Hechas",
+    "No tasks match the filter.": "No hay tareas que coincidan con el filtro.",
+    "Due:": "Vence:",
+    "Calendar": "Calendario",
+    "Streaks": "Rachas",
+    "Learning": "Aprendizaje",
+    "Timetable": "Horario",
+    "Grades": "Notas",
+    "Grade Simulator": "Simulador de notas",
+    "AI Planner": "Planificador IA",
+    "Analytics": "Analítica",
+    "Clan": "Clan",
+    "Study Clan": "Clan de estudio",
+    "Reset clan": "Restablecer clan",
+    "Your rank": "Tu posición",
+    "Create a clan": "Crear un clan",
+    "Clan name": "Nombre del clan",
+    "Your display name": "Tu nombre visible",
+    "Create clan": "Crear clan",
+    "Join a clan": "Unirse a un clan",
+    "6-character join code": "Código de unión de 6 caracteres",
+    "Join clan": "Unirse al clan",
+    "Having trouble with an old clan?": "¿Problemas con un clan antiguo?",
+    "Study leaderboard": "Clasificación de estudio",
+    "Focus time": "Tiempo de enfoque",
+    "No members yet.": "Aún no hay miembros.",
+    "AI Study Planner": "Planificador de estudio IA",
+    "Tasks": "Tareas",
+    "Planned time": "Tiempo planificado",
+    "Use this as catch-up, review, or rest time.": "Usa esto para ponerte al día, repasar o descansar.",
+    "Start focus on this task": "Enfocarse en esta tarea",
+    "Some work does not fit in the next 7 days": "Algunas tareas no caben en los próximos 7 días",
+    "Study time": "Tiempo de estudio",
+    "Task completion": "Finalización de tareas",
+    "This week": "Esta semana",
+    "Missed deadlines": "Fechas límite perdidas",
+    "unfinished past due": "sin terminar y vencido",
+    "Weekly study time": "Tiempo de estudio semanal",
+    "Goal": "Meta",
+    "Study time vs. grades": "Tiempo de estudio vs. notas",
+    "Add a class to see its grade and study-time comparison.": "Añade una clase para ver su nota y comparar el tiempo de estudio.",
+    "Create a habit to start tracking streaks.": "Crea un hábito para empezar a seguir rachas.",
+    "Best": "Mejor",
+    "No unfinished tasks are past due.": "No hay tareas sin terminar vencidas.",
+    "Open": "Abrir",
+    "Academic Calendar showing school days, official breaks, and holidays.": "Calendario académico con días lectivos, vacaciones oficiales y festivos.",
+    "Add Event": "Añadir evento",
+    "Review & Organize": "Revisar y organizar",
+    "Today": "Hoy",
+    "Legend:": "Leyenda:",
+    "School Day": "Día escolar",
+    "School Break / Holiday": "Vacaciones / Festivo",
+    "Staff PD (No Students)": "Formación del personal (Sin estudiantes)",
+    "Early Dismissal": "Salida temprana",
+    "Habit Streaks": "Rachas de hábitos",
+    "This Week": "Esta semana",
+    "Add New Habit Streak": "Añadir nueva racha",
+    "Create Streak": "Crear racha",
+    "Click checkmark to toggle": "Haz clic en la marca para cambiar",
+    "No habit streaks created yet. Create one above to begin!": "Aún no hay rachas. Crea una arriba para empezar.",
+    "Learning Lab": "Laboratorio de aprendizaje",
+    "AI-generated from your materials": "Generado por IA a partir de tus materiales",
+    "Class": "Clase",
+    "Add class material": "Añadir material de clase",
+    "Add material": "Añadir material",
+    "Materials for this class": "Materiales de esta clase",
+    "Your class material library is empty.": "La biblioteca de materiales de esta clase está vacía.",
+    "Regenerate": "Regenerar",
+    "Notes": "Notas",
+    "Flashcards": "Tarjetas",
+    "AI Quiz": "Cuestionario IA",
+    "No flashcards were generated.": "No se generaron tarjetas.",
+    "Tap to flip": "Toca para voltear",
+    "Previous": "Anterior",
+    "Next": "Siguiente",
+    "Score:": "Puntuación:",
+    "Why:": "Por qué:",
+    "Reset quiz": "Restablecer cuestionario",
+    "Your learning pack will appear here": "Tu paquete de aprendizaje aparecerá aquí",
+    "Weekly Class Schedule": "Horario semanal de clases",
+    "Add Class Session to Timetable": "Añadir sesión al horario",
+    "Select Class": "Seleccionar clase",
+    "Day": "Día",
+    "Start Time": "Hora de inicio",
+    "End Time": "Hora de fin",
+    "Add Slot": "Añadir horario",
+    "Time": "Hora",
+    "All day": "Todo el día",
+    "Academic Performance Summary": "Resumen del rendimiento académico",
+    "Cumulative GPA": "GPA acumulado",
+    "Target Grade": "Nota objetivo",
+    "Current Grade": "Nota actual",
+    "Status:": "Estado:",
+    "No evaluations yet": "Aún no hay evaluaciones",
+    "On Track for Target": "En camino al objetivo",
+    "Below Target": "Por debajo del objetivo",
+    "Course Parameters": "Parámetros del curso",
+    "Active Course": "Curso activo",
+    "Current Grade Level": "Nivel de nota actual",
+    "Desired Target Grade": "Nota objetivo deseada",
+    "Select Standard(s) Being Tested:": "Selecciona los estándares evaluados:",
+    "SIMULATION RESULT": "RESULTADO DE LA SIMULACIÓN",
+    "Required Score on Selected Standard(s)": "Puntuación necesaria en los estándares seleccionados",
+    "Target Breakdown:": "Desglose del objetivo:",
+    "Add event": "Añadir evento",
+    "Name": "Nombre",
+    "Type": "Tipo",
+    "Study": "Estudio",
+    "Test": "Prueba",
+    "Club": "Club",
+    "Personal": "Personal",
+    "Other": "Otro",
+    "Event details": "Detalles del evento",
+    "Date": "Fecha",
+    "Start": "Inicio",
+    "End": "Fin",
+    "Save event": "Guardar evento",
+    "Calendar cleanup": "Limpieza del calendario",
+    "Review similar events": "Revisar eventos similares",
+    "Refresh": "Actualizar",
+    "No similar event groups found": "No se encontraron grupos similares",
+    "Possible match": "Posible coincidencia",
+    "Merge into this name": "Combinar con este nombre",
+    "Times:": "Horarios:",
+    "Dates:": "Fechas:",
+    "Keep separate": "Mantener separado",
+    "Merge selected": "Combinar seleccionados",
+    "Delete event": "Eliminar evento",
+    "Day view": "Vista diaria",
+    "Events": "Eventos",
+    "Customize event": "Personalizar evento",
+    "Logo / icon": "Logo / icono",
+    "Color": "Color",
+    "Start time": "Hora de inicio",
+    "End time": "Hora de fin",
+    "All-day event": "Evento de todo el día",
+    "Details": "Detalles",
+    "Reset customization": "Restablecer personalización",
+    "Delete": "Eliminar",
+    "Classes": "Clases",
+    "Learn": "Aprender",
+    "Planner": "Planificador",
+    "Create a personal calendar event without Google Calendar.": "Crea un evento de calendario personal sin Google Calendar.",
+    "Your imported event names are currently distinct enough to keep separate.": "Los nombres importados son lo bastante distintos para mantenerlos separados.",
+    "Select a class, add your materials, then generate custom notes, flashcards, and a practice quiz.": "Selecciona una clase, añade tus materiales y genera notas, tarjetas y un cuestionario de práctica personalizados.",
+    "Focus minutes recorded during the current Monday–Sunday week": "Minutos de enfoque registrados durante la semana actual de lunes a domingo",
+    "Up to 8 of your classes, ranked by logged study time": "Hasta 8 de tus clases, ordenadas por tiempo de estudio registrado",
+    "standards tracked": "estándares seguidos",
+    "selected standard(s).": "estándar(es) seleccionados.",
+    "No standards added yet.": "Aún no se han añadido estándares.",
+    "No class selected.": "No hay clase seleccionada."
+  },
+  "zh": {
+    "Sign in": "登录",
+    "Sign up": "注册",
+    "Built for students": "为学生打造",
+    "Study smarter.": "更聪明地学习。",
+    "Know exactly where you stand.": "清楚了解你的学习情况。",
+    "Get started free": "免费开始",
+    "I already have an account": "我已经有账号",
+    "Target Grade Simulator": "目标成绩模拟器",
+    "Example": "示例",
+    "Current grade": "当前成绩",
+    "Target grade": "目标成绩",
+    "Required average on upcoming standards": "即将测试标准所需平均分",
+    "about": "约",
+    "pts": "分",
+    "Everything you need to stay on top of school": "管理学习所需的一切",
+    "How it works": "使用方法",
+    "Ready to level up your grades?": "准备提升你的成绩了吗？",
+    "Create your WJ Study account and set up your first class in minutes.": "创建 WJ Study 账号，并在几分钟内设置第一门课程。",
+    "Create your account": "创建账号",
+    "Privacy Policy": "隐私政策",
+    "School Email": "学校邮箱",
+    "Password": "密码",
+    "Create Account": "创建账号",
+    "Sign In": "登录",
+    "Or continue with": "或继续使用",
+    "Sign in with Google": "使用 Google 登录",
+    "Already have an account?": "已经有账号？",
+    "Don't have an account yet?": "还没有账号？",
+    "Back to home": "返回首页",
+    "Student": "学生",
+    "Cum GPA / Grade": "累计 GPA / 成绩",
+    "Level": "等级",
+    "Focus": "专注",
+    "Work": "学习",
+    "Break": "休息",
+    "Focus Target": "专注目标",
+    "-- Choose a task --": "-- 选择任务 --",
+    "Synced": "已同步",
+    "Syncing...": "同步中...",
+    "Error": "错误",
+    "Class Roster": "课程列表",
+    "AI PowerSchool Scan": "AI PowerSchool 扫描",
+    "Add": "添加",
+    "Cancel": "取消",
+    "Save": "保存",
+    "Grade:": "成绩：",
+    "Auto": "自动",
+    "Standards": "标准",
+    "Clubs": "社团",
+    "AI SchoolsBuddy Scan": "AI SchoolsBuddy 扫描",
+    "Add Timeslot:": "添加时间段：",
+    "Add Club": "添加社团",
+    "No timeslots assigned": "未分配时间段",
+    "Slot": "时间段",
+    "Recommended Focus Target": "推荐专注目标",
+    "Focus on:": "专注于：",
+    "Start Focus": "开始专注",
+    "Quick Add Assignment": "快速添加任务",
+    "Task title...": "任务标题...",
+    "Add a class first": "请先添加课程",
+    "Homework": "作业",
+    "Test / Exam": "测试 / 考试",
+    "hrs": "小时",
+    "Add Task": "添加任务",
+    "Schedule & Tasks": "日程与任务",
+    "All": "全部",
+    "Active": "进行中",
+    "Done": "已完成",
+    "No tasks match the filter.": "没有符合筛选条件的任务。",
+    "Due:": "截止：",
+    "Calendar": "日历",
+    "Streaks": "连续打卡",
+    "Learning": "学习",
+    "Timetable": "课表",
+    "Grades": "成绩",
+    "Grade Simulator": "成绩模拟器",
+    "AI Planner": "AI 规划器",
+    "Analytics": "分析",
+    "Clan": "学习小组",
+    "Study Clan": "学习小组",
+    "Reset clan": "重置小组",
+    "Your rank": "你的排名",
+    "Create a clan": "创建小组",
+    "Clan name": "小组名称",
+    "Your display name": "你的显示名称",
+    "Create clan": "创建小组",
+    "Join a clan": "加入小组",
+    "6-character join code": "6 位加入码",
+    "Join clan": "加入小组",
+    "Study leaderboard": "学习排行榜",
+    "Focus time": "专注时间",
+    "No members yet.": "还没有成员。",
+    "AI Study Planner": "AI 学习规划器",
+    "Tasks": "任务",
+    "Planned time": "计划时间",
+    "Use this as catch-up, review, or rest time.": "可用于补学、复习或休息。",
+    "Start focus on this task": "开始专注此任务",
+    "Some work does not fit in the next 7 days": "部分任务无法安排在未来 7 天内",
+    "Study time": "学习时间",
+    "Task completion": "任务完成度",
+    "This week": "本周",
+    "Missed deadlines": "逾期任务",
+    "unfinished past due": "未完成且已逾期",
+    "Weekly study time": "每周学习时间",
+    "Goal": "目标",
+    "Study time vs. grades": "学习时间与成绩",
+    "Add a class to see its grade and study-time comparison.": "添加课程以查看成绩和学习时间对比。",
+    "Create a habit to start tracking streaks.": "创建习惯以开始记录连续天数。",
+    "Best": "最佳",
+    "No unfinished tasks are past due.": "没有未完成的逾期任务。",
+    "Open": "打开",
+    "Academic Calendar showing school days, official breaks, and holidays.": "显示上课日、官方假期和节日的学术日历。",
+    "Add Event": "添加事件",
+    "Review & Organize": "检查与整理",
+    "Today": "今天",
+    "Legend:": "图例：",
+    "School Day": "上课日",
+    "School Break / Holiday": "假期 / 节日",
+    "Staff PD (No Students)": "教职工培训（无学生）",
+    "Early Dismissal": "提前放学",
+    "Habit Streaks": "习惯连续记录",
+    "This Week": "本周",
+    "Add New Habit Streak": "添加新习惯连续记录",
+    "Create Streak": "创建连续记录",
+    "Click checkmark to toggle": "点击勾选切换",
+    "No habit streaks created yet. Create one above to begin!": "还没有习惯连续记录。创建一个开始吧！",
+    "Learning Lab": "学习实验室",
+    "AI-generated from your materials": "由你的材料生成的 AI 内容",
+    "Class": "课程",
+    "Add class material": "添加课程材料",
+    "Add material": "添加材料",
+    "Materials for this class": "本课程材料",
+    "Your class material library is empty.": "本课程材料库为空。",
+    "Regenerate": "重新生成",
+    "Notes": "笔记",
+    "Flashcards": "闪卡",
+    "AI Quiz": "AI 测验",
+    "No flashcards were generated.": "还没有生成闪卡。",
+    "Tap to flip": "点击翻面",
+    "Previous": "上一项",
+    "Next": "下一项",
+    "Score:": "分数：",
+    "Why:": "原因：",
+    "Reset quiz": "重置测验",
+    "Your learning pack will appear here": "你的学习包会显示在这里",
+    "Weekly Class Schedule": "每周课程安排",
+    "Add Class Session to Timetable": "添加课程时段到课表",
+    "Select Class": "选择课程",
+    "Day": "日期",
+    "Start Time": "开始时间",
+    "End Time": "结束时间",
+    "Add Slot": "添加时间段",
+    "Time": "时间",
+    "All day": "全天",
+    "Academic Performance Summary": "学业表现概览",
+    "Cumulative GPA": "累计 GPA",
+    "Target Grade": "目标成绩",
+    "Current Grade": "当前成绩",
+    "Status:": "状态：",
+    "No evaluations yet": "还没有评估",
+    "On Track for Target": "正在达到目标",
+    "Below Target": "低于目标",
+    "Course Parameters": "课程参数",
+    "Active Course": "当前课程",
+    "Current Grade Level": "当前成绩等级",
+    "Desired Target Grade": "期望目标成绩",
+    "Select Standard(s) Being Tested:": "选择测试标准：",
+    "SIMULATION RESULT": "模拟结果",
+    "Required Score on Selected Standard(s)": "所选标准所需分数",
+    "Target Breakdown:": "目标分解：",
+    "Add event": "添加事件",
+    "Create a personal calendar event without Google Calendar.": "创建无需 Google 日历的个人事件。",
+    "Name": "名称",
+    "Type": "类型",
+    "Study": "学习",
+    "Test": "测试",
+    "Club": "社团",
+    "Personal": "个人",
+    "Other": "其他",
+    "Event details": "事件详情",
+    "Date": "日期",
+    "Start": "开始",
+    "End": "结束",
+    "Save event": "保存事件",
+    "Calendar cleanup": "日历整理",
+    "Review similar events": "检查相似事件",
+    "Refresh": "刷新",
+    "No similar event groups found": "未找到相似事件组",
+    "Your imported event names are currently distinct enough to keep separate.": "导入的事件名称目前足够不同，可以保持分开。",
+    "Possible match": "可能匹配",
+    "Merge into this name": "合并为此名称",
+    "Times:": "时间：",
+    "Dates:": "日期：",
+    "Keep separate": "保持分开",
+    "Merge selected": "合并所选",
+    "Delete event": "删除事件",
+    "Day view": "日视图",
+    "Events": "事件",
+    "Customize event": "自定义事件",
+    "Logo / icon": "Logo / 图标",
+    "Color": "颜色",
+    "Start time": "开始时间",
+    "End time": "结束时间",
+    "All-day event": "全天事件",
+    "Details": "详情",
+    "Reset customization": "重置自定义",
+    "Delete": "删除",
+    "Classes": "课程",
+    "Learn": "学习",
+    "Planner": "规划器",
+    "standards tracked": "已跟踪标准",
+    "selected standard(s).": "所选标准。",
+    "No standards added yet.": "尚未添加标准。",
+    "No class selected.": "未选择课程。"
+  },
+  "ko": {
+    "Sign in": "로그인",
+    "Sign up": "회원가입",
+    "Get started free": "무료로 시작",
+    "I already have an account": "이미 계정이 있습니다",
+    "Student": "학생",
+    "Level": "레벨",
+    "Focus": "집중",
+    "Work": "학습",
+    "Break": "휴식",
+    "Focus Target": "집중 목표",
+    "-- Choose a task --": "-- 과제 선택 --",
+    "Synced": "동기화됨",
+    "Syncing...": "동기화 중...",
+    "Error": "오류",
+    "Class Roster": "수업 목록",
+    "Add": "추가",
+    "Save": "저장",
+    "Cancel": "취소",
+    "Standards": "기준",
+    "Clubs": "동아리",
+    "Add Club": "동아리 추가",
+    "No timeslots assigned": "시간표가 없습니다",
+    "Slot": "시간대",
+    "Start Focus": "집중 시작",
+    "Quick Add Assignment": "과제 빠르게 추가",
+    "Task title...": "과제 제목...",
+    "Add a class first": "먼저 수업을 추가하세요",
+    "Homework": "숙제",
+    "Test / Exam": "시험 / 평가",
+    "hrs": "시간",
+    "Add Task": "과제 추가",
+    "Schedule & Tasks": "일정 및 과제",
+    "All": "전체",
+    "Active": "진행 중",
+    "Done": "완료",
+    "Calendar": "캘린더",
+    "Streaks": "연속 기록",
+    "Learning": "학습",
+    "Timetable": "시간표",
+    "Grades": "성적",
+    "Grade Simulator": "성적 시뮬레이터",
+    "AI Planner": "AI 플래너",
+    "Analytics": "분석",
+    "Clan": "클랜",
+    "Study Clan": "스터디 클랜",
+    "Reset clan": "클랜 초기화",
+    "Your rank": "내 순위",
+    "Create a clan": "클랜 만들기",
+    "Join a clan": "클랜 가입",
+    "Join clan": "클랜 가입",
+    "Study leaderboard": "스터디 순위표",
+    "Focus time": "집중 시간",
+    "No members yet.": "아직 멤버가 없습니다.",
+    "Tasks": "과제",
+    "Study time": "학습 시간",
+    "This week": "이번 주",
+    "Missed deadlines": "마감일 놓침",
+    "Weekly study time": "주간 학습 시간",
+    "Goal": "목표",
+    "Add Event": "이벤트 추가",
+    "Review & Organize": "검토 및 정리",
+    "Today": "오늘",
+    "School Day": "수업일",
+    "School Break / Holiday": "방학 / 휴일",
+    "Habit Streaks": "습관 연속 기록",
+    "This Week": "이번 주",
+    "Create Streak": "연속 기록 만들기",
+    "Learning Lab": "학습 실험실",
+    "Class": "수업",
+    "Regenerate": "다시 생성",
+    "Notes": "노트",
+    "Flashcards": "플래시카드",
+    "AI Quiz": "AI 퀴즈",
+    "Previous": "이전",
+    "Next": "다음",
+    "Reset quiz": "퀴즈 초기화",
+    "Weekly Class Schedule": "주간 수업 일정",
+    "Select Class": "수업 선택",
+    "Day": "요일",
+    "Start Time": "시작 시간",
+    "End Time": "종료 시간",
+    "Add Slot": "시간대 추가",
+    "Time": "시간",
+    "All day": "하루 종일",
+    "Cumulative GPA": "누적 GPA",
+    "Target Grade": "목표 성적",
+    "Current Grade": "현재 성적",
+    "Status:": "상태:",
+    "Course Parameters": "과목 매개변수",
+    "Active Course": "활성 과목",
+    "Current Grade Level": "현재 성적 레벨",
+    "Desired Target Grade": "원하는 목표 성적",
+    "Add event": "이벤트 추가",
+    "Name": "이름",
+    "Type": "유형",
+    "Study": "학습",
+    "Test": "시험",
+    "Club": "동아리",
+    "Personal": "개인",
+    "Other": "기타",
+    "Date": "날짜",
+    "Start": "시작",
+    "End": "종료",
+    "Save event": "이벤트 저장",
+    "Calendar cleanup": "캘린더 정리",
+    "Review similar events": "유사 이벤트 검토",
+    "Refresh": "새로고침",
+    "Delete event": "이벤트 삭제",
+    "Day view": "일 보기",
+    "Events": "이벤트",
+    "Customize event": "이벤트 사용자 지정",
+    "Logo / icon": "로고 / 아이콘",
+    "Color": "색상",
+    "Start time": "시작 시간",
+    "End time": "종료 시간",
+    "All-day event": "종일 이벤트",
+    "Details": "세부 정보",
+    "Reset customization": "사용자 지정 초기화",
+    "Delete": "삭제",
+    "Classes": "수업",
+    "Learn": "학습",
+    "Planner": "플래너"
+  },
+  "ja": {
+    "Sign in": "ログイン",
+    "Sign up": "登録",
+    "Get started free": "無料で始める",
+    "I already have an account": "すでにアカウントがあります",
+    "Student": "生徒",
+    "Level": "レベル",
+    "Focus": "集中",
+    "Work": "学習",
+    "Break": "休憩",
+    "Focus Target": "集中目標",
+    "-- Choose a task --": "-- タスクを選択 --",
+    "Synced": "同期済み",
+    "Syncing...": "同期中...",
+    "Error": "エラー",
+    "Class Roster": "クラス一覧",
+    "Add": "追加",
+    "Save": "保存",
+    "Cancel": "キャンセル",
+    "Standards": "基準",
+    "Clubs": "クラブ",
+    "Add Club": "クラブを追加",
+    "No timeslots assigned": "時間帯がありません",
+    "Slot": "時間帯",
+    "Start Focus": "集中を開始",
+    "Quick Add Assignment": "課題を追加",
+    "Task title...": "課題タイトル...",
+    "Add a class first": "先にクラスを追加してください",
+    "Homework": "宿題",
+    "Test / Exam": "テスト / 試験",
+    "hrs": "時間",
+    "Add Task": "タスクを追加",
+    "Schedule & Tasks": "スケジュールとタスク",
+    "All": "すべて",
+    "Active": "進行中",
+    "Done": "完了",
+    "Calendar": "カレンダー",
+    "Streaks": "連続記録",
+    "Learning": "学習",
+    "Timetable": "時間割",
+    "Grades": "成績",
+    "Grade Simulator": "成績シミュレーター",
+    "AI Planner": "AIプランナー",
+    "Analytics": "分析",
+    "Clan": "クラン",
+    "Study Clan": "学習クラン",
+    "Reset clan": "クランをリセット",
+    "Your rank": "あなたの順位",
+    "Create a clan": "クランを作成",
+    "Join a clan": "クランに参加",
+    "Join clan": "クランに参加",
+    "Study leaderboard": "学習ランキング",
+    "Focus time": "集中時間",
+    "No members yet.": "まだメンバーはいません。",
+    "Tasks": "タスク",
+    "Study time": "学習時間",
+    "This week": "今週",
+    "Missed deadlines": "期限切れ",
+    "Weekly study time": "週間学習時間",
+    "Goal": "目標",
+    "Add Event": "イベントを追加",
+    "Review & Organize": "確認と整理",
+    "Today": "今日",
+    "School Day": "授業日",
+    "School Break / Holiday": "休校日 / 休日",
+    "Habit Streaks": "習慣の連続記録",
+    "This Week": "今週",
+    "Create Streak": "連続記録を作成",
+    "Learning Lab": "学習ラボ",
+    "Class": "クラス",
+    "Regenerate": "再生成",
+    "Notes": "ノート",
+    "Flashcards": "フラッシュカード",
+    "AI Quiz": "AIクイズ",
+    "Previous": "前へ",
+    "Next": "次へ",
+    "Reset quiz": "クイズをリセット",
+    "Weekly Class Schedule": "週間クラススケジュール",
+    "Select Class": "クラスを選択",
+    "Day": "曜日",
+    "Start Time": "開始時刻",
+    "End Time": "終了時刻",
+    "Add Slot": "時間帯を追加",
+    "Time": "時間",
+    "All day": "終日",
+    "Cumulative GPA": "累積GPA",
+    "Target Grade": "目標成績",
+    "Current Grade": "現在の成績",
+    "Status:": "状態:",
+    "Course Parameters": "科目パラメータ",
+    "Active Course": "選択中の科目",
+    "Current Grade Level": "現在の成績レベル",
+    "Desired Target Grade": "希望する目標成績",
+    "Add event": "イベントを追加",
+    "Name": "名前",
+    "Type": "種類",
+    "Study": "学習",
+    "Test": "テスト",
+    "Club": "クラブ",
+    "Personal": "個人",
+    "Other": "その他",
+    "Date": "日付",
+    "Start": "開始",
+    "End": "終了",
+    "Save event": "イベントを保存",
+    "Calendar cleanup": "カレンダー整理",
+    "Review similar events": "類似イベントを確認",
+    "Refresh": "更新",
+    "Delete event": "イベントを削除",
+    "Day view": "日表示",
+    "Events": "イベント",
+    "Customize event": "イベントをカスタマイズ",
+    "Logo / icon": "ロゴ / アイコン",
+    "Color": "色",
+    "Start time": "開始時刻",
+    "End time": "終了時刻",
+    "All-day event": "終日イベント",
+    "Details": "詳細",
+    "Reset customization": "カスタマイズをリセット",
+    "Delete": "削除",
+    "Classes": "クラス",
+    "Learn": "学習",
+    "Planner": "プランナー"
+  }
+};
+
+
+Object.assign(MAIN_UI_TEXT.vi, { Pause: "Tạm dừng", "Start focus": "Bắt đầu tập trung", "Reset focus timer": "Đặt lại bộ đếm tập trung", "Focus session": "Phiên tập trung", "Choose a task to start focusing": "Chọn nhiệm vụ để bắt đầu tập trung", "Logout": "Đăng xuất", "Log Out": "Đăng xuất", "Privacy": "Quyền riêng tư", "Settings": "Cài đặt" });
+Object.assign(MAIN_UI_TEXT.es, { Pause: "Pausar", "Start focus": "Iniciar enfoque", "Reset focus timer": "Restablecer temporizador", "Focus session": "Sesión de enfoque", "Choose a task to start focusing": "Elige una tarea para empezar a concentrarte", "Logout": "Cerrar sesión", "Log Out": "Cerrar sesión", Settings: "Configuración" });
+Object.assign(MAIN_UI_TEXT.zh, { Pause: "暂停", "Start focus": "开始专注", "Reset focus timer": "重置专注计时器", "Focus session": "专注学习", "Choose a task to start focusing": "选择任务开始专注", "Logout": "退出登录", "Log Out": "退出登录", Settings: "设置" });
+Object.assign(MAIN_UI_TEXT.ko, { Pause: "일시정지", "Start focus": "집중 시작", "Reset focus timer": "집중 타이머 초기화", "Focus session": "집중 세션", "Choose a task to start focusing": "집중할 과제를 선택하세요", "Logout": "로그아웃", "Log Out": "로그아웃", Settings: "설정" });
+Object.assign(MAIN_UI_TEXT.ja, { Pause: "一時停止", "Start focus": "集中を開始", "Reset focus timer": "集中タイマーをリセット", "Focus session": "集中セッション", "Choose a task to start focusing": "集中するタスクを選択", "Logout": "ログアウト", "Log Out": "ログアウト", Settings: "設定" });
+
+function translateMainText(language: AppLanguage, english: string): string {
+  return MAIN_UI_TEXT[language]?.[english] ?? MAIN_UI_TEXT.en?.[english] ?? english;
+}
+
+const MAIN_WEEKDAY_TEXT: Record<AppLanguage, Record<string, string>> = {
+  en: { Monday: "Monday", Tuesday: "Tuesday", Wednesday: "Wednesday", Thursday: "Thursday", Friday: "Friday", Saturday: "Saturday", Sunday: "Sunday" },
+  vi: { Monday: "Thứ Hai", Tuesday: "Thứ Ba", Wednesday: "Thứ Tư", Thursday: "Thứ Năm", Friday: "Thứ Sáu", Saturday: "Thứ Bảy", Sunday: "Chủ Nhật" },
+  es: { Monday: "Lunes", Tuesday: "Martes", Wednesday: "Miércoles", Thursday: "Jueves", Friday: "Viernes", Saturday: "Sábado", Sunday: "Domingo" },
+  zh: { Monday: "星期一", Tuesday: "星期二", Wednesday: "星期三", Thursday: "星期四", Friday: "星期五", Saturday: "星期六", Sunday: "星期日" },
+  ko: { Monday: "월요일", Tuesday: "화요일", Wednesday: "수요일", Thursday: "목요일", Friday: "금요일", Saturday: "토요일", Sunday: "일요일" },
+  ja: { Monday: "月曜日", Tuesday: "火曜日", Wednesday: "水曜日", Thursday: "木曜日", Friday: "金曜日", Saturday: "土曜日", Sunday: "日曜日" },
+};
+
 const SETTINGS_TEXT: Record<AppLanguage, Record<string, string>> = {
   en: {
     settings: "Settings", back: "Back", language: "Language", languageDescription: "Choose the language used by WJ Study settings and supported interface labels.",
@@ -1239,10 +2186,13 @@ function normalizeAppSettings(value: unknown): AppSettings {
 function LandingPage({
   onSignIn,
   onSignUp,
+  language,
 }: {
   onSignIn: () => void;
   onSignUp: () => void;
+  language: AppLanguage;
 }) {
+  const tx = (english: string) => translateMainText(language, english);
   const features = [
     {
       icon: Camera,
@@ -1285,7 +2235,7 @@ function LandingPage({
           <div className="rounded-xl border border-blue-500/30 bg-blue-600/20 p-2 text-blue-400">
             <GraduationCap size={22} />
           </div>
-          <span className="text-lg font-bold tracking-tight text-white">WJ Study</span>
+          <span className="text-lg font-bold tracking-tight text-white">{tx("WJ Study")}</span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -1310,12 +2260,9 @@ function LandingPage({
         <div className="grid items-center gap-12 md:grid-cols-2">
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-300">
-              <Sparkles size={13} /> Built for students
-            </span>
-            <h1 className="mt-5 text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">
-              Study smarter.
-              <br />
-              <span className="text-blue-400">Know exactly where you stand.</span>
+              <Sparkles size={13} />{tx("Built for students")}</span>
+            <h1 className="mt-5 text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">{tx("Study smarter.")}<br />
+              <span className="text-blue-400">{tx("Know exactly where you stand.")}</span>
             </h1>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-slate-400">
               WJ Study puts your classes, standards, deadlines and study habits in one place, and
@@ -1326,16 +2273,13 @@ function LandingPage({
                 type="button"
                 onClick={onSignUp}
                 className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-500"
-              >
-                Get started free <ChevronRight size={16} />
+              >{tx("Get started free")}<ChevronRight size={16} />
               </button>
               <button
                 type="button"
                 onClick={onSignIn}
                 className="rounded-lg border border-slate-700 bg-slate-900 px-6 py-3 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:bg-slate-800"
-              >
-                I already have an account
-              </button>
+              >{tx("I already have an account")}</button>
             </div>
           </div>
 
@@ -1343,30 +2287,23 @@ function LandingPage({
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                <Sliders size={16} className="text-blue-400" /> Target Grade Simulator
-              </div>
-              <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                Example
-              </span>
+                <Sliders size={16} className="text-blue-400" />{tx("Target Grade Simulator")}</div>
+              <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{tx("Example")}</span>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3 text-xs">
               <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-3">
-                <div className="text-slate-500">Current grade</div>
+                <div className="text-slate-500">{tx("Current grade")}</div>
                 <div className="mt-1 text-base font-bold text-emerald-400">B+</div>
               </div>
               <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-3">
-                <div className="text-slate-500">Target grade</div>
+                <div className="text-slate-500">{tx("Target grade")}</div>
                 <div className="mt-1 text-base font-bold text-blue-400">A-</div>
               </div>
             </div>
             <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/70 p-6 text-center">
-              <div className="text-xs uppercase tracking-wider text-slate-500">
-                Required average on upcoming standards
-              </div>
+              <div className="text-xs uppercase tracking-wider text-slate-500">{tx("Required average on upcoming standards")}</div>
               <div className="mt-2 text-6xl font-extrabold text-emerald-400">A</div>
-              <div className="mt-1 text-sm text-slate-400">
-                about <span className="font-mono font-bold text-white">4.01</span> pts
-              </div>
+              <div className="mt-1 text-sm text-slate-400">{tx("about")}<span className="font-mono font-bold text-white">4.01</span>{tx("pts")}</div>
             </div>
           </div>
         </div>
@@ -1375,9 +2312,7 @@ function LandingPage({
       {/* FEATURES */}
       <section className="border-y border-slate-900 bg-slate-900/30">
         <div className="mx-auto max-w-6xl px-5 py-16">
-          <h2 className="text-center text-2xl font-bold text-white md:text-3xl">
-            Everything you need to stay on top of school
-          </h2>
+          <h2 className="text-center text-2xl font-bold text-white md:text-3xl">{tx("Everything you need to stay on top of school")}</h2>
           <p className="mx-auto mt-3 max-w-xl text-center text-sm text-slate-400">
             Grades, planning and habits in one dashboard, so you spend less time organizing and more
             time learning.
@@ -1401,7 +2336,7 @@ function LandingPage({
 
       {/* HOW IT WORKS */}
       <section className="mx-auto max-w-6xl px-5 py-16">
-        <h2 className="text-center text-2xl font-bold text-white md:text-3xl">How it works</h2>
+        <h2 className="text-center text-2xl font-bold text-white md:text-3xl">{tx("How it works")}</h2>
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {steps.map((step) => (
             <div key={step.n} className="text-center">
@@ -1418,16 +2353,13 @@ function LandingPage({
       {/* FINAL CTA */}
       <section className="mx-auto max-w-4xl px-5 pb-20">
         <div className="rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-600/20 to-slate-900 p-10 text-center">
-          <h2 className="text-2xl font-bold text-white md:text-3xl">Ready to level up your grades?</h2>
-          <p className="mx-auto mt-3 max-w-md text-sm text-slate-300">
-            Create your WJ Study account and set up your first class in minutes.
-          </p>
+          <h2 className="text-2xl font-bold text-white md:text-3xl">{tx("Ready to level up your grades?")}</h2>
+          <p className="mx-auto mt-3 max-w-md text-sm text-slate-300">{tx("Create your WJ Study account and set up your first class in minutes.")}</p>
           <button
             type="button"
             onClick={onSignUp}
             className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-500"
-          >
-            Create your account <ChevronRight size={16} />
+          >{tx("Create your account")}<ChevronRight size={16} />
           </button>
         </div>
       </section>
@@ -1435,9 +2367,7 @@ function LandingPage({
       <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500 space-y-2">
         <div>© {new Date().getFullYear()} WJ Study</div>
         <div>
-          <a href="/privacy" className="hover:text-slate-300 hover:underline transition">
-            Privacy Policy
-          </a>
+          <a href="/privacy" className="hover:text-slate-300 hover:underline transition">{tx("Privacy Policy")}</a>
         </div>
       </footer>
     </div>
@@ -1520,6 +2450,11 @@ export default function AcademicOSDashboard() {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">(
     typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported"
   );
+
+  // Main-page translation helper. It reads the same language state used by Settings,
+  // so changing language immediately re-renders the dashboard without leaving the page.
+  const tx = (english: string) => translateMainText(appSettings.language, english);
+  const txDay = (english: string) => MAIN_WEEKDAY_TEXT[appSettings.language]?.[english] ?? english;
 
   const [learningMaterials, setLearningMaterials] = useState<LearningMaterial[]>([]);
   const [learningBundles, setLearningBundles] = useState<LearningBundle[]>([]);
@@ -5376,6 +6311,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     if (!showAuth) {
       return (
         <LandingPage
+          language={appSettings.language}
           onSignIn={() => {
             setIsSignUp(false);
             setShowAuth(true);
@@ -5400,13 +6336,12 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             }}
             className="flex items-center gap-1 text-xs text-slate-400 hover:text-white transition"
           >
-            <ChevronLeft size={14} /> Back to home
-          </button>
+            <ChevronLeft size={14} />{tx("Back to home")}</button>
           <div className="text-center space-y-2">
             <div className="inline-flex p-3 bg-blue-600/20 text-blue-400 rounded-2xl border border-blue-500/30 mb-2">
               <GraduationCap size={36} />
             </div>
-            <h1 className="text-2xl font-bold text-white">WJ Study</h1>
+            <h1 className="text-2xl font-bold text-white">{tx("WJ Study")}</h1>
             <p className="text-xs text-slate-400">
               {isSignUp
                 ? "Create your personal student account"
@@ -5430,7 +6365,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
           <form onSubmit={isSignUp ? handleSignUp : handleLogIn} className="space-y-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-300 block">School Email</label>
+              <label className="text-xs font-semibold text-slate-300 block">{tx("School Email")}</label>
               <div className="relative">
                 <Mail size={16} className="absolute left-3 top-2.5 text-slate-500" />
                 <input
@@ -5445,7 +6380,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-300 block">Password</label>
+              <label className="text-xs font-semibold text-slate-300 block">{tx("Password")}</label>
               <div className="relative">
                 <Lock size={16} className="absolute left-3 top-2.5 text-slate-500" />
                 <input
@@ -5468,12 +6403,10 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 <Sparkles size={16} className="animate-spin" />
               ) : isSignUp ? (
                 <>
-                  <UserPlus size={16} /> Create Account
-                </>
+                  <UserPlus size={16} />{tx("Create Account")}</>
               ) : (
                 <>
-                  <LogIn size={16} /> Sign In
-                </>
+                  <LogIn size={16} />{tx("Sign In")}</>
               )}
             </button>
           </form>
@@ -5482,9 +6415,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             <div className="space-y-4">
               <div className="flex items-center gap-3" aria-hidden="true">
                 <div className="h-px flex-1 bg-slate-800" />
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                  Or continue with
-                </span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{tx("Or continue with")}</span>
                 <div className="h-px flex-1 bg-slate-800" />
               </div>
 
@@ -5499,9 +6430,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   className="grid h-4 w-4 place-items-center rounded-full border border-slate-300 text-[10px] font-bold text-blue-600"
                 >
                   G
-                </span>
-                Sign in with Google
-              </button>
+                </span>{tx("Sign in with Google")}</button>
             </div>
           )}
 
@@ -5802,8 +6731,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       <header className="flex flex-col lg:flex-row lg:items-center justify-between px-3 py-3 sm:p-4 bg-slate-900/80 border-b border-slate-800 gap-3 sm:gap-4">
         <div>
           <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-            <span>🎓</span> WJ Study
-          </h1>
+            <span>🎓</span>{tx("WJ Study")}</h1>
           <p className="hidden sm:block text-xs text-slate-400">
             PowerSchool & SchoolsBuddy AI Photo Scan, School Break Calendar, SBG Evaluation, Habit Streaks, XP & Schedule
           </p>
@@ -5842,9 +6770,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           <div className="shrink-0 bg-slate-950/80 border border-slate-800 px-3 py-2 rounded-lg flex items-center gap-2">
             <GraduationCap size={18} className="text-emerald-400" />
             <div>
-              <div className="text-[9px] text-slate-400 font-bold uppercase">
-                Cum GPA / Grade
-              </div>
+              <div className="text-[9px] text-slate-400 font-bold uppercase">{tx("Cum GPA / Grade")}</div>
               <div className="text-sm font-extrabold text-emerald-400 font-mono">
                 {cumulativeGPA > 0
                   ? `${pointsToLetter(cumulativeGPA)} (${cumulativeGPA.toFixed(2)})`
@@ -5902,7 +6828,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 onClick={resetTimer}
                 className="grid h-10 w-10 place-items-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
                 title="Reset"
-                aria-label="Reset focus timer"
+                aria-label={tx("Reset focus timer")}
               >
                 <RotateCcw size={15} />
               </button>
@@ -5912,15 +6838,14 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           {/* Focus Target Selector — kept beside the timer for quick access */}
           <div className="shrink-0 min-w-[275px] bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl">
             <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1.5 mb-1.5">
-              <Clock size={14} className="text-blue-400" /> Focus Target
-            </div>
+              <Clock size={14} className="text-blue-400" />{tx("Focus Target")}</div>
             <select
               value={selectedTimerTaskId}
               onChange={(e) => setSelectedTimerTaskId(e.target.value)}
               className="w-full bg-slate-900 border border-slate-800 px-2.5 py-2 rounded-lg text-xs sm:text-[11px] font-semibold text-white focus:outline-none focus:border-blue-500"
               aria-label="Focus target task"
             >
-              <option value="">-- Choose a task --</option>
+              <option value="">{tx("-- Choose a task --")}</option>
               {tasks
                 .filter((t) => !t.completed)
                 .map((t) => (
@@ -5936,25 +6861,19 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             {syncStatus === "synced" && (
               <>
                 <Cloud size={14} className="text-emerald-400" />
-                <span className="text-[10px] text-emerald-400 hidden sm:inline">
-                  Synced
-                </span>
+                <span className="text-[10px] text-emerald-400 hidden sm:inline">{tx("Synced")}</span>
               </>
             )}
             {syncStatus === "syncing" && (
               <>
                 <Cloud size={14} className="text-amber-400 animate-pulse" />
-                <span className="text-[10px] text-amber-400 hidden sm:inline">
-                  Syncing...
-                </span>
+                <span className="text-[10px] text-amber-400 hidden sm:inline">{tx("Syncing...")}</span>
               </>
             )}
             {syncStatus === "error" && (
               <>
                 <CloudOff size={14} className="text-rose-400" />
-                <span className="text-[10px] text-rose-400 hidden sm:inline">
-                  Error
-                </span>
+                <span className="text-[10px] text-rose-400 hidden sm:inline">{tx("Error")}</span>
               </>
             )}
           </div>
@@ -5975,8 +6894,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-xs font-bold text-slate-300 uppercase flex items-center gap-1.5">
-                  <BookOpen size={14} className="text-blue-400" /> Class Roster
-                </h2>
+                  <BookOpen size={14} className="text-blue-400" />{tx("Class Roster")}</h2>
 
                 {/* AI PHOTO SCAN BUTTON */}
                 <button
@@ -5986,7 +6904,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   title="Scan PowerSchool Screenshot to add classes"
                 >
                   <Sparkles size={13} className="animate-pulse" />
-                  <span className="hidden sm:inline">AI PowerSchool Scan</span>
+                  <span className="hidden sm:inline">{tx("AI PowerSchool Scan")}</span>
                 </button>
               </div>
 
@@ -6009,8 +6927,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   type="submit"
                   className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 shrink-0 min-h-10"
                 >
-                  <Plus size={14} /> Add
-                </button>
+                  <Plus size={14} />{tx("Add")}</button>
               </form>
 
               {/* POWERSCHOOL PHOTO ANALYZER MODAL / BANNER */}
@@ -6026,9 +6943,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                   <div className="flex items-center gap-2">
                     <Camera size={16} className="text-purple-400" />
-                    <h3 className="text-xs font-bold text-white">
-                      AI PowerSchool Photo Analyzer
-                    </h3>
+                    <h3 className="text-xs font-bold text-white">{tx("AI PowerSchool Photo Analyzer")}</h3>
                   </div>
                   <p className="text-[11px] text-slate-400 leading-tight">
                     Upload a screenshot of your PowerSchool "Attendance By Class" or Schedule table to auto-extract your classes, teachers, rooms, and grades.
@@ -6045,12 +6960,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     ) : (
                       <>
                         <ImageIcon size={22} className="text-purple-400" />
-                        <span className="text-xs font-semibold text-slate-200">
-                          Click to upload PowerSchool screenshot
-                        </span>
-                        <span className="text-[9px] text-slate-500">
-                          Supports PNG, JPG, WEBP screenshots
-                        </span>
+                        <span className="text-xs font-semibold text-slate-200">{tx("Click to upload PowerSchool screenshot")}</span>
+                        <span className="text-[9px] text-slate-500">{tx("Supports PNG, JPG, WEBP screenshots")}</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -6153,15 +7064,11 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                             type="button"
                             onClick={cancelEditClass}
                             className="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-300 hover:text-white transition"
-                          >
-                            Cancel
-                          </button>
+                          >{tx("Cancel")}</button>
                           <button
                             type="submit"
                             className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[11px] font-bold transition"
-                          >
-                            Save
-                          </button>
+                          >{tx("Save")}</button>
                         </div>
                       </form>
                     );
@@ -6226,9 +7133,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                       <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-xs">
                         <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-slate-400">
-                            Grade:
-                          </span>
+                          <span className="text-[10px] text-slate-400">{tx("Grade:")}</span>
                           <select
                             value={cls.manualGrade ?? ""}
                             onChange={(e) =>
@@ -6236,7 +7141,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                             }
                             className="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-xs text-center font-bold text-emerald-400 focus:outline-none"
                           >
-                            <option value="">Auto</option>
+                            <option value="">{tx("Auto")}</option>
                             {Object.keys(LETTER_POINTS).map((lvl) => (
                               <option key={lvl} value={lvl}>
                                 {lvl}
@@ -6256,8 +7161,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               setMobileTab("calendar");
                             }}
                             className="px-2 py-1 bg-blue-600/20 text-blue-400 rounded flex items-center gap-1 text-[10px] font-bold hover:bg-blue-600/30 transition"
-                          >
-                            Standards <ChevronRight size={10} />
+                          >{tx("Standards")}<ChevronRight size={10} />
                           </button>
                         </div>
                       </div>
@@ -6271,8 +7175,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             <div className="space-y-4 pt-4 border-t border-slate-800">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-xs font-bold text-slate-300 uppercase flex items-center gap-1.5">
-                  <Users size={14} className="text-blue-400" /> Clubs
-                </h2>
+                  <Users size={14} className="text-blue-400" />{tx("Clubs")}</h2>
 
                 {/* AI SCHOOLSBUDDY PHOTO SCAN BUTTON */}
                 <button
@@ -6282,7 +7185,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   title="Scan SchoolsBuddy Screenshot to add clubs"
                 >
                   <Sparkles size={13} className="animate-pulse" />
-                  <span className="hidden sm:inline">AI SchoolsBuddy Scan</span>
+                  <span className="hidden sm:inline">{tx("AI SchoolsBuddy Scan")}</span>
                 </button>
               </div>
 
@@ -6299,9 +7202,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                   <div className="flex items-center gap-2">
                     <Camera size={16} className="text-pink-400" />
-                    <h3 className="text-xs font-bold text-white">
-                      AI SchoolsBuddy Photo Analyzer
-                    </h3>
+                    <h3 className="text-xs font-bold text-white">{tx("AI SchoolsBuddy Photo Analyzer")}</h3>
                   </div>
                   <p className="text-[11px] text-slate-400 leading-tight">
                     Upload a screenshot of your SchoolsBuddy schedule/activities to automatically extract CCA clubs, sports practice times, and days.
@@ -6318,12 +7219,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     ) : (
                       <>
                         <ImageIcon size={22} className="text-pink-400" />
-                        <span className="text-xs font-semibold text-slate-200">
-                          Click to upload SchoolsBuddy screenshot
-                        </span>
-                        <span className="text-[9px] text-slate-500">
-                          Supports PNG, JPG, WEBP screenshots
-                        </span>
+                        <span className="text-xs font-semibold text-slate-200">{tx("Click to upload SchoolsBuddy screenshot")}</span>
+                        <span className="text-[9px] text-slate-500">{tx("Supports PNG, JPG, WEBP screenshots")}</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -6377,20 +7274,20 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 </div>
 
                 <div className="space-y-1.5 bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
-                  <span className="text-[10px] text-slate-400 font-semibold block">Add Timeslot:</span>
+                  <span className="text-[10px] text-slate-400 font-semibold block">{tx("Add Timeslot:")}</span>
                   <div className="flex flex-wrap gap-1.5 items-center">
                     <select
                       value={newClubMeetingDay}
                       onChange={(e) => setNewClubMeetingDay(e.target.value as DayOfWeek)}
                       className="flex-1 bg-slate-950 border border-slate-800 px-2 py-1 rounded text-xs focus:outline-none text-slate-200"
                     >
-                      <option value="Monday">Monday</option>
-                      <option value="Tuesday">Tuesday</option>
-                      <option value="Wednesday">Wednesday</option>
-                      <option value="Thursday">Thursday</option>
-                      <option value="Friday">Friday</option>
-                      <option value="Saturday">Saturday</option>
-                      <option value="Sunday">Sunday</option>
+                      <option value="Monday">{txDay("Monday")}</option>
+                      <option value="Tuesday">{txDay("Tuesday")}</option>
+                      <option value="Wednesday">{txDay("Wednesday")}</option>
+                      <option value="Thursday">{txDay("Thursday")}</option>
+                      <option value="Friday">{txDay("Friday")}</option>
+                      <option value="Saturday">{txDay("Saturday")}</option>
+                      <option value="Sunday">{txDay("Sunday")}</option>
                     </select>
                     <input
                       type="time"
@@ -6414,8 +7311,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   type="submit"
                   className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition mt-1 min-h-10"
                 >
-                  <Plus size={14} /> Add Club
-                </button>
+                  <Plus size={14} />{tx("Add Club")}</button>
               </form>
 
               {/* Club Cards List */}
@@ -6502,9 +7398,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                             ))}
                           </div>
                         ) : (
-                          <div className="text-[10px] text-slate-500 italic">
-                            No timeslots assigned
-                          </div>
+                          <div className="text-[10px] text-slate-500 italic">{tx("No timeslots assigned")}</div>
                         )}
 
                         {isSelected && (
@@ -6543,8 +7437,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               onClick={() => addTimeslotToClub(club.id)}
                               className="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded ml-auto flex items-center gap-0.5"
                             >
-                              <Plus size={10} /> Slot
-                            </button>
+                              <Plus size={10} />{tx("Slot")}</button>
                           </div>
                         )}
                       </div>
@@ -6570,12 +7463,12 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-blue-300">
-                    <Clock size={14} /> {timerMode === "work" ? "Focus" : "Break"}
+                    <Clock size={14} /> {timerMode === "work" ? tx("Focus") : tx("Break")}
                   </div>
                   <div className="mt-1 truncate text-sm font-semibold text-white">
                     {selectedTimerTaskId
-                      ? tasks.find((task) => task.id === selectedTimerTaskId)?.title || "Focus session"
-                      : "Choose a task to start focusing"}
+                      ? tasks.find((task) => task.id === selectedTimerTaskId)?.title || tx("Focus session")
+                      : tx("Choose a task to start focusing")}
                   </div>
                 </div>
                 <div className="shrink-0 font-mono text-2xl font-extrabold text-blue-400">
@@ -6590,13 +7483,13 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   className="flex-1 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {isTimerRunning ? <Pause size={14} /> : <Play size={14} />}
-                  {isTimerRunning ? "Pause" : "Start focus"}
+                  {isTimerRunning ? tx("Pause") : tx("Start focus")}
                 </button>
                 <button
                   type="button"
                   onClick={resetTimer}
                   className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-700 px-3 text-slate-300 transition hover:bg-slate-800"
-                  aria-label="Reset focus timer"
+                  aria-label={tx("Reset focus timer")}
                 >
                   <RotateCcw size={14} />
                 </button>
@@ -6611,9 +7504,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     <Sparkles size={20} />
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-blue-400 uppercase">
-                      Recommended Focus Target
-                    </span>
+                    <span className="text-[10px] font-bold text-blue-400 uppercase">{tx("Recommended Focus Target")}</span>
                     <h3 className="font-semibold text-sm text-white">
                       Focus on:{" "}
                       <span className="underline">{topPriorityTask.title}</span>
@@ -6624,9 +7515,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   type="button"
                   onClick={() => startFocusForTask(topPriorityTask.id)}
                   className="w-full sm:w-auto px-3 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-semibold rounded-lg text-white whitespace-nowrap transition min-h-10"
-                >
-                  Start Focus
-                </button>
+                >{tx("Start Focus")}</button>
               </div>
             )}
 
@@ -6652,7 +7541,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     className="bg-slate-950 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none"
                   >
                     {classes.length === 0 && (
-                      <option value="">Add a class first</option>
+                      <option value="">{tx("Add a class first")}</option>
                     )}
                     {classes.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -6685,7 +7574,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       onChange={(e) => setTaskHours(e.target.value)}
                       className="w-full bg-transparent py-1.5 text-xs focus:outline-none"
                     />
-                    <span className="text-xs text-slate-400 pl-1">hrs</span>
+                    <span className="text-xs text-slate-400 pl-1">{tx("hrs")}</span>
                   </div>
                 </div>
                 <button
@@ -6693,8 +7582,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   disabled={classes.length === 0}
                   className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 rounded-lg text-xs transition"
                 >
-                  <Plus size={16} className="inline mr-2" /> Add Task
-                </button>
+                  <Plus size={16} className="inline mr-2" />{tx("Add Task")}</button>
               </form>
             </div>
 
@@ -6702,8 +7590,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5 space-y-4 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-3">
                 <h2 className="text-base font-bold flex items-center gap-2">
-                  <List size={18} className="text-blue-400" /> Schedule & Tasks
-                </h2>
+                  <List size={18} className="text-blue-400" />{tx("Schedule & Tasks")}</h2>
                 <div className="flex w-full sm:w-auto items-center gap-2 overflow-x-auto">
                   <div className="flex min-w-max items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg p-1 text-[11px]">
                     <Filter size={12} className="text-slate-400 ml-1" />
@@ -6715,9 +7602,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           ? "bg-blue-600 text-white font-bold"
                           : "text-slate-400"
                       }`}
-                    >
-                      All
-                    </button>
+                    >{tx("All")}</button>
                     <button
                       type="button"
                       onClick={() => setTaskFilter("pending")}
@@ -6726,9 +7611,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           ? "bg-blue-600 text-white font-bold"
                           : "text-slate-400"
                       }`}
-                    >
-                      Active
-                    </button>
+                    >{tx("Active")}</button>
                     <button
                       type="button"
                       onClick={() => setTaskFilter("completed")}
@@ -6737,18 +7620,14 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           ? "bg-blue-600 text-white font-bold"
                           : "text-slate-400"
                       }`}
-                    >
-                      Done
-                    </button>
+                    >{tx("Done")}</button>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
                 {filteredTasks.length === 0 && (
-                  <p className="text-xs text-slate-500 py-6 text-center">
-                    No tasks match the filter.
-                  </p>
+                  <p className="text-xs text-slate-500 py-6 text-center">{tx("No tasks match the filter.")}</p>
                 )}
                 {filteredTasks.map((task) => {
                   const taskClass = classes.find((c) => c.id === task.classId);
@@ -6785,7 +7664,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                   : "bg-indigo-500/20 text-indigo-400"
                               }`}
                             >
-                              {task.type}
+                              {task.type === "homework" ? tx("Homework") : tx("Test / Exam")}
                             </span>
                             {taskClass && (
                               <span
@@ -6867,8 +7746,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    <Calendar size={13} /> Calendar
-                  </button>
+                    <Calendar size={13} />{tx("Calendar")}</button>
                   <button
                     type="button"
                     onClick={() => setActiveTab("standards")}
@@ -6878,8 +7756,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    <Award size={13} /> Standards
-                  </button>
+                    <Award size={13} />{tx("Standards")}</button>
                   <button
                     type="button"
                     onClick={() => setActiveTab("streaks")}
@@ -6889,8 +7766,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    <Flame size={13} className="text-amber-400" /> Streaks
-                  </button>
+                    <Flame size={13} className="text-amber-400" />{tx("Streaks")}</button>
                   <button
                     type="button"
                     onClick={() => {
@@ -6904,8 +7780,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    <BookOpen size={13} /> Learning
-                  </button>
+                    <BookOpen size={13} />{tx("Learning")}</button>
                   <button
                     type="button"
                     onClick={() => setActiveTab("timetable")}
@@ -6915,8 +7790,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    <CalendarDays size={13} /> Timetable
-                  </button>
+                    <CalendarDays size={13} />{tx("Timetable")}</button>
                   <button
                     type="button"
                     onClick={() => setActiveTab("grades")}
@@ -6926,8 +7800,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    <Calculator size={13} /> Grades
-                  </button>
+                    <Calculator size={13} />{tx("Grades")}</button>
                   <button
                     type="button"
                     onClick={() => setActiveTab("simulator")}
@@ -6937,8 +7810,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    <Sliders size={13} /> Grade Simulator
-                  </button>
+                    <Sliders size={13} />{tx("Grade Simulator")}</button>
                   <button
                     type="button"
                     onClick={() => {
@@ -6951,8 +7823,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    <Brain size={13} /> AI Planner
-                  </button>
+                    <Brain size={13} />{tx("AI Planner")}</button>
                   <button
                     type="button"
                     onClick={() => {
@@ -6965,8 +7836,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    <BarChart3 size={13} /> Analytics
-                  </button>
+                    <BarChart3 size={13} />{tx("Analytics")}</button>
                   <button
                     type="button"
                     onClick={() => {
@@ -6979,8 +7849,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    <Trophy size={13} /> Clan
-                  </button>
+                    <Trophy size={13} />{tx("Clan")}</button>
                 </div>
               </div>
 
@@ -6991,11 +7860,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 text-sm font-bold text-white">
-                          <Trophy size={18} className="text-violet-400" /> Study Clan
-                        </div>
-                        <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                          Join a clan and compete on actual study time recorded by Focus sessions.
-                        </p>
+                          <Trophy size={18} className="text-violet-400" />{tx("Study Clan")}</div>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-400">{tx("Join a clan and compete on actual study time recorded by Focus sessions.")}</p>
                       </div>
                       <button
                         type="button"
@@ -7004,11 +7870,10 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-rose-500/25 bg-rose-500/5 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                         title="Reset clan connection"
                       >
-                        <RotateCcw size={14} /> Reset clan
-                      </button>
+                        <RotateCcw size={14} />{tx("Reset clan")}</button>
                       {clan && (
                         <div className="rounded-xl border border-violet-500/20 bg-slate-950/70 px-4 py-3 text-center">
-                          <div className="text-[10px] uppercase tracking-wider text-slate-500">Your rank</div>
+                          <div className="text-[10px] uppercase tracking-wider text-slate-500">{tx("Your rank")}</div>
                           <div className="text-2xl font-extrabold text-violet-300">
                             #{Math.max(1, clanMembers.findIndex((member) => member.user_id === userId) + 1)}
                           </div>
@@ -7028,7 +7893,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     <div className="space-y-4">
                       <div className="grid gap-4 md:grid-cols-2">
                       <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3">
-                        <div className="text-sm font-bold text-white">Create a clan</div>
+                        <div className="text-sm font-bold text-white">{tx("Create a clan")}</div>
                         <input
                           value={newClanName}
                           onChange={(e) => setNewClanName(e.target.value)}
@@ -7047,12 +7912,12 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           disabled={clanLoading || !newClanName.trim() || !clanDisplayName.trim()}
                           className="w-full rounded-lg bg-violet-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          <span className="inline-flex items-center justify-center gap-2"><Trophy size={15} /> Create clan</span>
+                          <span className="inline-flex items-center justify-center gap-2"><Trophy size={15} />{tx("Create clan")}</span>
                         </button>
                       </div>
 
                       <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3">
-                        <div className="text-sm font-bold text-white">Join a clan</div>
+                        <div className="text-sm font-bold text-white">{tx("Join a clan")}</div>
                         <input
                           value={joinClanCode}
                           onChange={(e) => setJoinClanCode(e.target.value.toUpperCase())}
@@ -7072,14 +7937,14 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           disabled={clanLoading || joinClanCode.trim().length < 6 || !clanDisplayName.trim()}
                           className="w-full rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2.5 text-sm font-semibold text-violet-300 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          <span className="inline-flex items-center justify-center gap-2"><UserPlus size={15} /> Join clan</span>
+                          <span className="inline-flex items-center justify-center gap-2"><UserPlus size={15} />{tx("Join clan")}</span>
                         </button>
                       </div>
 
                       <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
-                            <div className="text-sm font-semibold text-white">Having trouble with an old clan?</div>
+                            <div className="text-sm font-semibold text-white">{tx("Having trouble with an old clan?")}</div>
                             <p className="mt-1 text-xs text-slate-400">
                               Reset the saved clan connection on your account and this device, then start fresh.
                             </p>
@@ -7090,8 +7955,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                             disabled={clanLoading}
                             className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs font-semibold text-amber-300 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            <RotateCcw size={14} /> Reset clan
-                          </button>
+                            <RotateCcw size={14} />{tx("Reset clan")}</button>
                         </div>
                       </div>
                     </div>
@@ -7115,7 +7979,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                       <div className="rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden">
                         <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-                          <div className="flex items-center gap-2 text-sm font-bold text-white"><Trophy size={16} className="text-amber-400" /> Study leaderboard</div>
+                          <div className="flex items-center gap-2 text-sm font-bold text-white"><Trophy size={16} className="text-amber-400" />{tx("Study leaderboard")}</div>
                           <div className="text-[10px] uppercase tracking-wider text-slate-500">{clanStorageMode === "local" ? "Live" : "All-time"}</div>
                         </div>
                         <div className="divide-y divide-slate-800/70">
@@ -7124,7 +7988,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-extrabold ${index === 0 ? "bg-amber-500/15 text-amber-300" : index === 1 ? "bg-slate-700/40 text-slate-200" : index === 2 ? "bg-orange-500/10 text-orange-300" : "bg-slate-900 text-slate-500"}`}>{index + 1}</div>
                               <div className="min-w-0 flex-1">
                                 <div className="truncate text-sm font-semibold text-slate-100">{member.display_name}{member.user_id === userId ? " (You)" : ""}</div>
-                                <div className="mt-0.5 text-[10px] text-slate-500">Focus time</div>
+                                <div className="mt-0.5 text-[10px] text-slate-500">{tx("Focus time")}</div>
                               </div>
                               <div className="text-right">
                                 <div className="text-sm font-extrabold text-violet-300">{(member.study_minutes / 60).toFixed(1)}h</div>
@@ -7132,7 +7996,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               </div>
                             </div>
                           ))}
-                          {clanMembers.length === 0 && <div className="px-4 py-8 text-center text-sm text-slate-500">No members yet.</div>}
+                          {clanMembers.length === 0 && <div className="px-4 py-8 text-center text-sm text-slate-500">{tx("No members yet.")}</div>}
                         </div>
                       </div>
                     </div>
@@ -7147,8 +8011,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <div className="flex items-center gap-2 text-sm font-bold text-white">
-                          <Brain size={18} className="text-blue-400" /> AI Study Planner
-                        </div>
+                          <Brain size={18} className="text-blue-400" />{tx("AI Study Planner")}</div>
                         <p className="mt-1 text-xs leading-relaxed text-slate-400">
                           Builds a 7-day plan from work that still has time remaining, deadlines, tests, and time already logged. Planned time is not counted as completed study time.
                         </p>
@@ -7156,11 +8019,11 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       <div className="grid grid-cols-2 gap-2 text-center sm:min-w-44">
                         <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2">
                           <div className="text-lg font-extrabold text-white">{aiStudyPlan.pendingCount}</div>
-                          <div className="text-[10px] text-slate-500 uppercase">Tasks</div>
+                          <div className="text-[10px] text-slate-500 uppercase">{tx("Tasks")}</div>
                         </div>
                         <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2">
                           <div className="text-lg font-extrabold text-blue-400">{(aiStudyPlan.totalScheduledMinutes / 60).toFixed(1)}h</div>
-                          <div className="text-[10px] text-slate-500 uppercase">Planned time</div>
+                          <div className="text-[10px] text-slate-500 uppercase">{tx("Planned time")}</div>
                         </div>
                       </div>
                     </div>
@@ -7184,9 +8047,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           </div>
                           <div className="mt-3 space-y-2">
                             {day.items.length === 0 ? (
-                              <div className="rounded-xl border border-dashed border-slate-800 p-3 text-xs text-slate-500">
-                                Use this as catch-up, review, or rest time.
-                              </div>
+                              <div className="rounded-xl border border-dashed border-slate-800 p-3 text-xs text-slate-500">{tx("Use this as catch-up, review, or rest time.")}</div>
                             ) : day.items.map((item) => (
                               <div key={`${day.key}-${item.taskId}`} className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
                                 <div className="flex items-start justify-between gap-2">
@@ -7201,8 +8062,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                   onClick={() => startFocusForTask(item.taskId)}
                                   className="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-blue-500/20 bg-blue-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-blue-300 transition hover:bg-blue-500/20"
                                 >
-                                  <Play size={12} /> Start focus on this task
-                                </button>
+                                  <Play size={12} />{tx("Start focus on this task")}</button>
                               </div>
                             ))}
                           </div>
@@ -7213,7 +8073,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                   {aiStudyPlan.unscheduledTasks.length > 0 && (
                     <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
-                      <div className="flex items-center gap-2 text-xs font-bold text-amber-300"><AlertTriangle size={14} /> Some work does not fit in the next 7 days</div>
+                      <div className="flex items-center gap-2 text-xs font-bold text-amber-300"><AlertTriangle size={14} />{tx("Some work does not fit in the next 7 days")}</div>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {aiStudyPlan.unscheduledTasks.map((item) => (
                           <span key={item.task.id} className="rounded-full border border-amber-500/20 bg-slate-950 px-2.5 py-1 text-[10px] text-slate-300">{item.task.title}</span>
@@ -7229,24 +8089,24 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 <div className="space-y-4 pt-1">
                   <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
-                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Study time</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tx("Study time")}</div>
                       <div className="mt-1 text-2xl font-extrabold text-blue-400">{analytics.totalStudyHours.toFixed(1)}h</div>
-                      <div className="mt-1 text-[10px] text-slate-500">actual logged study time</div>
+                      <div className="mt-1 text-[10px] text-slate-500">{tx("actual logged study time")}</div>
                     </div>
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
-                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Task completion</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tx("Task completion")}</div>
                       <div className="mt-1 text-2xl font-extrabold text-emerald-400">{Math.round(analytics.completionRate * 100)}%</div>
                       <div className="mt-1 text-[10px] text-slate-500">{analytics.completedTaskCount} of {tasks.length}</div>
                     </div>
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
-                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">This week</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tx("This week")}</div>
                       <div className="mt-1 text-2xl font-extrabold text-violet-400">{analytics.weekHours.toFixed(1)}h</div>
                       <div className="mt-1 text-[10px] text-slate-500">Mon–Sun · {analytics.weekLabel}</div>
                     </div>
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
-                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Missed deadlines</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tx("Missed deadlines")}</div>
                       <div className="mt-1 text-2xl font-extrabold text-rose-400">{analytics.missedDeadlineTasks.length}</div>
-                      <div className="mt-1 text-[10px] text-slate-500">unfinished past due</div>
+                      <div className="mt-1 text-[10px] text-slate-500">{tx("unfinished past due")}</div>
                     </div>
                   </div>
 
@@ -7254,8 +8114,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="flex items-center gap-2 text-sm font-bold text-white"><TrendingUp size={16} className="text-blue-400" /> Weekly study time</h3>
-                          <p className="mt-0.5 text-[10px] text-slate-500">Focus minutes recorded during the current Monday–Sunday week</p>
+                          <h3 className="flex items-center gap-2 text-sm font-bold text-white"><TrendingUp size={16} className="text-blue-400" />{tx("Weekly study time")}</h3>
+                          <p className="mt-0.5 text-[10px] text-slate-500">{tx("Focus minutes recorded during the current Monday–Sunday week")}</p>
                         </div>
                         <span className="text-xs font-semibold text-slate-400">Goal {analytics.weeklyGoalHours}h</span>
                       </div>
@@ -7302,14 +8162,14 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <h3 className="flex items-center gap-2 text-sm font-bold text-white"><BarChart3 size={16} className="text-emerald-400" /> Study time vs. grades</h3>
-                          <p className="mt-0.5 text-[10px] text-slate-500">Up to 8 of your classes, ranked by logged study time</p>
+                          <h3 className="flex items-center gap-2 text-sm font-bold text-white"><BarChart3 size={16} className="text-emerald-400" />{tx("Study time vs. grades")}</h3>
+                          <p className="mt-0.5 text-[10px] text-slate-500">{tx("Up to 8 of your classes, ranked by logged study time")}</p>
                         </div>
                         <span className="shrink-0 text-[10px] text-slate-500">{Math.min(8, analytics.classStudy.length)} shown</span>
                       </div>
                       <div className="mt-4 max-h-[420px] space-y-3 overflow-y-auto pr-1">
                         {analytics.classStudy.length === 0 ? (
-                          <div className="rounded-xl border border-dashed border-slate-800 p-6 text-center text-xs text-slate-500">Add a class to see its grade and study-time comparison.</div>
+                          <div className="rounded-xl border border-dashed border-slate-800 p-6 text-center text-xs text-slate-500">{tx("Add a class to see its grade and study-time comparison.")}</div>
                         ) : analytics.classStudy.slice(0, 8).map((item) => {
                           const maxHours = Math.max(1, ...analytics.classStudy.map((entry) => entry.hours));
                           const width = item.hours > 0 ? Math.max(6, (item.hours / maxHours) * 100) : 3;
@@ -7331,10 +8191,10 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                   <div className="grid gap-4 lg:grid-cols-2">
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
-                      <h3 className="flex items-center gap-2 text-sm font-bold text-white"><Flame size={16} className="text-amber-400" /> Streaks</h3>
+                      <h3 className="flex items-center gap-2 text-sm font-bold text-white"><Flame size={16} className="text-amber-400" />{tx("Streaks")}</h3>
                       <div className="mt-3 space-y-2">
                         {analytics.streakAnalytics.length === 0 ? (
-                          <div className="rounded-xl border border-dashed border-slate-800 p-5 text-center text-xs text-slate-500">Create a habit to start tracking streaks.</div>
+                          <div className="rounded-xl border border-dashed border-slate-800 p-5 text-center text-xs text-slate-500">{tx("Create a habit to start tracking streaks.")}</div>
                         ) : analytics.streakAnalytics.map((habit) => (
                           <div key={habit.id} className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2.5">
                             <div className="flex min-w-0 items-center gap-2">
@@ -7351,10 +8211,10 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     </div>
 
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
-                      <h3 className="flex items-center gap-2 text-sm font-bold text-white"><AlertTriangle size={16} className="text-rose-400" /> Missed deadlines</h3>
+                      <h3 className="flex items-center gap-2 text-sm font-bold text-white"><AlertTriangle size={16} className="text-rose-400" />{tx("Missed deadlines")}</h3>
                       <div className="mt-3 space-y-2">
                         {analytics.missedDeadlineTasks.length === 0 ? (
-                          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-xs text-emerald-300"><CheckCircle2 size={15} /> No unfinished tasks are past due.</div>
+                          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-xs text-emerald-300"><CheckCircle2 size={15} />{tx("No unfinished tasks are past due.")}</div>
                         ) : analytics.missedDeadlineTasks.slice(0, 5).map((task) => {
                           const cls = classes.find((c) => c.id === task.classId);
                           return (
@@ -7367,9 +8227,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                 type="button"
                                 onClick={() => setMobileTab("tasks")}
                                 className="shrink-0 rounded-lg border border-slate-700 px-2 py-1 text-[10px] font-semibold text-slate-300"
-                              >
-                                Open
-                              </button>
+                              >{tx("Open")}</button>
                             </div>
                           );
                         })}
@@ -7388,9 +8246,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
                         <Calendar size={18} className="text-blue-400" /> {currentMonth}
                       </h3>
-                      <p className="text-[11px] text-slate-400">
-                        Academic Calendar showing school days, official breaks, and holidays.
-                      </p>
+                      <p className="text-[11px] text-slate-400">{tx("Academic Calendar showing school days, official breaks, and holidays.")}</p>
                     </div>
 
                     <div className="flex w-full sm:w-auto flex-wrap items-center gap-2 self-start sm:self-auto">
@@ -7400,9 +8256,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition"
                         title="Add a calendar event manually"
                       >
-                        <Plus size={14} />
-                        Add Event
-                      </button>
+                        <Plus size={14} />{tx("Add Event")}</button>
                       <button
                         type="button"
                         onClick={handleGoogleCalendarSync}
@@ -7424,9 +8278,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
                         title="Review similar Google events before merging them"
                       >
-                        <Sparkles size={14} />
-                        Review & Organize
-                      </button>
+                        <Sparkles size={14} />{tx("Review & Organize")}</button>
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
@@ -7440,9 +8292,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           type="button"
                           onClick={resetToToday}
                           className="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition min-h-10"
-                        >
-                          Today
-                        </button>
+                        >{tx("Today")}</button>
                         <button
                           type="button"
                           onClick={nextMonth}
@@ -7478,24 +8328,22 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                   {/* CALENDAR LEGEND & COLORED KEYS */}
                   <div className="flex flex-wrap items-center gap-2 sm:gap-4 p-2.5 bg-slate-950/80 rounded-xl border border-slate-800/80 text-[11px]">
-                    <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wider mr-1">
-                      Legend:
-                    </span>
+                    <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wider mr-1">{tx("Legend:")}</span>
                     <div className="flex items-center gap-1.5">
                       <span className="w-3 h-3 rounded border border-emerald-500/40 bg-slate-900" />
-                      <span className="text-slate-300">School Day</span>
+                      <span className="text-slate-300">{tx("School Day")}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="w-3 h-3 rounded border border-amber-800/50 bg-amber-950/40" />
-                      <span className="text-amber-200/90 font-medium">School Break / Holiday</span>
+                      <span className="text-amber-200/90 font-medium">{tx("School Break / Holiday")}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="w-3 h-3 rounded border border-indigo-800/50 bg-indigo-950/40" />
-                      <span className="text-indigo-200/90 font-medium">Staff PD (No Students)</span>
+                      <span className="text-indigo-200/90 font-medium">{tx("Staff PD (No Students)")}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="w-3 h-3 rounded border border-cyan-800/50 bg-cyan-950/40" />
-                      <span className="text-cyan-200/90 font-medium">Early Dismissal</span>
+                      <span className="text-cyan-200/90 font-medium">{tx("Early Dismissal")}</span>
                     </div>
                   </div>
 
@@ -7623,9 +8471,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               {day}
                             </span>
                             {isToday && (
-                              <span className="text-[8px] bg-blue-500/20 text-blue-300 font-bold px-1 rounded border border-blue-500/30">
-                                Today
-                              </span>
+                              <span className="text-[8px] bg-blue-500/20 text-blue-300 font-bold px-1 rounded border border-blue-500/30">{tx("Today")}</span>
                             )}
                           </div>
 
@@ -7797,9 +8643,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           <h3 className="text-sm font-bold">
                             {activeClass.name}
                           </h3>
-                          <p className="text-[10px] text-slate-400">
-                            Standards-Based Grade Evaluation
-                          </p>
+                          <p className="text-[10px] text-slate-400">{tx("Standards-Based Grade Evaluation")}</p>
                         </div>
                       </div>
                       <div className="text-right">
@@ -7831,17 +8675,13 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         type="button"
                         onClick={() => addStandardToClass(activeClass.id)}
                         className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-500"
-                      >
-                        Add
-                      </button>
+                      >{tx("Add")}</button>
                     </div>
 
                     <div className="space-y-2.5">
                       {!activeClass.standards ||
                       activeClass.standards.length === 0 ? (
-                        <p className="text-xs text-slate-500 text-center py-4">
-                          No standards added yet.
-                        </p>
+                        <p className="text-xs text-slate-500 text-center py-4">{tx("No standards added yet.")}</p>
                       ) : (
                         activeClass.standards.map((st) => (
                           <div
@@ -7908,9 +8748,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500 text-center py-6">
-                    No class selected.
-                  </p>
+                  <p className="text-xs text-slate-500 text-center py-6">{tx("No class selected.")}</p>
                 ))}
 
               {/* TAB: STREAKS */}
@@ -7919,8 +8757,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-950 p-4 rounded-xl border border-slate-800 gap-3">
                     <div>
                       <h3 className="text-sm font-bold flex items-center gap-2 text-white">
-                        <Flame size={18} className="text-amber-500 fill-amber-500" /> Habit Streaks
-                      </h3>
+                        <Flame size={18} className="text-amber-500 fill-amber-500" />{tx("Habit Streaks")}</h3>
                       <p className="text-[10px] text-slate-400">
                         Build consistency by keeping weekly habit streaks active. Click checkmarks to complete!
                       </p>
@@ -7939,9 +8776,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         type="button"
                         onClick={resetStreakWeekToToday}
                         className="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition min-h-10"
-                      >
-                        This Week
-                      </button>
+                      >{tx("This Week")}</button>
                       <button
                         type="button"
                         onClick={nextStreakWeek}
@@ -7955,8 +8790,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                   <form onSubmit={addStreak} className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
                     <h4 className="text-xs font-bold text-blue-400 uppercase flex items-center gap-1.5">
-                      <Plus size={14} /> Add New Habit Streak
-                    </h4>
+                      <Plus size={14} />{tx("Add New Habit Streak")}</h4>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <input
                         type="text"
@@ -7976,8 +8810,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         type="submit"
                         className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition shrink-0"
                       >
-                        <Plus size={14} /> Create Streak
-                      </button>
+                        <Plus size={14} />{tx("Create Streak")}</button>
                     </div>
                   </form>
 
@@ -7992,15 +8825,11 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                             <span>
                               Week of {weekDates[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })} - {weekDates[6].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                             </span>
-                            <span className="text-[10px] text-slate-500">
-                              Click checkmark to toggle
-                            </span>
+                            <span className="text-[10px] text-slate-500">{tx("Click checkmark to toggle")}</span>
                           </div>
 
                           {streaks.length === 0 ? (
-                            <div className="text-center py-8 text-slate-500 text-xs">
-                              No habit streaks created yet. Create one above to begin!
-                            </div>
+                            <div className="text-center py-8 text-slate-500 text-xs">{tx("No habit streaks created yet. Create one above to begin!")}</div>
                           ) : (
                             <div className="space-y-3">
                               {streaks.map((habit) => {
@@ -8028,8 +8857,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                           <Flame size={14} className="fill-amber-500" />
                                           <span>{currentStreak} day streak</span>
                                         </div>
-                                        <div className="text-[10px] text-slate-400 font-mono bg-slate-950 border border-slate-800 px-2 py-1 rounded-lg">
-                                          Best: <strong className="text-slate-200">{bestStreak}d</strong>
+                                        <div className="text-[10px] text-slate-400 font-mono bg-slate-950 border border-slate-800 px-2 py-1 rounded-lg">{tx("Best:")}<strong className="text-slate-200">{bestStreak}d</strong>
                                         </div>
                                         <button
                                           type="button"
@@ -8103,15 +8931,13 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <div className="flex items-center gap-2 text-sm font-bold text-white">
-                          <BookOpen size={18} className="text-blue-400" /> Learning Lab
-                        </div>
+                          <BookOpen size={18} className="text-blue-400" />{tx("Learning Lab")}</div>
                         <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-400">
                           Add your own class materials, then build source-grounded notes, flashcards, and practice quizzes for that class.
                         </p>
                       </div>
                       <div className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-slate-950/70 px-3 py-2 text-[10px] text-slate-400">
-                        <Sparkles size={13} className="text-blue-400" /> AI-generated from your materials
-                      </div>
+                        <Sparkles size={13} className="text-blue-400" />{tx("AI-generated from your materials")}</div>
                     </div>
                   </div>
 
@@ -8125,7 +8951,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   <div className="grid gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
                     <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-4">
                       <div>
-                        <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Class</label>
+                        <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">{tx("Class")}</label>
                         <select
                           value={learningClassId}
                           onChange={(e) => {
@@ -8137,13 +8963,13 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           disabled={classes.length === 0}
                           className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5 text-xs font-semibold text-white outline-none focus:border-blue-500"
                         >
-                          {classes.length === 0 ? <option value="">Add a class first</option> : null}
+                          {classes.length === 0 ? <option value="">{tx("Add a class first")}</option> : null}
                           {classes.map((cls) => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
                         </select>
                       </div>
 
                       <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3 space-y-3">
-                        <div className="text-xs font-bold text-white">Add class material</div>
+                        <div className="text-xs font-bold text-white">{tx("Add class material")}</div>
                         <input
                           value={learningMaterialTitle}
                           onChange={(e) => setLearningMaterialTitle(e.target.value)}
@@ -8168,20 +8994,18 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                             onClick={addLearningMaterial}
                             disabled={!learningClassId || !learningMaterialText.trim()}
                             className="flex-1 rounded-lg bg-blue-600 px-3 py-2.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            Add material
-                          </button>
+                          >{tx("Add material")}</button>
                         </div>
                       </div>
 
                       <div>
                         <div className="mb-2 flex items-center justify-between">
-                          <div className="text-xs font-bold text-white">Materials for this class</div>
+                          <div className="text-xs font-bold text-white">{tx("Materials for this class")}</div>
                           <span className="text-[10px] text-slate-500">{learningMaterials.filter((item) => item.classId === learningClassId).length}</span>
                         </div>
                         <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
                           {learningMaterials.filter((item) => item.classId === learningClassId).length === 0 ? (
-                            <div className="rounded-xl border border-dashed border-slate-800 p-4 text-center text-xs text-slate-500">Your class material library is empty.</div>
+                            <div className="rounded-xl border border-dashed border-slate-800 p-4 text-center text-xs text-slate-500">{tx("Your class material library is empty.")}</div>
                           ) : (
                             learningMaterials.filter((item) => item.classId === learningClassId).map((item) => (
                               <div key={item.id} className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 p-3">
@@ -8216,7 +9040,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                 <h3 className="truncate text-base font-bold text-white">{activeLearningBundle.title}</h3>
                                 <p className="mt-1 text-xs leading-relaxed text-slate-400">{activeLearningBundle.summary}</p>
                               </div>
-                              <button type="button" onClick={generateLearningPack} disabled={learningGenerating} className="shrink-0 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-[10px] font-semibold text-blue-300 hover:bg-blue-500/20">Regenerate</button>
+                              <button type="button" onClick={generateLearningPack} disabled={learningGenerating} className="shrink-0 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-[10px] font-semibold text-blue-300 hover:bg-blue-500/20">{tx("Regenerate")}</button>
                             </div>
                             <div className="mt-4 flex gap-1 overflow-x-auto rounded-lg border border-slate-800 bg-slate-900/60 p-1">
                               {(["notes", "flashcards", "quiz"] as const).map((view) => (
@@ -8248,7 +9072,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           {learningView === "flashcards" && (
                             <div className="p-4">
                               {activeLearningBundle.flashcards.length === 0 ? (
-                                <div className="py-16 text-center text-sm text-slate-500">No flashcards were generated.</div>
+                                <div className="py-16 text-center text-sm text-slate-500">{tx("No flashcards were generated.")}</div>
                               ) : (
                                 <div className="space-y-4">
                                   <button type="button" onClick={() => setLearningFlashcardFlipped((current) => !current)} className="flex min-h-[280px] w-full flex-col items-center justify-center rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-600/10 to-slate-900 p-8 text-center transition hover:border-blue-400/40">
@@ -8262,12 +9086,12 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                           }
                                         />
                                       </div>
-                                    <div className="mt-6 text-[10px] text-slate-500">Tap to flip</div>
+                                    <div className="mt-6 text-[10px] text-slate-500">{tx("Tap to flip")}</div>
                                   </button>
                                   <div className="flex items-center justify-between gap-2">
-                                    <button type="button" onClick={() => { setLearningFlashcardIndex((current) => (current - 1 + activeLearningBundle.flashcards.length) % activeLearningBundle.flashcards.length); setLearningFlashcardFlipped(false); }} className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white">Previous</button>
+                                    <button type="button" onClick={() => { setLearningFlashcardIndex((current) => (current - 1 + activeLearningBundle.flashcards.length) % activeLearningBundle.flashcards.length); setLearningFlashcardFlipped(false); }} className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white">{tx("Previous")}</button>
                                     <span className="text-xs font-mono text-slate-500">{learningFlashcardIndex + 1} / {activeLearningBundle.flashcards.length}</span>
-                                    <button type="button" onClick={() => { setLearningFlashcardIndex((current) => (current + 1) % activeLearningBundle.flashcards.length); setLearningFlashcardFlipped(false); }} className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white">Next</button>
+                                    <button type="button" onClick={() => { setLearningFlashcardIndex((current) => (current + 1) % activeLearningBundle.flashcards.length); setLearningFlashcardFlipped(false); }} className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white">{tx("Next")}</button>
                                   </div>
                                 </div>
                               )}
@@ -8276,7 +9100,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                           {learningView === "quiz" && (
                             <div className="max-h-[620px] space-y-4 overflow-y-auto p-4">
-                              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-xs text-slate-400">Score: <span className="font-bold text-white">{learningQuizScore} / {activeLearningBundle.quiz.length}</span> answered: {Object.keys(learningQuizAnswers).length}</div>
+                              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-xs text-slate-400">{tx("Score:")}<span className="font-bold text-white">{learningQuizScore} / {activeLearningBundle.quiz.length}</span> answered: {Object.keys(learningQuizAnswers).length}</div>
                               {activeLearningBundle.quiz.map((question, index) => {
                                 const selected = learningQuizAnswers[index];
                                 const answered = selected !== undefined;
@@ -8294,11 +9118,11 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                         );
                                       })}
                                     </div>
-                                    {answered && <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/70 p-3 text-[11px] leading-relaxed text-slate-400"><span className="font-bold text-slate-200">Why:</span> {question.explanation}</div>}
+                                    {answered && <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/70 p-3 text-[11px] leading-relaxed text-slate-400"><span className="font-bold text-slate-200">{tx("Why:")}</span> {question.explanation}</div>}
                                   </div>
                                 );
                               })}
-                              <button type="button" onClick={() => setLearningQuizAnswers({})} className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white">Reset quiz</button>
+                              <button type="button" onClick={() => setLearningQuizAnswers({})} className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white">{tx("Reset quiz")}</button>
                             </div>
                           )}
                         </>
@@ -8306,8 +9130,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         <div className="grid min-h-[520px] place-items-center p-8 text-center">
                           <div className="max-w-sm">
                             <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-blue-500/20 bg-blue-500/10 text-blue-400"><BookOpen size={22} /></div>
-                            <h3 className="mt-4 text-base font-bold text-white">Your learning pack will appear here</h3>
-                            <p className="mt-2 text-xs leading-relaxed text-slate-500">Select a class, add your materials, then generate custom notes, flashcards, and a practice quiz.</p>
+                            <h3 className="mt-4 text-base font-bold text-white">{tx("Your learning pack will appear here")}</h3>
+                            <p className="mt-2 text-xs leading-relaxed text-slate-500">{tx("Select a class, add your materials, then generate custom notes, flashcards, and a practice quiz.")}</p>
                           </div>
                         </div>
                       )}
@@ -8341,7 +9165,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 <div className="space-y-4 pt-1 overflow-x-auto pb-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-bold">Weekly Class Schedule</h3>
+                      <h3 className="text-sm font-bold">{tx("Weekly Class Schedule")}</h3>
                       <p className="text-[11px] text-slate-500 mt-0.5">
                         Week of {weekDates[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })} – {weekDates[6].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · classes &amp; clubs repeat every week; Google Calendar events &amp; tasks shown are for this week
                       </p>
@@ -8359,9 +9183,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         type="button"
                         onClick={resetTimetableWeekToToday}
                         className="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition min-h-10"
-                      >
-                        This Week
-                      </button>
+                      >{tx("This Week")}</button>
                       <button
                         type="button"
                         onClick={nextTimetableWeek}
@@ -8375,16 +9197,13 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                   <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
                     <h4 className="text-xs font-bold text-blue-400 uppercase flex items-center gap-1.5">
-                      <Plus size={14} /> Add Class Session to Timetable
-                    </h4>
+                      <Plus size={14} />{tx("Add Class Session to Timetable")}</h4>
                     <form
                       onSubmit={addMeetingTimeToClass}
                       className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 items-end"
                     >
                       <div>
-                        <label className="text-[10px] text-slate-400 font-bold block mb-1">
-                          Select Class
-                        </label>
+                        <label className="text-[10px] text-slate-400 font-bold block mb-1">{tx("Select Class")}</label>
                         <select
                           value={timetableClassId}
                           onChange={(e) => setTimetableClassId(e.target.value)}
@@ -8392,7 +9211,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           className="w-full bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:border-blue-500"
                         >
                           {classes.length === 0 && (
-                            <option value="">Add a class first</option>
+                            <option value="">{tx("Add a class first")}</option>
                           )}
                           {classes.map((c) => (
                             <option key={c.id} value={c.id}>
@@ -8403,9 +9222,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       </div>
 
                       <div>
-                        <label className="text-[10px] text-slate-400 font-bold block mb-1">
-                          Day
-                        </label>
+                        <label className="text-[10px] text-slate-400 font-bold block mb-1">{tx("Day")}</label>
                         <select
                           value={timetableDay}
                           onChange={(e) =>
@@ -8432,9 +9249,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       </div>
 
                       <div>
-                        <label className="text-[10px] text-slate-400 font-bold block mb-1">
-                          Start Time
-                        </label>
+                        <label className="text-[10px] text-slate-400 font-bold block mb-1">{tx("Start Time")}</label>
                         <input
                           type="time"
                           value={timetableStartTime}
@@ -8444,9 +9259,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       </div>
 
                       <div>
-                        <label className="text-[10px] text-slate-400 font-bold block mb-1">
-                          End Time
-                        </label>
+                        <label className="text-[10px] text-slate-400 font-bold block mb-1">{tx("End Time")}</label>
                         <input
                           type="time"
                           value={timetableEndTime}
@@ -8460,14 +9273,13 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         disabled={classes.length === 0}
                         className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition"
                       >
-                        <Plus size={14} /> Add Slot
-                      </button>
+                        <Plus size={14} />{tx("Add Slot")}</button>
                     </form>
                   </div>
 
                   <div className="min-w-[700px] border border-slate-800 rounded-xl bg-slate-950/50 flex flex-col overflow-hidden select-none">
                     <div className="grid grid-cols-8 border-b border-slate-800 bg-slate-900 text-xs font-bold text-slate-400 text-center py-2.5">
-                      <div className="text-[10px] text-slate-500 flex items-center justify-center">Time</div>
+                      <div className="text-[10px] text-slate-500 flex items-center justify-center">{tx("Time")}</div>
                       {daysOfWeek.map((d, i) => (
                         <div key={d} className="flex flex-col items-center gap-0.5">
                           <span className={weekDateKeys[i] === todayKey ? "text-blue-400" : undefined}>{d.slice(0, 3)}</span>
@@ -8479,9 +9291,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     </div>
 
                     <div className="grid grid-cols-8 border-b border-slate-800/80 bg-slate-950/70 min-h-[38px]">
-                      <div className="p-1.5 border-r border-slate-800/80 text-[9px] font-mono text-slate-500 text-center flex items-center justify-center uppercase tracking-wide">
-                        All day
-                      </div>
+                      <div className="p-1.5 border-r border-slate-800/80 text-[9px] font-mono text-slate-500 text-center flex items-center justify-center uppercase tracking-wide">{tx("All day")}</div>
                       {daysOfWeek.map((day, dayIndex) => (
                         <div key={day} className="p-1 border-r border-slate-800/40 space-y-1">
                           {weekAllDayGoogleEvents[dayIndex].map((event) => (
@@ -8619,14 +9429,13 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div>
                       <h3 className="text-base font-bold text-white flex items-center gap-2">
-                        <GraduationCap size={18} className="text-emerald-400" /> Academic Performance Summary
-                      </h3>
+                        <GraduationCap size={18} className="text-emerald-400" />{tx("Academic Performance Summary")}</h3>
                       <p className="text-xs text-slate-400 mt-0.5">
                         Overview of current grades, targets, and cumulative GPA status across all enrolled subjects.
                       </p>
                     </div>
                     <div className="bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-center">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Cumulative GPA</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">{tx("Cumulative GPA")}</span>
                       <span className="text-xl font-extrabold text-emerald-400 font-mono">
                         {cumulativeGPA > 0 ? `${pointsToLetter(cumulativeGPA)} (${cumulativeGPA.toFixed(2)})` : "N/A"}
                       </span>
@@ -8660,7 +9469,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                             <div className="flex items-center gap-3">
                               <div className="text-right">
-                                <span className="text-[10px] text-slate-400 block font-semibold">Target Grade</span>
+                                <span className="text-[10px] text-slate-400 block font-semibold">{tx("Target Grade")}</span>
                                 <select
                                   value={cls.targetGrade || "A"}
                                   onChange={(e) => {
@@ -8682,7 +9491,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               </div>
 
                               <div className="text-right">
-                                <span className="text-[10px] text-slate-400 block font-semibold">Current Grade</span>
+                                <span className="text-[10px] text-slate-400 block font-semibold">{tx("Current Grade")}</span>
                                 <span className="text-sm font-extrabold text-emerald-400 font-mono">
                                   {currentGrade} {sbg.gpa > 0 && !cls.manualGrade ? `(${sbg.gpa.toFixed(2)})` : ""}
                                 </span>
@@ -8692,11 +9501,9 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                           <div className="flex items-center justify-between text-xs pt-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-slate-400 text-[11px]">Status:</span>
+                              <span className="text-slate-400 text-[11px]">{tx("Status:")}</span>
                               {currentGrade === "N/A" ? (
-                                <span className="text-[10px] bg-slate-900 border border-slate-800 px-2 py-0.5 rounded text-slate-400">
-                                  No evaluations yet
-                                </span>
+                                <span className="text-[10px] bg-slate-900 border border-slate-800 px-2 py-0.5 rounded text-slate-400">{tx("No evaluations yet")}</span>
                               ) : isMeetingTarget ? (
                                 <span className="text-[10px] bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded font-bold">
                                   On Track for Target ({cls.targetGrade})
@@ -8724,8 +9531,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 <div className="space-y-4 pt-1">
                   <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
                     <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <Sliders size={18} className="text-blue-400" /> Target Grade Simulator
-                    </h3>
+                      <Sliders size={18} className="text-blue-400" />{tx("Target Grade Simulator")}</h3>
                     <p className="text-xs text-slate-400">
                       Calculate required average scores on upcoming standards to reach your target grade.
                     </p>
@@ -8735,14 +9541,11 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     {/* Parameters Form */}
                     <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-4">
                       <h4 className="text-xs font-bold text-blue-400 uppercase flex items-center gap-1.5">
-                        <Target size={14} /> Course Parameters
-                      </h4>
+                        <Target size={14} />{tx("Course Parameters")}</h4>
 
                       <div className="space-y-3">
                         <div>
-                          <label className="text-xs text-slate-400 font-semibold block mb-1">
-                            Active Course
-                          </label>
+                          <label className="text-xs text-slate-400 font-semibold block mb-1">{tx("Active Course")}</label>
                           <select
                             value={selectedClassId}
                             onChange={(e) => setSelectedClassId(e.target.value)}
@@ -8757,9 +9560,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         </div>
 
                         <div>
-                          <label className="text-xs text-slate-400 font-semibold block mb-1">
-                            Current Grade Level
-                          </label>
+                          <label className="text-xs text-slate-400 font-semibold block mb-1">{tx("Current Grade Level")}</label>
                           <select
                             value={simCurrentGrade}
                             onChange={(e) => setSimCurrentGrade(e.target.value as StandardLevel)}
@@ -8774,9 +9575,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         </div>
 
                         <div>
-                          <label className="text-xs text-slate-400 font-semibold block mb-1">
-                            Desired Target Grade
-                          </label>
+                          <label className="text-xs text-slate-400 font-semibold block mb-1">{tx("Desired Target Grade")}</label>
                           <select
                             value={simTargetGrade}
                             onChange={(e) => setSimTargetGrade(e.target.value as StandardLevel)}
@@ -8793,7 +9592,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         {/* Multi-Select Tested Standards */}
                         <div className="space-y-1.5 pt-2">
                           <div className="flex items-center justify-between text-xs text-slate-300 font-semibold">
-                            <span>Select Standard(s) Being Tested:</span>
+                            <span>{tx("Select Standard(s) Being Tested:")}</span>
                             <span className="text-blue-400 text-[11px]">
                               ({selectedStandardsForExam.length} selected)
                             </span>
@@ -8820,12 +9619,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                   {/* RIGHT COLUMN: SIMULATION RESULT */}
                   <div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-blue-400">
-                      SIMULATION RESULT
-                    </h3>
-                    <h2 className="mt-1 text-lg font-bold text-white">
-                      Required Score on Selected Standard(s)
-                    </h2>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-blue-400">{tx("SIMULATION RESULT")}</h3>
+                    <h2 className="mt-1 text-lg font-bold text-white">{tx("Required Score on Selected Standard(s)")}</h2>
 
                     {/* ✅ PASTE YOUR SNIPPET HERE */}
                     <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/50 p-6">
@@ -8844,8 +9639,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       {/* Target Breakdown */}
                       <div className="mt-6 rounded-lg bg-slate-800/40 p-4 border border-slate-700/50">
                         <div className="flex items-center gap-2 text-amber-400 font-semibold text-sm">
-                          <span>✨</span> Target Breakdown:
-                        </div>
+                          <span>✨</span>{tx("Target Breakdown:")}</div>
                         <p className="mt-2 text-xs leading-relaxed text-slate-300">
                           {requiredFinalGrade.message}
                         </p>
@@ -8855,14 +9649,12 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
                       <div className="text-[11px] text-slate-400 space-y-2 bg-slate-900/50 p-3 rounded-lg border border-slate-800/60">
                         <div className="flex items-center gap-1.5 font-semibold text-slate-300">
-                          <Sparkles size={13} className="text-amber-400" /> Target Breakdown:
-                        </div>
+                          <Sparkles size={13} className="text-amber-400" />{tx("Target Breakdown:")}</div>
                       <p className="leading-relaxed">
                         To achieve <strong className="text-blue-400">{simTargetGrade}</strong>,
                         you must score an average of at least{" "}
                         <strong className="text-emerald-400">{requiredFinalGrade.letter}</strong> ({requiredFinalGrade.points} pts) on the{" "}
-                        <strong>{selectedStandardsForExam.length}</strong> selected standard(s).
-                      </p>
+                        <strong>{selectedStandardsForExam.length}</strong>{tx("selected standard(s).")}</p>
                       </div>
                     </div>
                   </div>
@@ -8888,9 +9680,9 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           >
             <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Calendar</p>
-                <h2 id="manual-event-title" className="mt-1 text-xl font-bold text-white">Add event</h2>
-                <p className="mt-1 text-xs text-slate-400">Create a personal calendar event without Google Calendar.</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400">{tx("Calendar")}</p>
+                <h2 id="manual-event-title" className="mt-1 text-xl font-bold text-white">{tx("Add event")}</h2>
+                <p className="mt-1 text-xs text-slate-400">{tx("Create a personal calendar event without Google Calendar.")}</p>
               </div>
               <button
                 type="button"
@@ -8904,9 +9696,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
             <form onSubmit={addManualCalendarEvent} className="mt-5 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-xs font-semibold text-slate-300">
-                  Name
-                  <input
+                <label className="block text-xs font-semibold text-slate-300">{tx("Name")}<input
                     value={manualEventName}
                     onChange={(e) => setManualEventName(e.target.value)}
                     placeholder="e.g. Biology Review"
@@ -8916,27 +9706,23 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   />
                 </label>
 
-                <label className="block text-xs font-semibold text-slate-300">
-                  Type
-                  <select
+                <label className="block text-xs font-semibold text-slate-300">{tx("Type")}<select
                     value={manualEventType}
                     onChange={(e) => setManualEventType(e.target.value as ManualCalendarEvent["type"])}
                     className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-400"
                   >
-                    <option>Study</option>
-                    <option>Test</option>
-                    <option>Homework</option>
-                    <option>Class</option>
-                    <option>Club</option>
-                    <option>Personal</option>
-                    <option>Other</option>
+                    <option>{tx("Study")}</option>
+                    <option>{tx("Test")}</option>
+                    <option>{tx("Homework")}</option>
+                    <option>{tx("Class")}</option>
+                    <option>{tx("Club")}</option>
+                    <option>{tx("Personal")}</option>
+                    <option>{tx("Other")}</option>
                   </select>
                 </label>
               </div>
 
-              <label className="block text-xs font-semibold text-slate-300">
-                Event details
-                <textarea
+              <label className="block text-xs font-semibold text-slate-300">{tx("Event details")}<textarea
                   value={manualEventDetails}
                   onChange={(e) => setManualEventDetails(e.target.value)}
                   placeholder="What is this event for?"
@@ -8946,9 +9732,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               </label>
 
               <div className="grid gap-4 sm:grid-cols-3">
-                <label className="block text-xs font-semibold text-slate-300">
-                  Date
-                  <input
+                <label className="block text-xs font-semibold text-slate-300">{tx("Date")}<input
                     type="date"
                     value={manualEventDate}
                     onChange={(e) => setManualEventDate(e.target.value)}
@@ -8956,9 +9740,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-400"
                   />
                 </label>
-                <label className="block text-xs font-semibold text-slate-300">
-                  Start
-                  <input
+                <label className="block text-xs font-semibold text-slate-300">{tx("Start")}<input
                     type="time"
                     value={manualEventStartTime}
                     onChange={(e) => setManualEventStartTime(e.target.value)}
@@ -8966,9 +9748,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-400"
                   />
                 </label>
-                <label className="block text-xs font-semibold text-slate-300">
-                  End
-                  <input
+                <label className="block text-xs font-semibold text-slate-300">{tx("End")}<input
                     type="time"
                     value={manualEventEndTime}
                     onChange={(e) => setManualEventEndTime(e.target.value)}
@@ -8983,16 +9763,13 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   type="button"
                   onClick={() => setShowManualEventModal(false)}
                   className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-slate-800"
-                >
-                  Cancel
-                </button>
+                >{tx("Cancel")}</button>
                 <button
                   type="submit"
                   disabled={!manualEventName.trim() || !manualEventDate || !manualEventStartTime || !manualEventEndTime}
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Plus size={16} /> Save event
-                </button>
+                  <Plus size={16} />{tx("Save event")}</button>
               </div>
             </form>
           </section>
@@ -9014,8 +9791,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           >
             <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wider text-violet-400">Calendar cleanup</p>
-                <h2 id="calendar-review-title" className="mt-1 text-xl font-bold text-white">Review similar events</h2>
+                <p className="text-xs font-semibold uppercase tracking-wider text-violet-400">{tx("Calendar cleanup")}</p>
+                <h2 id="calendar-review-title" className="mt-1 text-xl font-bold text-white">{tx("Review similar events")}</h2>
                 <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-400">
                   Possible matches are grouped for you first. Nothing is changed until you press Merge selected.
                   Different dates stay separate; after a merge, only one matching event is kept per day.
@@ -9028,9 +9805,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-800 hover:text-white"
                   title="Re-check the current calendar events and regenerate organizing suggestions"
                 >
-                  <RefreshCw size={14} />
-                  Refresh
-                </button>
+                  <RefreshCw size={14} />{tx("Refresh")}</button>
                 <button
                   type="button"
                   onClick={() => setCalendarReviewOpen(false)}
@@ -9043,7 +9818,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             </div>
 
             <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-[10px] leading-relaxed text-slate-500">
-              <span className="font-semibold text-slate-300">Refresh</span> re-checks the events currently in your calendar and regenerates the suggested organizing names. It does not merge or rename anything by itself.
+              <span className="font-semibold text-slate-300">{tx("Refresh")}</span> re-checks the events currently in your calendar and regenerates the suggested organizing names. It does not merge or rename anything by itself.
             </div>
 
             {calendarReviewGroups.length === 0 ? (
@@ -9051,8 +9826,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-emerald-500/10 text-emerald-300">
                   <CheckCircle2 size={24} />
                 </div>
-                <h3 className="mt-4 text-base font-bold text-white">No similar event groups found</h3>
-                <p className="mt-1 text-xs text-slate-500">Your imported event names are currently distinct enough to keep separate.</p>
+                <h3 className="mt-4 text-base font-bold text-white">{tx("No similar event groups found")}</h3>
+                <p className="mt-1 text-xs text-slate-500">{tx("Your imported event names are currently distinct enough to keep separate.")}</p>
               </div>
             ) : (
               <div className="mt-5 space-y-3">
@@ -9068,7 +9843,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-violet-300">Possible match</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-violet-300">{tx("Possible match")}</span>
                           <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[9px] font-semibold text-slate-400">{group.confidence}% similarity</span>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1.5">
@@ -9078,9 +9853,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         </div>
 
                         <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-                          <label className="block text-xs font-semibold text-slate-300">
-                            Merge into this name
-                            <input
+                          <label className="block text-xs font-semibold text-slate-300">{tx("Merge into this name")}<input
                               value={group.proposedTitle}
                               onChange={(event) => updateCalendarReviewTitle(group.id, event.target.value)}
                               className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-violet-400"
@@ -9104,18 +9877,14 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 type="button"
                 onClick={() => setCalendarReviewOpen(false)}
                 className="rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-xs font-semibold text-slate-300 transition hover:bg-slate-800 hover:text-white"
-              >
-                Keep separate
-              </button>
+              >{tx("Keep separate")}</button>
               <button
                 type="button"
                 onClick={mergeReviewedCalendarGroups}
                 disabled={calendarReviewGroups.length === 0 || !Object.values(calendarReviewSelected).some(Boolean)}
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Check size={14} />
-                Merge selected
-              </button>
+                <Check size={14} />{tx("Merge selected")}</button>
             </div>
           </section>
         </div>
@@ -9150,11 +9919,9 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             >
               <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-rose-400">
-                    Delete event
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-rose-400">{tx("Delete event")}</p>
                   <h2 id="calendar-delete-title" className="mt-1 truncate text-xl font-bold text-white">
-                    {isRecurring ? "Delete recurring event?" : "Delete this event?"}
+                    {isRecurring ? tx("Delete recurring event?") : tx("Delete this event?")}
                   </h2>
                   <p className="mt-1 text-xs leading-relaxed text-slate-400">
                     “{calendarDeleteEvent.title}” · {eventDateLabel}
@@ -9171,7 +9938,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               </div>
 
               <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-relaxed text-slate-300">
-                These choices control what is hidden in <strong>WJ Study</strong>. Your Google Calendar itself is not changed.
+                These choices control what is hidden in <strong>{tx("WJ Study")}</strong>. Your Google Calendar itself is not changed.
               </div>
 
               {isRecurring ? (
@@ -9210,7 +9977,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     onClick={() => deleteGoogleCalendarEvent(calendarDeleteEvent.id, "this")}
                     className="w-full rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-left transition hover:border-rose-500/50 hover:bg-rose-500/10"
                   >
-                    <span className="block text-sm font-semibold text-rose-200">Delete event</span>
+                    <span className="block text-sm font-semibold text-rose-200">{tx("Delete event")}</span>
                     <span className="mt-0.5 block text-xs text-slate-400">Hide this event from WJ Study.</span>
                   </button>
                 </div>
@@ -9221,9 +9988,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   type="button"
                   onClick={closeGoogleCalendarDeleteDialog}
                   className="rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-xs font-semibold text-slate-300 transition hover:bg-slate-800 hover:text-white"
-                >
-                  Cancel
-                </button>
+                >{tx("Cancel")}</button>
               </div>
             </section>
           </div>
@@ -9248,7 +10013,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           >
             <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-violet-400">Day view</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-violet-400">{tx("Day view")}</p>
                 <h2 id="calendar-day-title" className="mt-1 text-xl font-bold text-white">
                   {zoomedDateLabel}
                 </h2>
@@ -9262,8 +10027,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   onClick={() => openManualEventModal(zoomedCalendarDate || undefined)}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
                 >
-                  <Plus size={14} /> Add event
-                </button>
+                  <Plus size={14} />{tx("Add event")}</button>
               <button
                 type="button"
                 onClick={() => {
@@ -9285,7 +10049,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             ) : (
               <div className="mt-5 grid gap-5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                 <div className="space-y-2">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Events</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">{tx("Events")}</h3>
                   {zoomedDayItems.map((item) => {
                     if (item.kind === "google") {
                       const event = item.event;
@@ -9472,14 +10236,12 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               {display.icon}
                             </span>
                             <div className="min-w-0">
-                              <h3 className="text-sm font-bold text-white">Customize event</h3>
+                              <h3 className="text-sm font-bold text-white">{tx("Customize event")}</h3>
                               <p className="text-[11px] text-slate-400">{display.sourceLabel} · changes are saved in this app only</p>
                             </div>
                           </div>
 
-                          <label className="block text-xs font-semibold text-slate-300">
-                            Name
-                            <input
+                          <label className="block text-xs font-semibold text-slate-300">{tx("Name")}<input
                               value={display.title}
                               onChange={(changeEvent) =>
                                 updateCalendarEventOverride(editingCalendarItem.id, {
@@ -9491,9 +10253,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           </label>
 
                           <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]">
-                            <label className="block text-xs font-semibold text-slate-300">
-                              Logo / icon
-                              <input
+                            <label className="block text-xs font-semibold text-slate-300">{tx("Logo / icon")}<input
                                 value={display.icon}
                                 onChange={(changeEvent) =>
                                   updateCalendarEventOverride(editingCalendarItem.id, {
@@ -9505,9 +10265,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                 placeholder="📚"
                               />
                             </label>
-                            <label className="block text-xs font-semibold text-slate-300">
-                              Color
-                              <input
+                            <label className="block text-xs font-semibold text-slate-300">{tx("Color")}<input
                                 type="color"
                                 value={display.color}
                                 onChange={(changeEvent) =>
@@ -9521,9 +10279,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                           </div>
 
                           <div className="mt-3 grid grid-cols-2 gap-3">
-                            <label className="block text-xs font-semibold text-slate-300">
-                              Start time
-                              <input
+                            <label className="block text-xs font-semibold text-slate-300">{tx("Start time")}<input
                                 type="time"
                                 value={display.startTime || ""}
                                 onChange={(changeEvent) =>
@@ -9535,9 +10291,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                 className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-violet-400"
                               />
                             </label>
-                            <label className="block text-xs font-semibold text-slate-300">
-                              End time
-                              <input
+                            <label className="block text-xs font-semibold text-slate-300">{tx("End time")}<input
                                 type="time"
                                 value={display.endTime || ""}
                                 onChange={(changeEvent) =>
@@ -9563,14 +10317,12 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                   })
                                 }
                                 className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-violet-500 focus:ring-violet-500"
-                              />
-                              All-day event
-                            </label>
+                              />{tx("All-day event")}</label>
                           )}
 
                           {display.details && (
                             <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/70 p-3 text-xs text-slate-400">
-                              <p className="font-semibold text-slate-300">Details</p>
+                              <p className="font-semibold text-slate-300">{tx("Details")}</p>
                               <p className="mt-1 whitespace-pre-wrap">{display.details}</p>
                             </div>
                           )}
@@ -9581,17 +10333,14 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               onClick={() => resetCalendarEventOverride(editingCalendarItem.id)}
                               disabled={Object.keys(override).length === 0}
                               className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              Reset customization
-                            </button>
+                            >{tx("Reset customization")}</button>
                             {(editingCalendarItem.kind === "google") && (
                               <button
                                 type="button"
                                 onClick={() => openGoogleCalendarDeleteDialog(editingCalendarItem.event.id)}
                                 className="flex-1 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
                               >
-                                <Trash2 size={14} className="mr-1.5 inline" />Delete
-                              </button>
+                                <Trash2 size={14} className="mr-1.5 inline" />{tx("Delete")}</button>
                             )}
                           </div>
                         </>
@@ -9612,13 +10361,13 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       {/* MOBILE BOTTOM NAVIGATION */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-800 bg-slate-900/95 px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur-md lg:hidden shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
         <div className="mx-auto grid max-w-xl grid-cols-7 items-center">
-          <button type="button" onClick={() => setMobileTab("classes")} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "classes" ? "text-blue-400" : "text-slate-400"}`}><BookOpen size={18} /><span>Classes</span></button>
-          <button type="button" onClick={() => setMobileTab("tasks")} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "tasks" ? "text-blue-400" : "text-slate-400"}`}><List size={18} /><span>Tasks</span></button>
-          <button type="button" onClick={() => { setMobileTab("learning"); setActiveTab("learning"); if (!learningClassId && classes[0]?.id) setLearningClassId(classes[0].id); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "learning" ? "text-blue-400" : "text-slate-400"}`}><BookOpen size={18} /><span>Learn</span></button>
-          <button type="button" onClick={() => { setMobileTab("planner"); setActiveTab("planner"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "planner" ? "text-blue-400" : "text-slate-400"}`}><Brain size={18} /><span>Planner</span></button>
-          <button type="button" onClick={() => { setMobileTab("analytics"); setActiveTab("analytics"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "analytics" ? "text-violet-400" : "text-slate-400"}`}><BarChart3 size={18} /><span>Analytics</span></button>
-          <button type="button" onClick={() => { setMobileTab("calendar"); setActiveTab("calendar"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "calendar" && activeTab === "calendar" ? "text-blue-400" : "text-slate-400"}`}><Calendar size={18} /><span>Calendar</span></button>
-          <button type="button" onClick={() => { setMobileTab("clan"); setActiveTab("clan"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "clan" ? "text-violet-400" : "text-slate-400"}`}><Trophy size={18} /><span>Clan</span></button>
+          <button type="button" onClick={() => setMobileTab("classes")} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "classes" ? "text-blue-400" : "text-slate-400"}`}><BookOpen size={18} /><span>{tx("Classes")}</span></button>
+          <button type="button" onClick={() => setMobileTab("tasks")} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "tasks" ? "text-blue-400" : "text-slate-400"}`}><List size={18} /><span>{tx("Tasks")}</span></button>
+          <button type="button" onClick={() => { setMobileTab("learning"); setActiveTab("learning"); if (!learningClassId && classes[0]?.id) setLearningClassId(classes[0].id); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "learning" ? "text-blue-400" : "text-slate-400"}`}><BookOpen size={18} /><span>{tx("Learn")}</span></button>
+          <button type="button" onClick={() => { setMobileTab("planner"); setActiveTab("planner"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "planner" ? "text-blue-400" : "text-slate-400"}`}><Brain size={18} /><span>{tx("Planner")}</span></button>
+          <button type="button" onClick={() => { setMobileTab("analytics"); setActiveTab("analytics"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "analytics" ? "text-violet-400" : "text-slate-400"}`}><BarChart3 size={18} /><span>{tx("Analytics")}</span></button>
+          <button type="button" onClick={() => { setMobileTab("calendar"); setActiveTab("calendar"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "calendar" && activeTab === "calendar" ? "text-blue-400" : "text-slate-400"}`}><Calendar size={18} /><span>{tx("Calendar")}</span></button>
+          <button type="button" onClick={() => { setMobileTab("clan"); setActiveTab("clan"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "clan" ? "text-violet-400" : "text-slate-400"}`}><Trophy size={18} /><span>{tx("Clan")}</span></button>
         </div>
       </nav>
     </div>
