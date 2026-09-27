@@ -137,7 +137,6 @@ function calculateRequiredGrade({
   };
 }
 
-
 // --- TYPES & CONSTANTS ---
 export type StandardLevel =
   | "A+"
@@ -869,6 +868,53 @@ type AppSettings = {
   };
 };
 
+type PersistedFocusTimerState = {
+  version: 1;
+  taskId: string;
+  mode: "work" | "break";
+  isRunning: boolean;
+  timeLeft: number;
+  baseElapsedSeconds: number;
+  startedAt: number | null;
+  sessionId: string | null;
+  recordedMinutes: number;
+  xpAwarded: boolean;
+  updatedAt: number;
+};
+
+const FOCUS_TIMER_STORAGE_PREFIX = "tracker_focus_timer_state_v1_";
+
+function normalizePersistedFocusTimerState(value: unknown): PersistedFocusTimerState | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const raw = value as Record<string, unknown>;
+  if (raw.version !== 1 || typeof raw.taskId !== "string" || !raw.taskId) return null;
+  const mode = raw.mode === "break" ? "break" : "work";
+  const isRunning = Boolean(raw.isRunning);
+  const timeLeft = Math.max(0, Math.floor(Number(raw.timeLeft) || 0));
+  const baseElapsedSeconds = Math.max(0, Number(raw.baseElapsedSeconds) || 0);
+  const startedAt = raw.startedAt == null ? null : Number(raw.startedAt);
+  const sessionId = typeof raw.sessionId === "string" && raw.sessionId ? raw.sessionId : null;
+  const recordedMinutes = Math.max(0, Math.floor(Number(raw.recordedMinutes) || 0));
+  const xpAwarded = Boolean(raw.xpAwarded);
+  const updatedAt = Math.max(0, Number(raw.updatedAt) || 0);
+
+  if (isRunning && startedAt !== null && !Number.isFinite(startedAt)) return null;
+
+  return {
+    version: 1,
+    taskId: raw.taskId,
+    mode,
+    isRunning,
+    timeLeft,
+    baseElapsedSeconds,
+    startedAt: Number.isFinite(startedAt as number) ? startedAt : null,
+    sessionId,
+    recordedMinutes,
+    xpAwarded,
+    updatedAt,
+  };
+}
+
 const DEFAULT_APP_SETTINGS: AppSettings = {
   language: "en",
   theme: "dark",
@@ -891,7 +937,6 @@ const APP_ACCENT_VALUES: Record<AppAccent, string> = {
   rose: "#E11D48",
   amber: "#D97706",
 };
-
 
 const MAIN_UI_TEXT: Record<AppLanguage, Record<string, string>> = {
   "en": {},
@@ -1819,7 +1864,6 @@ const MAIN_UI_TEXT: Record<AppLanguage, Record<string, string>> = {
   }
 };
 
-
 Object.assign(MAIN_UI_TEXT.vi, { Pause: "Tạm dừng", "Start focus": "Bắt đầu tập trung", "Reset focus timer": "Đặt lại bộ đếm tập trung", "Focus session": "Phiên tập trung", "Choose a task to start focusing": "Chọn nhiệm vụ để bắt đầu tập trung", "Logout": "Đăng xuất", "Log Out": "Đăng xuất", "Privacy": "Quyền riêng tư", "Settings": "Cài đặt" });
 Object.assign(MAIN_UI_TEXT.es, { Pause: "Pausar", "Start focus": "Iniciar enfoque", "Reset focus timer": "Restablecer temporizador", "Focus session": "Sesión de enfoque", "Choose a task to start focusing": "Elige una tarea para empezar a concentrarte", "Logout": "Cerrar sesión", "Log Out": "Cerrar sesión", Settings: "Configuración" });
 Object.assign(MAIN_UI_TEXT.zh, { Pause: "暂停", "Start focus": "开始专注", "Reset focus timer": "重置专注计时器", "Focus session": "专注学习", "Choose a task to start focusing": "选择任务开始专注", "Logout": "退出登录", "Log Out": "退出登录", Settings: "设置" });
@@ -1973,23 +2017,14 @@ type CalendarEventOverride = {
   title?: string;
   color?: string;
   icon?: string;
-  date?: string;
   startTime?: string;
   endTime?: string;
   allDay?: boolean;
-  // Metadata used when moving recurring Class/Club occurrences to a different date.
-  sourceDate?: string;
-  sourceDay?: DayOfWeek;
-  sourceId?: string;
-  sourceStartTime?: string;
-  sourceEndTime?: string;
-  sourceKind?: "class" | "club";
 };
 
 type CalendarEventDisplay = {
   key: string;
   title: string;
-  date: string;
   color: string;
   icon: string;
   startTime?: string;
@@ -2514,8 +2549,8 @@ function MathText({ text, className = "" }: { text: string; className?: string }
 
 export default function AcademicOSDashboard() {
   const [mobileTab, setMobileTab] = useState<
-    "classes" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan"
-  >("tasks");
+    "classes" | "clubs" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan"
+  >("calendar");
   const [activeTab, setActiveTab] = useState<
     "standards" | "calendar" | "timetable" | "grades" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan"
   >("calendar");
@@ -2722,7 +2757,9 @@ export default function AcademicOSDashboard() {
   const focusRunSessionIdRef = useRef<string | null>(null);
   const focusRunTaskIdRef = useRef<string | null>(null);
   const focusRunXpAwardedRef = useRef(false);
-
+  const breakRunStartedAtRef = useRef<number | null>(null);
+  const breakRunBaseElapsedSecondsRef = useRef(0);
+  const focusTimerHydratedForUserRef = useRef<string | null>(null);
 
   const [simCurrentGrade, setSimCurrentGrade] = useState<StandardLevel>("B+");
   const [simTargetGrade, setSimTargetGrade] = useState<StandardLevel>("A");
@@ -2782,6 +2819,30 @@ export default function AcademicOSDashboard() {
           DEFAULT_APP_SETTINGS
         );
         const serverAppSettings = normalizeAppSettings(data.data.appSettings);
+        const serverFocusTimerState = normalizePersistedFocusTimerState(data.data.focusTimerState);
+        const localFocusTimerState = normalizePersistedFocusTimerState(
+          safeStorageGet<PersistedFocusTimerState | null>(
+            `${FOCUS_TIMER_STORAGE_PREFIX}${currentUserId}`,
+            null
+          )
+        );
+        const preferredFocusTimerState =
+          localFocusTimerState &&
+          localFocusTimerState.updatedAt >= (serverFocusTimerState?.updatedAt || 0)
+            ? localFocusTimerState
+            : serverFocusTimerState;
+        try {
+          if (preferredFocusTimerState) {
+            localStorage.setItem(
+              `${FOCUS_TIMER_STORAGE_PREFIX}${currentUserId}`,
+              JSON.stringify(preferredFocusTimerState)
+            );
+          } else {
+            localStorage.removeItem(`${FOCUS_TIMER_STORAGE_PREFIX}${currentUserId}`);
+          }
+        } catch {
+          // Ignore focus timer cache errors.
+        }
         const localWorkspaceCalendarEventOverrides = safeStorageGet<Record<string, CalendarEventOverride>>(
           `tracker_calendar_event_overrides_v1_${currentUserId}`,
           {}
@@ -3090,6 +3151,12 @@ export default function AcademicOSDashboard() {
         const localCalendarEventOverrides = safeStorageGet<Record<string, CalendarEventOverride>>(
           `tracker_calendar_event_overrides_v1_${currentUserId}`,
           {}
+        );
+        const localFocusTimerState = normalizePersistedFocusTimerState(
+          safeStorageGet<PersistedFocusTimerState | null>(
+            `${FOCUS_TIMER_STORAGE_PREFIX}${currentUserId}`,
+            null
+          )
         );
 
         try {
@@ -4015,7 +4082,6 @@ export default function AcademicOSDashboard() {
     return {
       key: calendarItemKey,
       title: override.title ?? base.title,
-      date: override.date ?? base.date,
       color: override.color ?? base.color,
       icon: override.icon ?? base.icon,
       startTime: override.startTime ?? base.startTime,
@@ -4933,12 +4999,10 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Study time is based on actual logged work, not estimated task time.
-    // When a task has both focus-session minutes and an actualHours value,
-    // use the larger value so focus logging is never double-counted while
-    // manually logged task time is still represented.
+    // Study time uses one consistent rule everywhere:
+    // for each task, use max(total Focus time, task.actualHours).
+    // Orphan Focus sessions (not attached to a task) are still counted.
     const focusMinutesByTask = new Map<string, number>();
-    let orphanStudyMinutes = 0;
     studySessions.forEach((session) => {
       const minutes = Math.max(0, Number(session.minutes) || 0);
       if (session.taskId) {
@@ -4946,17 +5010,20 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           session.taskId,
           (focusMinutesByTask.get(session.taskId) || 0) + minutes
         );
-      } else {
-        orphanStudyMinutes += minutes;
       }
     });
 
-    const loggedTaskHours = tasks.reduce((sum, task) => {
+    const studyHoursForTask = (task: Task) => {
       const focusHours = (focusMinutesByTask.get(task.id) || 0) / 60;
       const manualLoggedHours = Math.max(0, Number(task.actualHours) || 0);
-      return sum + Math.max(focusHours, manualLoggedHours);
-    }, 0);
-    const totalStudyHours = loggedTaskHours + orphanStudyMinutes / 60;
+      return Math.max(focusHours, manualLoggedHours);
+    };
+
+    const totalTaskStudyHours = tasks.reduce((sum, task) => sum + studyHoursForTask(task), 0);
+    const orphanStudyMinutes = studySessions
+      .filter((session) => !session.taskId)
+      .reduce((sum, session) => sum + Math.max(0, Number(session.minutes) || 0), 0);
+    const totalStudyHours = totalTaskStudyHours + orphanStudyMinutes / 60;
 
     const totalEstimatedHours = tasks.reduce((sum, task) => sum + (task.estimatedHours || 0), 0);
     const completedTaskCount = tasks.filter((task) => task.completed).length;
@@ -4970,11 +5037,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     const classStudy = classes.map((cls) => {
       const hours = tasks
         .filter((task) => task.classId === cls.id)
-        .reduce((sum, task) => {
-          const focusHours = (focusMinutesByTask.get(task.id) || 0) / 60;
-          const manualLoggedHours = Math.max(0, Number(task.actualHours) || 0);
-          return sum + Math.max(focusHours, manualLoggedHours);
-        }, 0);
+        .reduce((sum, task) => sum + studyHoursForTask(task), 0);
       const grade = cls.manualGrade
         ? parseGradeToPoints(cls.manualGrade)
         : calculateOverallGrade(cls.standards).gpa;
@@ -4988,9 +5051,13 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       };
     });
 
-    // "This week" means the current Monday-Sunday calendar week, rather than
-    // a rolling 7-day window. Weekly study is calculated from timestamped focus
-    // sessions because task.actualHours does not retain a per-day history.
+    // "This week" is always the current Monday-Sunday calendar week.
+    // For the daily graph, Focus sessions naturally retain their exact day.
+    // Because Task.actualHours has no date history, any manual-only portion is
+    // placed on the task due date when that due date is in the current week;
+    // otherwise, when the task has Focus time this week, the extra manual-only
+    // portion is placed on the latest Focus day for that task. This preserves
+    // the same max(Focus time, actualHours) rule without double-counting.
     const dayOfWeek = today.getDay();
     const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     const weekStart = new Date(today);
@@ -5001,17 +5068,87 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       date.setDate(weekStart.getDate() + index);
       return date;
     });
+    const weekKeys = weekDates.map(formatDateKey);
+    const weekKeySet = new Set(weekKeys);
 
-    const thisWeekStudySessions = studySessions.filter((session) => {
-      const sessionDate = new Date(`${session.date}T12:00:00`);
-      return !Number.isNaN(sessionDate.getTime()) && sessionDate >= weekDates[0] && sessionDate <= weekDates[6];
+    const focusByTaskAndDay = new Map<string, Map<string, number>>();
+    studySessions.forEach((session) => {
+      const minutes = Math.max(0, Number(session.minutes) || 0);
+      if (!minutes || !session.taskId || !weekKeySet.has(session.date)) return;
+      if (!focusByTaskAndDay.has(session.taskId)) focusByTaskAndDay.set(session.taskId, new Map());
+      const dayMap = focusByTaskAndDay.get(session.taskId)!;
+      dayMap.set(session.date, (dayMap.get(session.date) || 0) + minutes);
+    });
+
+    const dailyMinutesByKey = new Map<string, number>();
+    weekKeys.forEach((key) => dailyMinutesByKey.set(key, 0));
+
+    // First add exact per-day Focus time.
+    focusByTaskAndDay.forEach((dayMap) => {
+      dayMap.forEach((minutes, key) => {
+        dailyMinutesByKey.set(key, (dailyMinutesByKey.get(key) || 0) + minutes);
+      });
+    });
+
+    // Then add only the manual-only remainder needed to reach max(Focus, actualHours).
+    tasks.forEach((task) => {
+      const manualLoggedMinutes = Math.max(0, Number(task.actualHours) || 0) * 60;
+      const dayMap = focusByTaskAndDay.get(task.id) || new Map<string, number>();
+      const weekFocusMinutes = Array.from(dayMap.values()).reduce((sum, minutes) => sum + minutes, 0);
+      const targetMinutesForWeek = Math.max(weekFocusMinutes, manualLoggedMinutes);
+      const extraManualMinutes = Math.max(0, targetMinutesForWeek - weekFocusMinutes);
+      if (extraManualMinutes <= 0) return;
+
+      const dueDateIsThisWeek = Boolean(task.dueDate && weekKeySet.has(task.dueDate));
+      const focusDays = Array.from(dayMap.keys()).filter((key) => weekKeySet.has(key));
+      const anchorKey =
+        dueDateIsThisWeek
+          ? task.dueDate
+          : focusDays.length
+            ? focusDays.sort().at(-1)!
+            : null;
+
+      if (anchorKey) {
+        dailyMinutesByKey.set(
+          anchorKey,
+          (dailyMinutesByKey.get(anchorKey) || 0) + extraManualMinutes
+        );
+      }
+    });
+
+    // Manual-only tasks due this week with no Focus time yet still contribute.
+    tasks.forEach((task) => {
+      if (!task.dueDate || !weekKeySet.has(task.dueDate)) return;
+      const dayMap = focusByTaskAndDay.get(task.id);
+      const weekFocusMinutes = dayMap
+        ? Array.from(dayMap.values()).reduce((sum, minutes) => sum + minutes, 0)
+        : 0;
+      const manualLoggedMinutes = Math.max(0, Number(task.actualHours) || 0) * 60;
+      if (weekFocusMinutes === 0 && manualLoggedMinutes > 0) {
+        dailyMinutesByKey.set(
+          task.dueDate,
+          (dailyMinutesByKey.get(task.dueDate) || 0) + manualLoggedMinutes
+        );
+      }
+    });
+
+    const orphanWeekMinutes = studySessions
+      .filter((session) => !session.taskId && weekKeySet.has(session.date))
+      .reduce((sum, session) => sum + Math.max(0, Number(session.minutes) || 0), 0);
+    const orphanWeekCounts = new Map<string, number>();
+    studySessions
+      .filter((session) => !session.taskId && weekKeySet.has(session.date))
+      .forEach((session) => {
+        const minutes = Math.max(0, Number(session.minutes) || 0);
+        orphanWeekCounts.set(session.date, (orphanWeekCounts.get(session.date) || 0) + minutes);
+      });
+    orphanWeekCounts.forEach((minutes, key) => {
+      dailyMinutesByKey.set(key, (dailyMinutesByKey.get(key) || 0) + minutes);
     });
 
     const last7Days = weekDates.map((date) => {
       const key = formatDateKey(date);
-      const minutes = thisWeekStudySessions
-        .filter((session) => session.date === key)
-        .reduce((sum, session) => sum + Math.max(0, Number(session.minutes) || 0), 0);
+      const minutes = Math.max(0, Math.round(dailyMinutesByKey.get(key) || 0));
       const completed = tasks.filter((task) => task.completedAt?.slice(0, 10) === key).length;
       return {
         key,
@@ -5053,6 +5190,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       weekLabel: `${weekDates[0].toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekDates[6].toLocaleDateString(undefined, { month: "short", day: "numeric" })}`,
     };
   }, [classes, tasks, studySessions, streaks, appSettings.weeklyStudyGoalHours]);
+
 
   const aiStudyPlan = useMemo(() => {
     const today = new Date();
@@ -5283,6 +5421,106 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     return newMinutes;
   };
 
+  const persistFocusTimerStateLocally = (state: PersistedFocusTimerState | null) => {
+    if (!userId || typeof window === "undefined") return;
+    try {
+      const key = `${FOCUS_TIMER_STORAGE_PREFIX}${userId}`;
+      if (state) localStorage.setItem(key, JSON.stringify(state));
+      else localStorage.removeItem(key);
+    } catch {
+      // Ignore storage errors.
+    }
+  };
+
+  const getCurrentFocusTimerState = (): PersistedFocusTimerState | null => {
+    if (!selectedTimerTaskId) return null;
+
+    if (timerMode === "work") {
+      const startedAt = focusRunStartedAtRef.current;
+      const elapsedSeconds =
+        focusRunBaseElapsedSecondsRef.current +
+        (startedAt !== null ? Math.max(0, (Date.now() - startedAt) / 1000) : 0);
+      return {
+        version: 1,
+        taskId: focusRunTaskIdRef.current || selectedTimerTaskId,
+        mode: "work",
+        isRunning: isTimerRunning,
+        timeLeft: Math.max(0, Math.ceil(25 * 60 - elapsedSeconds)),
+        baseElapsedSeconds: Math.min(25 * 60, elapsedSeconds),
+        startedAt: isTimerRunning ? startedAt : null,
+        sessionId: focusRunSessionIdRef.current,
+        recordedMinutes: focusRunRecordedMinutesRef.current,
+        xpAwarded: focusRunXpAwardedRef.current,
+        updatedAt: Date.now(),
+      };
+    }
+
+    const startedAt = breakRunStartedAtRef.current;
+    const elapsedSeconds =
+      breakRunBaseElapsedSecondsRef.current +
+      (startedAt !== null ? Math.max(0, (Date.now() - startedAt) / 1000) : 0);
+    return {
+      version: 1,
+      taskId: selectedTimerTaskId,
+      mode: "break",
+      isRunning: isTimerRunning,
+      timeLeft: Math.max(0, Math.ceil(5 * 60 - elapsedSeconds)),
+      baseElapsedSeconds: Math.min(5 * 60, elapsedSeconds),
+      startedAt: isTimerRunning ? startedAt : null,
+      sessionId: focusRunSessionIdRef.current,
+      recordedMinutes: focusRunRecordedMinutesRef.current,
+      xpAwarded: focusRunXpAwardedRef.current,
+      updatedAt: Date.now(),
+    };
+  };
+
+  const queuePersistedFocusTimerStateToServer = (state: PersistedFocusTimerState | null) => {
+    if (!userId || !isLoaded) return;
+    const requestState = state;
+    workspaceSaveQueueRef.current = workspaceSaveQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        const { data: existingRow, error: readError } = await supabase
+          .from("user_data")
+          .select("data")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (readError) return;
+
+        const existingData =
+          existingRow?.data &&
+          typeof existingRow.data === "object" &&
+          !Array.isArray(existingRow.data)
+            ? { ...(existingRow.data as Record<string, any>) }
+            : {};
+        if (requestState) existingData.focusTimerState = requestState;
+        else delete existingData.focusTimerState;
+
+        const { error: writeError } = await supabase.from("user_data").upsert(
+          {
+            user_id: userId,
+            data: existingData,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+        if (!writeError) setSyncStatus("synced");
+      });
+  };
+
+  const persistFocusTimerState = (syncServer = false) => {
+    const state = getCurrentFocusTimerState();
+    persistFocusTimerStateLocally(state);
+    if (syncServer) queuePersistedFocusTimerStateToServer(state);
+    return state;
+  };
+
+  const clearPersistedFocusTimerState = (syncServer = false) => {
+    persistFocusTimerStateLocally(null);
+    if (syncServer) queuePersistedFocusTimerStateToServer(null);
+  };
+
+
   const beginWorkRun = (taskId: string, fresh = false) => {
     if (!taskId) return;
 
@@ -5308,52 +5546,206 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     focusRunStartedAtRef.current = null;
   };
 
+  const syncTimerClock = () => {
+    if (!isTimerRunning) return;
+
+    if (timerMode === "work") {
+      const startedAt = focusRunStartedAtRef.current;
+      if (startedAt !== null) {
+        const elapsedSeconds =
+          focusRunBaseElapsedSecondsRef.current +
+          Math.max(0, (Date.now() - startedAt) / 1000);
+        const wholeMinutes = Math.floor(elapsedSeconds / 60);
+        const newMinutes = wholeMinutes - focusRunRecordedMinutesRef.current;
+        if (newMinutes > 0) recordFocusMinutes(newMinutes);
+
+        const remaining = Math.max(0, 25 * 60 - elapsedSeconds);
+        setTimeLeft(Math.ceil(remaining));
+
+        if (elapsedSeconds >= 25 * 60) {
+          if (!focusRunXpAwardedRef.current) {
+            setGamificationXp((prevXp) => prevXp + XP_PER_FOCUS_SESSION);
+            focusRunXpAwardedRef.current = true;
+          }
+          focusRunRecordedMinutesRef.current = 25;
+          focusRunBaseElapsedSecondsRef.current = 25 * 60;
+          focusRunStartedAtRef.current = null;
+          setIsTimerRunning(false);
+          setTimerMode("break");
+          breakRunBaseElapsedSecondsRef.current = 0;
+          breakRunStartedAtRef.current = Date.now();
+          setTimeLeft(5 * 60);
+          const nextBreakTimerState: PersistedFocusTimerState = {
+            version: 1,
+            taskId: focusRunTaskIdRef.current || selectedTimerTaskId,
+            mode: "break",
+            isRunning: true,
+            timeLeft: 5 * 60,
+            baseElapsedSeconds: 0,
+            startedAt: breakRunStartedAtRef.current,
+            sessionId: focusRunSessionIdRef.current,
+            recordedMinutes: focusRunRecordedMinutesRef.current,
+            xpAwarded: focusRunXpAwardedRef.current,
+            updatedAt: Date.now(),
+          };
+          persistFocusTimerStateLocally(nextBreakTimerState);
+          queuePersistedFocusTimerStateToServer(nextBreakTimerState);
+          return;
+        }
+      }
+    } else {
+      const startedAt = breakRunStartedAtRef.current;
+      if (startedAt !== null) {
+        const elapsedSeconds =
+          breakRunBaseElapsedSecondsRef.current +
+          Math.max(0, (Date.now() - startedAt) / 1000);
+        setTimeLeft(Math.ceil(Math.max(0, 5 * 60 - elapsedSeconds)));
+        if (elapsedSeconds >= 5 * 60) {
+          setIsTimerRunning(false);
+          setTimerMode("work");
+          setTimeLeft(25 * 60);
+          breakRunStartedAtRef.current = null;
+          breakRunBaseElapsedSecondsRef.current = 0;
+          clearPersistedFocusTimerState(true);
+          return;
+        }
+      }
+    }
+
+    persistFocusTimerStateLocally(getCurrentFocusTimerState());
+  };
+
+  // Restore the persisted timer after the signed-in workspace is loaded.
+  // A running timer resumes from wall-clock time, so reloading the app does not
+  // reset a session or pause a timer that is supposed to keep running.
+  useEffect(() => {
+    if (!isLoaded || !userId) return;
+    if (focusTimerHydratedForUserRef.current === userId) return;
+    focusTimerHydratedForUserRef.current = userId;
+
+    const saved = normalizePersistedFocusTimerState(
+      safeStorageGet<PersistedFocusTimerState | null>(
+        `${FOCUS_TIMER_STORAGE_PREFIX}${userId}`,
+        null
+      )
+    );
+    if (!saved) return;
+
+    setSelectedTimerTaskId(saved.taskId);
+    setTimerMode(saved.mode);
+    setTimeLeft(saved.timeLeft);
+    focusRunTaskIdRef.current = saved.taskId;
+    focusRunSessionIdRef.current = saved.sessionId;
+    focusRunRecordedMinutesRef.current = saved.recordedMinutes;
+    focusRunXpAwardedRef.current = saved.xpAwarded;
+
+    if (saved.mode === "work") {
+      focusRunBaseElapsedSecondsRef.current = Math.min(25 * 60, saved.baseElapsedSeconds);
+      focusRunStartedAtRef.current = saved.isRunning ? saved.startedAt : null;
+      breakRunStartedAtRef.current = null;
+      breakRunBaseElapsedSecondsRef.current = 0;
+
+      const elapsedSeconds =
+        focusRunBaseElapsedSecondsRef.current +
+        (focusRunStartedAtRef.current !== null
+          ? Math.max(0, (Date.now() - focusRunStartedAtRef.current) / 1000)
+          : 0);
+
+      const existingSessionMinutes = saved.sessionId
+        ? studySessions.find((session) => session.id === saved.sessionId)?.minutes || 0
+        : 0;
+      focusRunRecordedMinutesRef.current = Math.max(
+        focusRunRecordedMinutesRef.current,
+        Math.max(0, Math.floor(existingSessionMinutes))
+      );
+
+      const elapsedWholeMinutes = Math.floor(elapsedSeconds / 60);
+      const missingMinutes = elapsedWholeMinutes - focusRunRecordedMinutesRef.current;
+      if (missingMinutes > 0 && saved.isRunning) recordFocusMinutes(missingMinutes);
+
+      if (elapsedSeconds >= 25 * 60 && saved.isRunning) {
+        setGamificationXp((prevXp) =>
+          saved.xpAwarded ? prevXp : prevXp + XP_PER_FOCUS_SESSION
+        );
+        focusRunXpAwardedRef.current = true;
+        focusRunRecordedMinutesRef.current = 25;
+        focusRunBaseElapsedSecondsRef.current = 25 * 60;
+        focusRunStartedAtRef.current = null;
+        setIsTimerRunning(false);
+        setTimerMode("break");
+        breakRunBaseElapsedSecondsRef.current = 0;
+        breakRunStartedAtRef.current = Date.now();
+        setTimeLeft(5 * 60);
+        persistFocusTimerStateLocally({
+          version: 1,
+          taskId: saved.taskId,
+          mode: "break",
+          isRunning: true,
+          timeLeft: 5 * 60,
+          baseElapsedSeconds: 0,
+          startedAt: breakRunStartedAtRef.current,
+          sessionId: saved.sessionId,
+          recordedMinutes: 25,
+          xpAwarded: true,
+          updatedAt: Date.now(),
+        });
+        return;
+      }
+
+      if (saved.isRunning) {
+        setIsTimerRunning(true);
+        syncTimerClock();
+      } else {
+        setIsTimerRunning(false);
+        setTimeLeft(Math.max(0, Math.ceil(25 * 60 - elapsedSeconds)));
+      }
+    } else {
+      breakRunBaseElapsedSecondsRef.current = Math.min(5 * 60, saved.baseElapsedSeconds);
+      breakRunStartedAtRef.current = saved.isRunning ? saved.startedAt : null;
+      focusRunStartedAtRef.current = null;
+      if (saved.isRunning) {
+        const elapsedSeconds =
+          breakRunBaseElapsedSecondsRef.current +
+          (breakRunStartedAtRef.current !== null
+            ? Math.max(0, (Date.now() - breakRunStartedAtRef.current) / 1000)
+            : 0);
+        if (elapsedSeconds >= 5 * 60) {
+          setIsTimerRunning(false);
+          setTimerMode("work");
+          setTimeLeft(25 * 60);
+          breakRunStartedAtRef.current = null;
+          breakRunBaseElapsedSecondsRef.current = 0;
+          clearPersistedFocusTimerState(true);
+        } else {
+          setTimeLeft(Math.max(0, Math.ceil(5 * 60 - elapsedSeconds)));
+          setIsTimerRunning(true);
+        }
+      } else {
+        setIsTimerRunning(false);
+        setTimeLeft(Math.max(0, saved.timeLeft));
+      }
+    }
+  }, [isLoaded, userId]);
+
   useEffect(() => {
     if (!isTimerRunning) return;
 
-    const interval = setInterval(() => {
-      if (timerMode === "work") {
-        const startedAt = focusRunStartedAtRef.current;
-        if (startedAt !== null) {
-          const elapsedSeconds =
-            focusRunBaseElapsedSecondsRef.current +
-            Math.max(0, (Date.now() - startedAt) / 1000);
-          const wholeMinutes = Math.floor(elapsedSeconds / 60);
-          const newMinutes = wholeMinutes - focusRunRecordedMinutesRef.current;
-          if (newMinutes > 0) recordFocusMinutes(newMinutes);
-
-          const remaining = Math.max(0, 25 * 60 - elapsedSeconds);
-          setTimeLeft(Math.ceil(remaining));
-
-          if (elapsedSeconds >= 25 * 60) {
-            if (!focusRunXpAwardedRef.current) {
-              setGamificationXp((prevXp) => prevXp + XP_PER_FOCUS_SESSION);
-              focusRunXpAwardedRef.current = true;
-            }
-            // The full 25-minute block is now fully recorded. Switch to break.
-            focusRunRecordedMinutesRef.current = 25;
-            focusRunBaseElapsedSecondsRef.current = 25 * 60;
-            focusRunStartedAtRef.current = null;
-            setIsTimerRunning(false);
-            setTimerMode("break");
-            setTimeLeft(5 * 60);
-            return;
-          }
-        }
+    syncTimerClock();
+    const interval = window.setInterval(syncTimerClock, 1000);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        syncTimerClock();
       } else {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            setIsTimerRunning(false);
-            setTimerMode("work");
-            setTimeLeft(25 * 60);
-            return 25 * 60;
-          }
-          return prev - 1;
-        });
+        persistFocusTimerStateLocally(getCurrentFocusTimerState());
       }
-    }, 250);
-
-    return () => clearInterval(interval);
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("pagehide", handleVisibility);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("pagehide", handleVisibility);
+    };
   }, [isTimerRunning, timerMode, selectedTimerTaskId, userId]);
 
   const toggleTimer = () => {
@@ -5365,32 +5757,144 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
       if (isTimerRunning) {
         endWorkRun();
+        const elapsedSeconds = focusRunBaseElapsedSecondsRef.current;
+        const pausedState: PersistedFocusTimerState = {
+          version: 1,
+          taskId: focusRunTaskIdRef.current || selectedTimerTaskId,
+          mode: "work",
+          isRunning: false,
+          timeLeft: Math.max(0, Math.ceil(25 * 60 - elapsedSeconds)),
+          baseElapsedSeconds: Math.min(25 * 60, elapsedSeconds),
+          startedAt: null,
+          sessionId: focusRunSessionIdRef.current,
+          recordedMinutes: focusRunRecordedMinutesRef.current,
+          xpAwarded: focusRunXpAwardedRef.current,
+          updatedAt: Date.now(),
+        };
+        setTimeLeft(pausedState.timeLeft);
         setIsTimerRunning(false);
+        persistFocusTimerStateLocally(pausedState);
+        queuePersistedFocusTimerStateToServer(pausedState);
         return;
       }
 
-      focusRunTaskIdRef.current = selectedTimerTaskId;
-      beginWorkRun(selectedTimerTaskId, false);
+      // Resume the current task/session instead of resetting the timer.
+      // If the user changed the Focus Target, create a new session for that task.
+      const hasCurrentSessionForSelectedTask =
+        focusRunTaskIdRef.current === selectedTimerTaskId &&
+        Boolean(focusRunSessionIdRef.current);
+      if (!hasCurrentSessionForSelectedTask) {
+        beginWorkRun(selectedTimerTaskId, true);
+        setTimeLeft(25 * 60);
+      } else {
+        beginWorkRun(selectedTimerTaskId, false);
+      }
       setIsTimerRunning(true);
+
+      const elapsedSeconds = Math.min(25 * 60, focusRunBaseElapsedSecondsRef.current);
+      const runningState: PersistedFocusTimerState = {
+        version: 1,
+        taskId: focusRunTaskIdRef.current || selectedTimerTaskId,
+        mode: "work",
+        isRunning: true,
+        timeLeft: Math.max(0, Math.ceil(25 * 60 - elapsedSeconds)),
+        baseElapsedSeconds: elapsedSeconds,
+        startedAt: focusRunStartedAtRef.current,
+        sessionId: focusRunSessionIdRef.current,
+        recordedMinutes: focusRunRecordedMinutesRef.current,
+        xpAwarded: focusRunXpAwardedRef.current,
+        updatedAt: Date.now(),
+      };
+      setTimeLeft(runningState.timeLeft);
+      persistFocusTimerStateLocally(runningState);
+      queuePersistedFocusTimerStateToServer(runningState);
       return;
     }
 
-    setIsTimerRunning((prev) => !prev);
+    if (isTimerRunning) {
+      if (breakRunStartedAtRef.current !== null) {
+        const elapsedSeconds =
+          breakRunBaseElapsedSecondsRef.current +
+          Math.max(0, (Date.now() - breakRunStartedAtRef.current) / 1000);
+        breakRunBaseElapsedSecondsRef.current = Math.min(5 * 60, elapsedSeconds);
+        breakRunStartedAtRef.current = null;
+      }
+      const pausedBreakState: PersistedFocusTimerState = {
+        version: 1,
+        taskId: selectedTimerTaskId,
+        mode: "break",
+        isRunning: false,
+        timeLeft: Math.max(0, Math.ceil(5 * 60 - breakRunBaseElapsedSecondsRef.current)),
+        baseElapsedSeconds: breakRunBaseElapsedSecondsRef.current,
+        startedAt: null,
+        sessionId: focusRunSessionIdRef.current,
+        recordedMinutes: focusRunRecordedMinutesRef.current,
+        xpAwarded: focusRunXpAwardedRef.current,
+        updatedAt: Date.now(),
+      };
+      setTimeLeft(pausedBreakState.timeLeft);
+      setIsTimerRunning(false);
+      persistFocusTimerStateLocally(pausedBreakState);
+      queuePersistedFocusTimerStateToServer(pausedBreakState);
+      return;
+    }
+
+    breakRunStartedAtRef.current = Date.now();
+    setIsTimerRunning(true);
+    const runningBreakState: PersistedFocusTimerState = {
+      version: 1,
+      taskId: selectedTimerTaskId,
+      mode: "break",
+      isRunning: true,
+      timeLeft: Math.max(0, Math.ceil(5 * 60 - breakRunBaseElapsedSecondsRef.current)),
+      baseElapsedSeconds: breakRunBaseElapsedSecondsRef.current,
+      startedAt: breakRunStartedAtRef.current,
+      sessionId: focusRunSessionIdRef.current,
+      recordedMinutes: focusRunRecordedMinutesRef.current,
+      xpAwarded: focusRunXpAwardedRef.current,
+      updatedAt: Date.now(),
+    };
+    persistFocusTimerStateLocally(runningBreakState);
+    queuePersistedFocusTimerStateToServer(runningBreakState);
   };
 
-  // Start a fresh work session for a specific task. Partial minutes are still
-  // recorded when the student pauses or resets before the timer reaches zero.
   const startFocusForTask = (taskId: string) => {
     if (!taskId) return;
     const taskExists = tasks.some((task) => task.id === taskId && !task.completed);
     if (!taskExists) return;
 
+    const isSameExistingSession =
+      focusRunTaskIdRef.current === taskId &&
+      Boolean(focusRunSessionIdRef.current);
+
     setSelectedTimerTaskId(taskId);
     setTimerMode("work");
-    setTimeLeft(25 * 60);
-    beginWorkRun(taskId, true);
+    if (!isSameExistingSession) {
+      setTimeLeft(25 * 60);
+      beginWorkRun(taskId, true);
+    } else {
+      beginWorkRun(taskId, false);
+    }
     setIsTimerRunning(true);
     setMobileTab("tasks");
+
+    const elapsedSeconds = Math.min(25 * 60, focusRunBaseElapsedSecondsRef.current);
+    const runningState: PersistedFocusTimerState = {
+      version: 1,
+      taskId: focusRunTaskIdRef.current || taskId,
+      mode: "work",
+      isRunning: true,
+      timeLeft: Math.max(0, Math.ceil(25 * 60 - elapsedSeconds)),
+      baseElapsedSeconds: elapsedSeconds,
+      startedAt: focusRunStartedAtRef.current,
+      sessionId: focusRunSessionIdRef.current,
+      recordedMinutes: focusRunRecordedMinutesRef.current,
+      xpAwarded: focusRunXpAwardedRef.current,
+      updatedAt: Date.now(),
+    };
+    setTimeLeft(runningState.timeLeft);
+    persistFocusTimerStateLocally(runningState);
+    queuePersistedFocusTimerStateToServer(runningState);
   };
 
   const resetTimer = () => {
@@ -5405,7 +5909,11 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       focusRunSessionIdRef.current = null;
       focusRunTaskIdRef.current = selectedTimerTaskId || null;
       focusRunXpAwardedRef.current = false;
+    } else {
+      breakRunStartedAtRef.current = null;
+      breakRunBaseElapsedSecondsRef.current = 0;
     }
+    clearPersistedFocusTimerState(true);
   };
 
   const addClass = (e: React.FormEvent) => {
@@ -5902,6 +6410,12 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           hiddenGoogleEventIds,
           googleCalendarDeletionRules,
           googleCalendarMergeRules,
+          focusTimerState: normalizePersistedFocusTimerState(
+            safeStorageGet<PersistedFocusTimerState | null>(
+              `${FOCUS_TIMER_STORAGE_PREFIX}${userId}`,
+              null
+            )
+          ),
         };
 
         // Never let an academic workspace save erase a Clan value that is not yet
@@ -6189,26 +6703,18 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
   const zoomedGoogleEvents = useMemo(
     () =>
       zoomedCalendarDate
-        ? googleCalendarEvents.filter((event) => {
-            const key = `g-${event.id}`;
-            const override = calendarEventOverrides[key] || {};
-            return override.date
-              ? override.date === zoomedCalendarDate
-              : googleEventOccursOnDate(event, zoomedCalendarDate);
-          })
+        ? googleCalendarEvents.filter((event) =>
+            googleEventOccursOnDate(event, zoomedCalendarDate)
+          )
         : [],
-    [googleCalendarEvents, zoomedCalendarDate, calendarEventOverrides]
+    [googleCalendarEvents, zoomedCalendarDate]
   );
   const zoomedManualEvents = useMemo(
     () =>
       zoomedCalendarDate
-        ? manualCalendarEvents.filter((event) => {
-            const key = `m-${event.id}`;
-            const override = calendarEventOverrides[key] || {};
-            return override.date ? override.date === zoomedCalendarDate : event.date === zoomedCalendarDate;
-          })
+        ? manualCalendarEvents.filter((event) => event.date === zoomedCalendarDate)
         : [],
-    [manualCalendarEvents, zoomedCalendarDate, calendarEventOverrides]
+    [manualCalendarEvents, zoomedCalendarDate]
   );
 
   // Day-of-week + academic status for the zoomed day, so we can pull in the
@@ -6238,113 +6744,41 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     };
   }, [zoomedCalendarDate]);
 
-  const zoomedTasks = useMemo(
-    () =>
-      zoomedCalendarDate
-        ? tasks.filter((task) => {
-            const key = `t-${task.id}`;
-            const override = calendarEventOverrides[key] || {};
-            return override.date ? override.date === zoomedCalendarDate : task.dueDate === zoomedCalendarDate;
-          })
-        : [],
-    [tasks, zoomedCalendarDate, calendarEventOverrides]
-  );
-
   // Same source of truth as the "Add Class Session to Timetable" form: each
-  // class's meetingTimes. Individual occurrences can be moved to a different
-  // date without changing the underlying recurring timetable.
-  const getClassMeetingsForDate = (dateStr: string, dayOfWeekName: DayOfWeek | null, academicStatusType?: string) => {
-    if (!dayOfWeekName || academicStatusType === "break" || academicStatusType === "staff_only") {
-      return [] as { cls: ClassItem; slot: MeetingTime; key: string }[];
-    }
-
-    const regular = classes.flatMap((cls) =>
-      (cls.meetingTimes || [])
-        .filter((slot) => slot.day === dayOfWeekName)
-        .map((slot) => {
-          const key = `c-${cls.id}-${dateStr}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
-          const override = calendarEventOverrides[key] || {};
-          if (override.date && override.date !== dateStr) return null;
-          return { cls, slot, key };
-        })
-        .filter((item): item is { cls: ClassItem; slot: MeetingTime; key: string } => Boolean(item))
-    );
-
-    const moved = Object.entries(calendarEventOverrides).flatMap(([key, override]) => {
-      if (override.sourceKind !== "class" || override.date !== dateStr || override.sourceId === undefined) return [];
-      if (override.sourceDate === dateStr || !key.startsWith("c-")) return [];
-      const cls = classes.find((item) => item.id === override.sourceId);
-      if (!cls || !override.sourceDay) return [];
-      const slot = (cls.meetingTimes || []).find(
-        (item) =>
-          item.day === override.sourceDay &&
-          item.startTime === (override.sourceStartTime || "") &&
-          item.endTime === (override.sourceEndTime || "")
-      );
-      return slot ? [{ cls, slot, key }] : [];
-    });
-
-    return [...regular, ...moved];
-  };
-
+  // class's meetingTimes. This is what keeps the Calendar day view in sync
+  // with whatever has been added on the Timetable tab.
   const zoomedClassMeetings = useMemo(() => {
     const { dayOfWeekName, academicStatus } = zoomedDayInfo;
-    return zoomedCalendarDate
-      ? getClassMeetingsForDate(zoomedCalendarDate, dayOfWeekName, academicStatus?.type)
-      : [];
-  }, [classes, zoomedDayInfo, zoomedCalendarDate, calendarEventOverrides]);
-
-  const getClubMeetingsForDate = (dateStr: string, dayOfWeekName: DayOfWeek | null, academicStatusType?: string) => {
-    if (!dayOfWeekName || academicStatusType === "break" || academicStatusType === "staff_only") {
-      return [] as { club: ClubItem; slot: ClubMeetingTime; key: string }[];
+    if (!dayOfWeekName || academicStatus?.type === "break" || academicStatus?.type === "staff_only") {
+      return [] as { cls: ClassItem; slot: MeetingTime }[];
     }
-
-    const regular = clubs.flatMap((club) => {
-      const matchingSlots = (club.meetingTimes || []).filter((slot) => slot.day === dayOfWeekName);
-      if (matchingSlots.length > 0) {
-        return matchingSlots.flatMap((slot) => {
-          const key = `cl-${club.id}-${dateStr}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
-          const override = calendarEventOverrides[key] || {};
-          return override.date && override.date !== dateStr ? [] : [{ club, slot, key }];
-        });
-      }
-      if (club.attendance?.[dateStr]) {
-        const slot = { day: dayOfWeekName, startTime: "", endTime: "" };
-        const key = `cl-${club.id}-${dateStr}-all-day-`;
-        const override = calendarEventOverrides[key] || {};
-        return override.date && override.date !== dateStr ? [] : [{ club, slot, key }];
-      }
-      return [];
-    });
-
-    const moved = Object.entries(calendarEventOverrides).flatMap(([key, override]) => {
-      if (override.sourceKind !== "club" || override.date !== dateStr || override.sourceId === undefined) return [];
-      if (override.sourceDate === dateStr || !key.startsWith("cl-")) return [];
-      const club = clubs.find((item) => item.id === override.sourceId);
-      if (!club || !override.sourceDay) return [];
-      const slot = (club.meetingTimes || []).find(
-        (item) =>
-          item.day === override.sourceDay &&
-          item.startTime === (override.sourceStartTime || "") &&
-          item.endTime === (override.sourceEndTime || "")
-      );
-      return slot ? [{ club, slot, key }] : [];
-    });
-
-    return [...regular, ...moved];
-  };
+    return classes.flatMap((cls) =>
+      (cls.meetingTimes || [])
+        .filter((mt) => mt.day === dayOfWeekName)
+        .map((slot) => ({ cls, slot }))
+    );
+  }, [classes, zoomedDayInfo]);
 
   const zoomedClubMeetings = useMemo(() => {
     const { dayOfWeekName, academicStatus } = zoomedDayInfo;
-    return zoomedCalendarDate
-      ? getClubMeetingsForDate(zoomedCalendarDate, dayOfWeekName, academicStatus?.type)
-      : [];
-  }, [clubs, zoomedDayInfo, zoomedCalendarDate, calendarEventOverrides]);
+    if (!dayOfWeekName || academicStatus?.type === "break" || academicStatus?.type === "staff_only") {
+      return [] as { club: ClubItem; slot: ClubMeetingTime }[];
+    }
+    return clubs.flatMap((club) => {
+      const matchingSlots = (club.meetingTimes || []).filter((mt) => mt.day === dayOfWeekName);
+      if (matchingSlots.length > 0) {
+        return matchingSlots.map((slot) => ({ club, slot }));
+      }
+      if (zoomedCalendarDate && club.attendance?.[zoomedCalendarDate]) {
+        return [{ club, slot: { day: dayOfWeekName, startTime: "", endTime: "" } }];
+      }
+      return [];
+    });
+  }, [clubs, zoomedDayInfo, zoomedCalendarDate]);
 
   type ZoomedDayItem =
     | { kind: "google"; sortKey: string; id: string; event: SyncedGoogleCalendarEvent; display: CalendarEventDisplay }
     | { kind: "manual"; sortKey: string; id: string; event: ManualCalendarEvent; display: CalendarEventDisplay }
-    | { kind: "task"; sortKey: string; id: string; task: Task; display: CalendarEventDisplay }
     | { kind: "class"; sortKey: string; id: string; cls: ClassItem; slot: MeetingTime; display: CalendarEventDisplay }
     | { kind: "club"; sortKey: string; id: string; club: ClubItem; slot: ClubMeetingTime; display: CalendarEventDisplay };
 
@@ -6361,7 +6795,6 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         event,
         display: getCalendarEventDisplay(key, {
           title: event.title,
-          date: event.startDate,
           color: event.color,
           icon: event.icon,
           startTime: event.startTime,
@@ -6381,7 +6814,6 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         event,
         display: getCalendarEventDisplay(key, {
           title: event.name,
-          date: event.date,
           color: getManualEventColor(event.type),
           icon: "✦",
           startTime: event.startTime,
@@ -6392,26 +6824,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         }),
       });
     });
-    zoomedTasks.forEach((task) => {
-      const key = `t-${task.id}`;
-      items.push({
-        kind: "task",
-        sortKey: (calendarEventOverrides[key]?.startTime || "0000"),
-        id: key,
-        task,
-        display: getCalendarEventDisplay(key, {
-          title: task.title,
-          date: task.dueDate,
-          color: task.type === "test" ? "#E11D48" : "#2563EB",
-          icon: task.type === "test" ? "📝" : "📚",
-          startTime: undefined,
-          endTime: undefined,
-          allDay: true,
-          sourceLabel: task.type === "test" ? "Test" : "Homework",
-        }),
-      });
-    });
-    zoomedClassMeetings.forEach(({ cls, slot, key }) => {
+    zoomedClassMeetings.forEach(({ cls, slot }) => {
+      const key = `c-${cls.id}-${zoomedCalendarDate}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
       items.push({
         kind: "class",
         sortKey: slot.startTime || "0000",
@@ -6420,7 +6834,6 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         slot,
         display: getCalendarEventDisplay(key, {
           title: cls.name,
-          date: zoomedCalendarDate || formatDateKey(new Date()),
           color: cls.color || "#3B82F6",
           icon: "📘",
           startTime: slot.startTime,
@@ -6430,7 +6843,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         }),
       });
     });
-    zoomedClubMeetings.forEach(({ club, slot, key }) => {
+    zoomedClubMeetings.forEach(({ club, slot }) => {
+      const key = `cl-${club.id}-${zoomedCalendarDate}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
       items.push({
         kind: "club",
         sortKey: slot.startTime || "0000",
@@ -6439,7 +6853,6 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         slot,
         display: getCalendarEventDisplay(key, {
           title: club.name,
-          date: zoomedCalendarDate || formatDateKey(new Date()),
           color: club.color || "#8B5CF6",
           icon: club.icon || "👥",
           startTime: slot.startTime,
@@ -6454,7 +6867,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       const bTime = b.display.allDay ? "0000" : b.display.startTime || "0000";
       return aTime.localeCompare(bTime) || a.display.title.localeCompare(b.display.title);
     });
-  }, [zoomedGoogleEvents, zoomedManualEvents, zoomedTasks, zoomedClassMeetings, zoomedClubMeetings, zoomedCalendarDate, calendarEventOverrides]);
+  }, [zoomedGoogleEvents, zoomedManualEvents, zoomedClassMeetings, zoomedClubMeetings, zoomedCalendarDate, calendarEventOverrides]);
 
   const editingCalendarItem = zoomedDayItems.find(
     (item) => item.id === editingCalendarItemKey
@@ -7463,7 +7876,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               ].filter((item) => !q || item.label.toLowerCase().includes(q));
               const searchResults = q ? [
                 ...tasks.map((task) => ({ id: `task-${task.id}`, label: task.title, meta: SETTINGS_TEXT[appSettings.language].shortcutTasks, icon: List, onClick: () => { setCommandPaletteOpen(false); setMobileTab("tasks"); } })),
-                ...classes.map((cls) => ({ id: `class-${cls.id}`, label: cls.name, meta: "Class", icon: BookOpen, onClick: () => { setCommandPaletteOpen(false); setActiveTab("standards"); setSelectedClassId(cls.id); setMobileTab("classes"); } })),
+                ...classes.map((cls) => ({ id: `class-${cls.id}`, label: cls.name, meta: "Class", icon: BookOpen, onClick: () => { setCommandPaletteOpen(false); setActiveTab("standards"); setSelectedClassId(cls.id); setMobileTab("calendar"); } })),
                 ...manualCalendarEvents.map((event) => ({ id: `manual-${event.id}`, label: event.name, meta: event.date, icon: CalendarDays, onClick: () => { setCommandPaletteOpen(false); setActiveTab("calendar"); setMobileTab("calendar"); setZoomedCalendarDate(event.date); } })),
                 ...googleCalendarEvents.map((event) => ({ id: `google-${event.id}`, label: event.title, meta: event.startDate, icon: Calendar, onClick: () => { setCommandPaletteOpen(false); setActiveTab("calendar"); setMobileTab("calendar"); setZoomedCalendarDate(event.startDate); } })),
                 ...learningMaterials.map((item) => ({ id: `learn-${item.id}`, label: item.title, meta: SETTINGS_TEXT[appSettings.language].shortcutLearning, icon: BookOpen, onClick: () => { setCommandPaletteOpen(false); setActiveTab("learning"); setMobileTab("learning"); } })),
@@ -7493,30 +7906,6 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
         {/* Header Widgets */}
         <div className="flex w-full lg:w-auto flex-nowrap items-center gap-2.5 overflow-x-auto pb-1 self-start lg:self-auto">
-          {/* Global Search / Command Menu */}
-          <button
-            type="button"
-            onClick={() => { setCommandPaletteOpen(true); setCommandQuery(""); }}
-            className="shrink-0 flex h-10 items-center gap-2 rounded-lg border border-slate-800 bg-slate-950/80 px-3 text-slate-300 transition hover:border-slate-600 hover:text-white"
-            title={SETTINGS_TEXT[appSettings.language].commandSearch}
-            aria-label={SETTINGS_TEXT[appSettings.language].commandSearch}
-          >
-            <Search size={17} />
-            <span className="hidden xl:inline text-xs font-semibold">{SETTINGS_TEXT[appSettings.language].commandSearch}</span>
-            <kbd className="hidden sm:inline rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">⌘/Ctrl K</kbd>
-          </button>
-
-          {/* Settings */}
-          <button
-            type="button"
-            onClick={() => setShowSettingsPage(true)}
-            className="shrink-0 grid h-10 w-10 place-items-center rounded-lg border border-slate-800 bg-slate-950/80 text-slate-300 transition hover:border-slate-600 hover:text-white"
-            title={SETTINGS_TEXT[appSettings.language].settings}
-            aria-label={SETTINGS_TEXT[appSettings.language].settings}
-          >
-            <Settings size={17} />
-          </button>
-
           {/* User Account & Logout */}
           <div className="shrink-0 flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-3 py-2 rounded-lg text-xs min-h-10">
             <span className="grid h-6 w-6 place-items-center rounded-full bg-slate-800 text-sm">{appSettings.profileAvatar || "🎓"}</span>
@@ -7648,15 +8037,49 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       </header>
 
       {/* MAIN LAYOUT GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 p-3 sm:p-4 max-w-7xl mx-auto w-full flex-1">
-        {/* LEFT PANEL */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 p-3 sm:p-4 max-w-[1600px] mx-auto w-full flex-1 items-start">
+        {/* DESKTOP SIDEBAR NAVIGATION */}
+        <aside className="hidden lg:flex lg:col-span-2 lg:col-start-1 lg:row-start-1 sticky top-4 self-start">
+          <div className="w-full rounded-2xl border border-slate-800 bg-slate-900/95 shadow-sm backdrop-blur-sm overflow-hidden">
+            <div className="px-4 py-4 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="grid h-9 w-9 place-items-center rounded-xl bg-blue-600/15 text-blue-400 border border-blue-500/20">
+                  <GraduationCap size={20} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-extrabold text-white truncate">WJ Study</div>
+                  <div className="text-[10px] text-slate-500 truncate">Academic Workspace</div>
+                </div>
+              </div>
+            </div>
+            <nav className="p-2.5 space-y-1">
+              <button type="button" onClick={() => { setActiveTab("calendar"); setMobileTab("calendar"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "calendar" && mobileTab === "calendar" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><Calendar size={16} /><span>{tx("Calendar")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("clubs"); setActiveTab("calendar"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${mobileTab === "clubs" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><Users size={16} /><span>{tx("Clubs")}</span></button>
+              <button type="button" onClick={() => { setMobileTab("tasks"); setActiveTab("calendar"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${mobileTab === "tasks" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><List size={16} /><span>{tx("Tasks")}</span></button>
+              <button type="button" onClick={() => { setActiveTab("streaks"); setMobileTab("streaks"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "streaks" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><Flame size={16} /><span>{tx("Streaks")}</span></button>
+              <button type="button" onClick={() => { setActiveTab("learning"); setMobileTab("learning"); if (!learningClassId && classes[0]?.id) setLearningClassId(classes[0].id); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "learning" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><BookOpen size={16} /><span>{tx("Learning")}</span></button>
+              <button type="button" onClick={() => { setActiveTab("timetable"); setMobileTab("timetable"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "timetable" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><CalendarDays size={16} /><span>{tx("Timetable")}</span></button>
+              <button type="button" onClick={() => { setActiveTab("grades"); setMobileTab("grades"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "grades" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><Calculator size={16} /><span>{tx("Grades")}</span></button>
+              <button type="button" onClick={() => { setActiveTab("simulator"); setMobileTab("simulator"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "simulator" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><Sliders size={16} /><span>{tx("Grade Simulator")}</span></button>
+              <button type="button" onClick={() => { setActiveTab("planner"); setMobileTab("planner"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "planner" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><Brain size={16} /><span>{tx("AI Planner")}</span></button>
+              <button type="button" onClick={() => { setActiveTab("analytics"); setMobileTab("analytics"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "analytics" ? "bg-blue-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><BarChart3 size={16} /><span>{tx("Analytics")}</span></button>
+              <button type="button" onClick={() => { setActiveTab("clan"); setMobileTab("clan"); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${activeTab === "clan" ? "bg-violet-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><Trophy size={16} /><span>{tx("Clan")}</span></button>
+            </nav>
+            <div className="border-t border-slate-800 p-2.5">
+              <button type="button" onClick={() => setShowSettingsPage(true)} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition"><Settings size={16} /><span>{SETTINGS_TEXT[appSettings.language].settings}</span></button>
+              <button type="button" onClick={() => { setCommandPaletteOpen(true); setCommandQuery(""); }} className="mt-1 w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition"><Search size={16} /><span className="flex-1">{SETTINGS_TEXT[appSettings.language].commandSearch}</span><kbd className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-[8px] font-bold text-slate-500">⌘K</kbd></button>
+            </div>
+          </div>
+        </aside>
+
+        {/* RIGHT PANEL: CLASS ROSTER */}
         <aside
           className={`${
-            mobileTab === "classes" ? "block" : "hidden"
-          } lg:block lg:col-span-4 space-y-4 sm:space-y-6`}
+            mobileTab === "calendar" ? "block" : "hidden"
+          } lg:block lg:col-span-3 lg:col-start-10 lg:row-start-1 space-y-4 sm:space-y-6`}
         >
           {/* CLASS ROSTER WITH AI POWERSCHOOL PHOTO ANALYZER */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-5 space-y-4 sm:space-y-6 shadow-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-4 space-y-4 shadow-sm">
             {/* Class Roster Section */}
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -7938,6 +8361,29 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               </div>
             </div>
 
+          </div>
+
+        </aside>
+
+        {/* CENTER / MAIN PANEL */}
+        <main className="lg:col-span-7 lg:col-start-3 lg:row-start-1 space-y-6">
+          {/* CLUBS VIEW */}
+          <div
+            className={`${
+              mobileTab === "clubs" ? "block" : "hidden"
+            } space-y-6`}
+          >
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5 space-y-4 shadow-sm">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-800">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600/15 text-blue-400 border border-blue-500/20">
+                  <Users size={20} />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold">{tx("Clubs")}</h2>
+                  <p className="text-xs text-slate-500">Manage your clubs, activities, icons, colors, and meeting times.</p>
+                </div>
+              </div>
+
             {/* Clubs Section */}
             <div className="space-y-4 pt-4 border-t border-slate-800">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -8213,17 +8659,15 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 })}
               </div>
             </div>
+
+            </div>
           </div>
 
-        </aside>
-
-        {/* CENTER / MAIN PANEL */}
-        <main className="lg:col-span-8 space-y-6">
           {/* TASKS VIEW */}
           <div
             className={`${
               mobileTab === "tasks" ? "block" : "hidden"
-            } lg:block space-y-6`}
+            } space-y-6`}
           >
             {/* MOBILE FOCUS TIMER */}
             <div className="lg:hidden rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-600/10 via-slate-900 to-slate-950 p-4 shadow-sm">
@@ -8496,7 +8940,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               mobileTab === "clan"
                 ? "block"
                 : "hidden"
-            } lg:block space-y-6`}
+            } space-y-6`}
           >
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5 space-y-4 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-3">
@@ -8504,121 +8948,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   <LayoutDashboard size={18} className="text-blue-400" /> Academic
                   Workspace
                 </h2>
-                <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 overflow-x-auto w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("calendar")}
-                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
-                      activeTab === "calendar"
-                        ? "bg-blue-600 text-white"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <Calendar size={13} />{tx("Calendar")}</button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("standards")}
-                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
-                      activeTab === "standards"
-                        ? "bg-blue-600 text-white"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <Award size={13} />{tx("Standards")}</button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("streaks")}
-                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
-                      activeTab === "streaks"
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <Flame size={13} className="text-amber-400" />{tx("Streaks")}</button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("learning");
-                      setMobileTab("learning");
-                      if (!learningClassId && classes[0]?.id) setLearningClassId(classes[0].id);
-                    }}
-                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
-                      activeTab === "learning"
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <BookOpen size={13} />{tx("Learning")}</button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("timetable")}
-                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
-                      activeTab === "timetable"
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <CalendarDays size={13} />{tx("Timetable")}</button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("grades")}
-                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
-                      activeTab === "grades"
-                        ? "bg-blue-600 text-white"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <Calculator size={13} />{tx("Grades")}</button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("simulator")}
-                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
-                      activeTab === "simulator"
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <Sliders size={13} />{tx("Grade Simulator")}</button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("planner");
-                      setMobileTab("planner");
-                    }}
-                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
-                      activeTab === "planner"
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <Brain size={13} />{tx("AI Planner")}</button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("analytics");
-                      setMobileTab("analytics");
-                    }}
-                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
-                      activeTab === "analytics"
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <BarChart3 size={13} />{tx("Analytics")}</button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("clan");
-                      setMobileTab("clan");
-                    }}
-                    className={`shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-xs font-semibold transition min-h-9 ${
-                      activeTab === "clan"
-                        ? "bg-violet-600 text-white shadow-md"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <Trophy size={13} />{tx("Clan")}</button>
-                </div>
+
               </div>
 
               {/* TAB: CLAN */}
@@ -9169,33 +9499,39 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       // Academic status lookup
                       const academicStatus = getCalendarDayStatus(dateStr, isWeekend);
 
-                      // Filtered events. Date overrides move an individual occurrence in WJ Study
-                      // without changing the underlying Task, Google event, Class, or Club record.
-                      const dayTasks = tasks.filter((task) => {
-                        const override = calendarEventOverrides[`t-${task.id}`] || {};
-                        return override.date ? override.date === dateStr : task.dueDate === dateStr;
-                      });
-                      const dayGoogleEvents = googleCalendarEvents.filter((event) => {
-                        const override = calendarEventOverrides[`g-${event.id}`] || {};
-                        return override.date ? override.date === dateStr : googleEventOccursOnDate(event, dateStr);
-                      });
-                      const dayManualEvents = manualCalendarEvents.filter((event) => {
-                        const override = calendarEventOverrides[`m-${event.id}`] || {};
-                        return override.date ? override.date === dateStr : event.date === dateStr;
-                      });
-
-                      const dayClubMeetings = getClubMeetingsForDate(
-                        dateStr,
-                        dayOfWeekName,
-                        academicStatus.type
+                      // Calendar events only. Task management lives in the Tasks section.
+                      const dayGoogleEvents = googleCalendarEvents.filter((event) =>
+                        googleEventOccursOnDate(event, dateStr)
+                      );
+                      const dayManualEvents = manualCalendarEvents.filter(
+                        (event) => event.date === dateStr
                       );
 
-                      // Weekly class sessions from the Timetable tab, including moved individual occurrences.
-                      const dayClassMeetings = getClassMeetingsForDate(
-                        dateStr,
-                        dayOfWeekName,
-                        academicStatus.type
-                      );
+                      const dayClubMeetings =
+                        academicStatus.type === "break" || academicStatus.type === "staff_only"
+                          ? []
+                          : clubs.flatMap((club) => {
+                              const matchingSlots = (club.meetingTimes || []).filter(
+                                (mt) => mt.day === dayOfWeekName
+                              );
+                              if (matchingSlots.length > 0) {
+                                return matchingSlots.map((slot) => ({ club, slot }));
+                              }
+                              if (club.attendance?.[dateStr]) {
+                                return [{ club, slot: { day: dayOfWeekName, startTime: "", endTime: "" } }];
+                              }
+                              return [];
+                            });
+
+                      // Weekly class sessions from the Timetable tab
+                      const dayClassMeetings =
+                        academicStatus.type === "break" || academicStatus.type === "staff_only"
+                          ? []
+                          : classes.flatMap((cls) =>
+                              (cls.meetingTimes || [])
+                                .filter((mt) => mt.day === dayOfWeekName)
+                                .map((slot) => ({ cls, slot }))
+                            );
 
                       let dayBoxStyle = "bg-slate-950/80 border-slate-800/80";
                       let dayHeaderStyle = "text-slate-400";
@@ -9306,32 +9642,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                 </button>
                               );
                             })}
-                            {dayTasks.map((t) => {
-                              const key = `t-${t.id}`;
-                              const override = calendarEventOverrides[key] || {};
-                              const title = override.title ?? t.title;
-                              const icon = override.icon ?? (t.type === "test" ? "📝" : "📚");
-                              const color = override.color ?? (t.type === "test" ? "#E11D48" : "#2563EB");
-                              const startTime = override.startTime;
-                              return (
-                                <button
-                                  type="button"
-                                  key={key}
-                                  onClick={(clickEvent) => {
-                                    clickEvent.stopPropagation();
-                                    openCalendarDay(dateStr, key);
-                                  }}
-                                  className="w-full text-left text-[9px] truncate px-1.5 py-0.5 rounded text-white font-medium transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/70"
-                                  style={{ backgroundColor: color }}
-                                  title={`Task: ${title}${startTime ? ` (${startTime})` : ""}`}
-                                >
-                                  <span className="mr-1 opacity-80">{icon}</span>{title}
-                                  {startTime && <span className="ml-1 font-mono opacity-80">{startTime}</span>}
-                                </button>
-                              );
-                            })}
-
-                            {dayClassMeetings.map(({ cls, slot, key }) => {
+                            {dayClassMeetings.map(({ cls, slot }) => {
+                              const key = `c-${cls.id}-${dateStr}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
                               const override = calendarEventOverrides[key] || {};
                               const title = override.title ?? cls.name;
                               const icon = override.icon ?? "📘";
@@ -9356,7 +9668,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               );
                             })}
 
-                            {dayClubMeetings.map(({ club, slot, key }) => {
+                            {dayClubMeetings.map(({ club, slot }) => {
+                              const key = `cl-${club.id}-${dateStr}-${slot.startTime || "all-day"}-${slot.endTime || ""}`;
                               const override = calendarEventOverrides[key] || {};
                               const title = override.title ?? club.name;
                               const icon = override.icon ?? club.icon ?? "👥";
@@ -10894,36 +11207,6 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       );
                     }
 
-                    if (item.kind === "task") {
-                      const task = item.task;
-                      const display = item.display;
-                      const taskClass = classes.find((c) => c.id === task.classId);
-                      return (
-                        <button
-                          type="button"
-                          key={item.id}
-                          onClick={() => setEditingCalendarItemKey(item.id)}
-                          className={`w-full rounded-xl border p-3 text-left transition ${
-                            editingCalendarItemKey === item.id
-                              ? "border-violet-400 bg-slate-800"
-                              : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
-                          }`}
-                        >
-                          <div className="flex items-start gap-2">
-                            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold text-white" style={{ backgroundColor: display.color }}>
-                              {display.icon}
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm font-semibold text-slate-100">{display.title}</span>
-                              <span className="mt-0.5 block text-xs text-slate-400">
-                                {taskClass ? `${taskClass.name} · ` : ""}{task.type === "test" ? "Test" : "Homework"}{display.startTime ? ` · ${display.startTime}${display.endTime ? ` – ${display.endTime}` : ""}` : ""}
-                              </span>
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    }
-
                     if (item.kind === "class") {
                       const display = item.display;
                       return (
@@ -10983,7 +11266,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                     {(() => {
                       const display = editingCalendarItem.display;
                       const override = calendarEventOverrides[editingCalendarItem.id] || {};
-                      const supportsAllDayToggle = editingCalendarItem.kind === "google" || editingCalendarItem.kind === "task";
+                      const supportsAllDayToggle = editingCalendarItem.kind === "google";
                       const hasTime = Boolean(display.startTime || display.endTime);
                       return (
                         <>
@@ -10999,42 +11282,6 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                               <p className="text-[11px] text-slate-400">{display.sourceLabel} · changes are saved in this app only</p>
                             </div>
                           </div>
-
-                          <label className="block text-xs font-semibold text-slate-300">{tx("Date")}<input
-                              type="date"
-                              value={display.date}
-                              onChange={(changeEvent) => {
-                                const nextDate = changeEvent.target.value;
-                                if (!nextDate) return;
-                                const source: CalendarEventOverride = {
-                                  date: display.date,
-                                  sourceDate: display.date,
-                                };
-                                if (editingCalendarItem.kind === "class") {
-                                  source.sourceKind = "class";
-                                  source.sourceId = editingCalendarItem.cls.id;
-                                  source.sourceDay = editingCalendarItem.slot.day;
-                                  source.sourceStartTime = editingCalendarItem.slot.startTime || "";
-                                  source.sourceEndTime = editingCalendarItem.slot.endTime || "";
-                                } else if (editingCalendarItem.kind === "club") {
-                                  source.sourceKind = "club";
-                                  source.sourceId = editingCalendarItem.club.id;
-                                  source.sourceDay = editingCalendarItem.slot.day;
-                                  source.sourceStartTime = editingCalendarItem.slot.startTime || "";
-                                  source.sourceEndTime = editingCalendarItem.slot.endTime || "";
-                                } else if (editingCalendarItem.kind === "google") {
-                                  source.sourceId = editingCalendarItem.event.id;
-                                } else if (editingCalendarItem.kind === "manual") {
-                                  source.sourceId = editingCalendarItem.event.id;
-                                } else if (editingCalendarItem.kind === "task") {
-                                  source.sourceId = editingCalendarItem.task.id;
-                                }
-                                updateCalendarEventOverride(editingCalendarItem.id, { ...source, date: nextDate });
-                                setZoomedCalendarDate(nextDate);
-                              }}
-                              className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-violet-400"
-                            />
-                          </label>
 
                           <label className="block text-xs font-semibold text-slate-300">{tx("Name")}<input
                               value={display.title}
@@ -11156,7 +11403,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       {/* MOBILE BOTTOM NAVIGATION */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-800 bg-slate-900/95 px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur-md lg:hidden shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
         <div className="mx-auto grid max-w-xl grid-cols-7 items-center">
-          <button type="button" onClick={() => setMobileTab("classes")} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "classes" ? "text-blue-400" : "text-slate-400"}`}><BookOpen size={18} /><span>{tx("Classes")}</span></button>
+          <button type="button" onClick={() => { setMobileTab("clubs"); setActiveTab("calendar"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "clubs" ? "text-blue-400" : "text-slate-400"}`}><Users size={18} /><span>{tx("Clubs")}</span></button>
           <button type="button" onClick={() => setMobileTab("tasks")} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "tasks" ? "text-blue-400" : "text-slate-400"}`}><List size={18} /><span>{tx("Tasks")}</span></button>
           <button type="button" onClick={() => { setMobileTab("learning"); setActiveTab("learning"); if (!learningClassId && classes[0]?.id) setLearningClassId(classes[0].id); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "learning" ? "text-blue-400" : "text-slate-400"}`}><BookOpen size={18} /><span>{tx("Learn")}</span></button>
           <button type="button" onClick={() => { setMobileTab("planner"); setActiveTab("planner"); }} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition ${mobileTab === "planner" ? "text-blue-400" : "text-slate-400"}`}><Brain size={18} /><span>{tx("Planner")}</span></button>
