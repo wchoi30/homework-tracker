@@ -61,6 +61,9 @@ import {
   SunMedium,
   Bell,
   Palette,
+  Bug,
+  LifeBuoy,
+  Info,
 } from "lucide-react";
 
 // Place right below imports, before: export default function Page() { ...
@@ -1824,48 +1827,51 @@ const MAIN_WEEKDAY_TEXT: Record<AppLanguage, Record<string, string>> = {
   ja: { Monday: "月曜日", Tuesday: "火曜日", Wednesday: "水曜日", Thursday: "木曜日", Friday: "金曜日", Saturday: "土曜日", Sunday: "日曜日" },
 };
 
+const SUPPORT_EMAIL = "jaydenchoi26@gmail.com";
+const APP_VERSION = "1.0.0";
+
 const SETTINGS_TEXT: Record<AppLanguage, Record<string, string>> = {
   en: {
     settings: "Settings", back: "Back", language: "Language", languageDescription: "Choose the language used by WJ Study settings and supported interface labels.",
     appearance: "Appearance", appearanceDescription: "Change the look of WJ Study.", dark: "Dark", light: "Light", accent: "Accent color",
     notifications: "Notifications", notificationsDescription: "Choose which reminders and alerts WJ Study should keep enabled.",
     taskReminders: "Task reminders", taskRemindersDescription: "Reminders for upcoming tasks.", deadlineAlerts: "Deadline alerts", deadlineAlertsDescription: "Alerts for tasks approaching their due date.", focusReminders: "Focus reminders", focusRemindersDescription: "Reminders to start or return to a focus session.",
-    english: "English", vietnamese: "Vietnamese", korean: "Korean", japanese: "Japanese", spanish: "Spanish", mandarin: "Mandarin Chinese", saved: "Saved automatically",
+    english: "English", vietnamese: "Vietnamese", korean: "Korean", japanese: "Japanese", spanish: "Spanish", mandarin: "Mandarin Chinese", saved: "Saved automatically", helpFeedback: "Help & Feedback", helpFeedbackDescription: "Get help, report a bug, or contact WJ Study support.", reportBug: "Report a bug", reportBugDescription: "Tell us what went wrong and what you were doing when it happened.", contactSupport: "Contact support", contactSupportDescription: "Send a message to the WJ Study support team.", openEmail: "Open email", about: "About", aboutDescription: "See the current app version and what has been added recently.", appVersion: "App version", changelog: "Changelog", currentRelease: "Current release",
   },
   vi: {
     settings: "Cài đặt", back: "Quay lại", language: "Ngôn ngữ", languageDescription: "Chọn ngôn ngữ dùng cho cài đặt và các nhãn giao diện được hỗ trợ của WJ Study.",
     appearance: "Giao diện", appearanceDescription: "Thay đổi giao diện của WJ Study.", dark: "Tối", light: "Sáng", accent: "Màu nhấn",
     notifications: "Thông báo", notificationsDescription: "Chọn các lời nhắc và cảnh báo muốn bật trong WJ Study.",
     taskReminders: "Nhắc việc", taskRemindersDescription: "Nhắc nhở về các công việc sắp tới.", deadlineAlerts: "Cảnh báo hạn", deadlineAlertsDescription: "Cảnh báo khi công việc sắp đến hạn.", focusReminders: "Nhắc tập trung", focusRemindersDescription: "Nhắc bắt đầu hoặc quay lại phiên tập trung.",
-    english: "Tiếng Anh", vietnamese: "Tiếng Việt", korean: "Tiếng Hàn", japanese: "Tiếng Nhật", spanish: "Tiếng Tây Ban Nha", mandarin: "Tiếng Trung (Phổ thông)", saved: "Tự động lưu",
+    english: "Tiếng Anh", vietnamese: "Tiếng Việt", korean: "Tiếng Hàn", japanese: "Tiếng Nhật", spanish: "Tiếng Tây Ban Nha", mandarin: "Tiếng Trung (Phổ thông)", saved: "Tự động lưu", helpFeedback: "Trợ giúp & Phản hồi", helpFeedbackDescription: "Nhận trợ giúp, báo lỗi hoặc liên hệ bộ phận hỗ trợ WJ Study.", reportBug: "Báo lỗi", reportBugDescription: "Cho chúng tôi biết lỗi gì đã xảy ra và bạn đang làm gì khi lỗi xuất hiện.", contactSupport: "Liên hệ hỗ trợ", contactSupportDescription: "Gửi tin nhắn cho đội ngũ hỗ trợ WJ Study.", openEmail: "Mở email", about: "Giới thiệu", aboutDescription: "Xem phiên bản hiện tại và những tính năng mới được thêm gần đây.", appVersion: "Phiên bản ứng dụng", changelog: "Nhật ký thay đổi", currentRelease: "Bản phát hành hiện tại",
   },
   ko: {
     settings: "설정", back: "뒤로", language: "언어", languageDescription: "WJ Study 설정 및 지원되는 인터페이스 언어를 선택하세요.",
     appearance: "화면", appearanceDescription: "WJ Study의 모양을 변경합니다.", dark: "어두운 모드", light: "밝은 모드", accent: "강조 색상",
     notifications: "알림", notificationsDescription: "WJ Study에서 사용할 알림과 리마인더를 선택하세요.",
     taskReminders: "할 일 알림", taskRemindersDescription: "다가오는 할 일을 알려줍니다.", deadlineAlerts: "마감 알림", deadlineAlertsDescription: "마감일이 다가오는 할 일을 알려줍니다.", focusReminders: "집중 알림", focusRemindersDescription: "집중 세션 시작 또는 재개를 알려줍니다.",
-    english: "영어", vietnamese: "베트남어", korean: "한국어", japanese: "일본어", spanish: "스페인어", mandarin: "중국어(표준어)", saved: "자동 저장됨",
+    english: "영어", vietnamese: "베트남어", korean: "한국어", japanese: "일본어", spanish: "스페인어", mandarin: "중국어(표준어)", saved: "자동 저장됨", helpFeedback: "도움말 & 피드백", helpFeedbackDescription: "도움을 받고, 버그를 신고하거나 WJ Study 지원팀에 문의하세요.", reportBug: "버그 신고", reportBugDescription: "무슨 문제가 발생했는지와 발생 당시 하고 있던 작업을 알려주세요.", contactSupport: "지원팀 문의", contactSupportDescription: "WJ Study 지원팀에 메시지를 보내세요.", openEmail: "이메일 열기", about: "앱 정보", aboutDescription: "현재 앱 버전과 최근 추가된 기능을 확인하세요.", appVersion: "앱 버전", changelog: "변경 사항", currentRelease: "현재 릴리스",
   },
   ja: {
     settings: "設定", back: "戻る", language: "言語", languageDescription: "WJ Studyの設定と対応インターフェースで使用する言語を選択します。",
     appearance: "外観", appearanceDescription: "WJ Studyの見た目を変更します。", dark: "ダーク", light: "ライト", accent: "アクセントカラー",
     notifications: "通知", notificationsDescription: "WJ Studyで有効にするリマインダーと通知を選択します。",
     taskReminders: "タスクのリマインダー", taskRemindersDescription: "今後のタスクを知らせます。", deadlineAlerts: "締切通知", deadlineAlertsDescription: "締切が近いタスクを知らせます。", focusReminders: "集中リマインダー", focusRemindersDescription: "集中セッションの開始や再開を知らせます。",
-    english: "英語", vietnamese: "ベトナム語", korean: "韓国語", japanese: "日本語", spanish: "スペイン語", mandarin: "中国語（普通話）", saved: "自動保存",
+    english: "英語", vietnamese: "ベトナム語", korean: "韓国語", japanese: "日本語", spanish: "スペイン語", mandarin: "中国語（普通話）", saved: "自動保存", helpFeedback: "ヘルプとフィードバック", helpFeedbackDescription: "ヘルプを受けたり、バグを報告したり、WJ Studyサポートに連絡できます。", reportBug: "バグを報告", reportBugDescription: "何が起きたか、発生時に何をしていたかを教えてください。", contactSupport: "サポートに連絡", contactSupportDescription: "WJ Studyサポートチームにメッセージを送ります。", openEmail: "メールを開く", about: "アプリについて", aboutDescription: "現在のアプリバージョンと最近追加された機能を確認できます。", appVersion: "アプリバージョン", changelog: "変更履歴", currentRelease: "現在のリリース",
   },
   es: {
     settings: "Configuración", back: "Volver", language: "Idioma", languageDescription: "Elige el idioma utilizado por la configuración de WJ Study y las etiquetas compatibles de la interfaz.",
     appearance: "Apariencia", appearanceDescription: "Cambia el aspecto de WJ Study.", dark: "Oscuro", light: "Claro", accent: "Color de acento",
     notifications: "Notificaciones", notificationsDescription: "Elige qué recordatorios y alertas quieres mantener activados en WJ Study.",
     taskReminders: "Recordatorios de tareas", taskRemindersDescription: "Recordatorios sobre tareas próximas.", deadlineAlerts: "Alertas de fechas límite", deadlineAlertsDescription: "Alertas cuando una tarea se acerca a su fecha límite.", focusReminders: "Recordatorios de concentración", focusRemindersDescription: "Recordatorios para iniciar o volver a una sesión de concentración.",
-    english: "Inglés", vietnamese: "Vietnamita", korean: "Coreano", japanese: "Japonés", spanish: "Español", mandarin: "Chino mandarín", saved: "Guardado automáticamente",
+    english: "Inglés", vietnamese: "Vietnamita", korean: "Coreano", japanese: "Japonés", spanish: "Español", mandarin: "Chino mandarín", saved: "Guardado automáticamente", helpFeedback: "Ayuda y comentarios", helpFeedbackDescription: "Obtén ayuda, informa de un error o contacta con el soporte de WJ Study.", reportBug: "Informar de un error", reportBugDescription: "Cuéntanos qué salió mal y qué estabas haciendo cuando ocurrió.", contactSupport: "Contactar con soporte", contactSupportDescription: "Envía un mensaje al equipo de soporte de WJ Study.", openEmail: "Abrir correo", about: "Acerca de", aboutDescription: "Consulta la versión actual de la aplicación y las novedades recientes.", appVersion: "Versión de la aplicación", changelog: "Registro de cambios", currentRelease: "Versión actual",
   },
   zh: {
     settings: "设置", back: "返回", language: "语言", languageDescription: "选择 WJ Study 设置和支持的界面标签所使用的语言。",
     appearance: "外观", appearanceDescription: "更改 WJ Study 的外观。", dark: "深色", light: "浅色", accent: "强调色",
     notifications: "通知", notificationsDescription: "选择要在 WJ Study 中启用的提醒和通知。",
     taskReminders: "任务提醒", taskRemindersDescription: "提醒你即将到来的任务。", deadlineAlerts: "截止日期提醒", deadlineAlertsDescription: "任务临近截止日期时提醒你。", focusReminders: "专注提醒", focusRemindersDescription: "提醒你开始或继续专注学习。",
-    english: "英语", vietnamese: "越南语", korean: "韩语", japanese: "日语", spanish: "西班牙语", mandarin: "中文（普通话）", saved: "已自动保存",
+    english: "英语", vietnamese: "越南语", korean: "韩语", japanese: "日语", spanish: "西班牙语", mandarin: "中文（普通话）", saved: "已自动保存", helpFeedback: "帮助与反馈", helpFeedbackDescription: "获取帮助、报告错误或联系 WJ Study 支持团队。", reportBug: "报告错误", reportBugDescription: "告诉我们发生了什么问题，以及问题发生时你正在做什么。", contactSupport: "联系支持", contactSupportDescription: "向 WJ Study 支持团队发送消息。", openEmail: "打开邮件", about: "关于", aboutDescription: "查看当前应用版本和最近新增的功能。", appVersion: "应用版本", changelog: "更新日志", currentRelease: "当前版本",
   },
 };
 
@@ -6455,6 +6461,32 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     );
   }
 
+  const openSupportEmail = (subject: string, body: string) => {
+    if (typeof window === "undefined") return;
+    const mailto = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+  };
+
+  const reportBug = () => {
+    const body = [
+      "Hi WJ Study support,",
+      "",
+      "I found a bug:",
+      "[Please describe what happened]",
+      "",
+      "What I was doing:",
+      "[Please describe the steps]",
+      "",
+      `Current page: ${typeof window !== "undefined" ? window.location.href : ""}`,
+      `Browser: ${typeof navigator !== "undefined" ? navigator.userAgent : ""}`,
+    ].join("\n");
+    openSupportEmail("WJ Study bug report", body);
+  };
+
+  const contactSupport = () => {
+    openSupportEmail("WJ Study support", "Hi WJ Study support,\n\nHow can you help me?\n");
+  };
+
   // --- RENDER AUTHENTICATED DASHBOARD ---
   if (showSettingsPage) {
     const settingsCopy = SETTINGS_TEXT[appSettings.language];
@@ -6680,6 +6712,93 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
             <div className={`mt-3 rounded-lg border p-3 text-[11px] leading-relaxed ${isLight ? "border-slate-200 bg-slate-50 text-slate-600" : "border-slate-800 bg-slate-950/60 text-slate-500"}`}>
               Browser notifications are checked automatically about once per minute while WJ Study is open. They are not background push notifications when the browser/app is fully closed.
+            </div>
+          </section>
+
+          <section className={`rounded-2xl border p-5 sm:p-6 ${surface}`}>
+            <div className="flex items-start gap-3">
+              <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${isLight ? "bg-sky-50 text-sky-600" : "bg-sky-500/10 text-sky-400"}`}>
+                <LifeBuoy size={19} />
+              </div>
+              <div className="min-w-0">
+                <h2 className={`text-base font-bold ${primaryText}`}>{settingsCopy.helpFeedback}</h2>
+                <p className={`mt-1 text-xs leading-relaxed ${subtle}`}>{settingsCopy.helpFeedbackDescription}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={reportBug}
+                className={`group flex items-center gap-3 rounded-xl border px-4 py-4 text-left transition hover:-translate-y-0.5 ${inner}`}
+              >
+                <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${isLight ? "bg-rose-50 text-rose-600" : "bg-rose-500/10 text-rose-400"}`}>
+                  <Bug size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className={`text-sm font-bold ${primaryText}`}>{settingsCopy.reportBug}</div>
+                  <div className={`mt-0.5 text-[11px] leading-relaxed ${subtle}`}>{settingsCopy.reportBugDescription}</div>
+                </div>
+                <span className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold ${isLight ? "border-slate-300 bg-white text-slate-700" : "border-slate-700 bg-slate-900 text-slate-300"}`}>{settingsCopy.openEmail}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={contactSupport}
+                className={`group flex items-center gap-3 rounded-xl border px-4 py-4 text-left transition hover:-translate-y-0.5 ${inner}`}
+              >
+                <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${isLight ? "bg-blue-50 text-blue-600" : "bg-blue-500/10 text-blue-400"}`}>
+                  <Mail size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className={`text-sm font-bold ${primaryText}`}>{settingsCopy.contactSupport}</div>
+                  <div className={`mt-0.5 text-[11px] leading-relaxed ${subtle}`}>{settingsCopy.contactSupportDescription}</div>
+                </div>
+                <span className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold ${isLight ? "border-slate-300 bg-white text-slate-700" : "border-slate-700 bg-slate-900 text-slate-300"}`}>{settingsCopy.openEmail}</span>
+              </button>
+            </div>
+
+            <div className={`mt-4 rounded-lg border p-3 text-[11px] ${isLight ? "border-slate-200 bg-slate-50 text-slate-500" : "border-slate-800 bg-slate-950/60 text-slate-500"}`}>
+              {SUPPORT_EMAIL}
+            </div>
+          </section>
+
+          <section className={`rounded-2xl border p-5 sm:p-6 ${surface}`}>
+            <div className="flex items-start gap-3">
+              <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${isLight ? "bg-violet-50 text-violet-600" : "bg-violet-500/10 text-violet-400"}`}>
+                <Info size={19} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className={`text-base font-bold ${primaryText}`}>{settingsCopy.about}</h2>
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${isLight ? "border-violet-200 bg-violet-50 text-violet-700" : "border-violet-500/30 bg-violet-500/10 text-violet-300"}`}>v{APP_VERSION}</span>
+                </div>
+                <p className={`mt-1 text-xs leading-relaxed ${subtle}`}>{settingsCopy.aboutDescription}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+              <div className={`rounded-xl border p-4 ${isLight ? "border-slate-200 bg-slate-50" : "border-slate-800 bg-slate-950/50"}`}>
+                <div className={`text-[11px] font-semibold uppercase tracking-wide ${subtle}`}>{settingsCopy.appVersion}</div>
+                <div className={`mt-2 text-2xl font-black tracking-tight ${primaryText}`}>v{APP_VERSION}</div>
+                <div className={`mt-1 text-[11px] ${subtle}`}>{settingsCopy.currentRelease}</div>
+              </div>
+
+              <div className={`rounded-xl border p-4 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-950/50"}`}>
+                <div className={`text-sm font-bold ${primaryText}`}>{settingsCopy.changelog}</div>
+                <div className={`mt-3 space-y-3 text-[11px] leading-relaxed ${bodyText}`}>
+                  <div>
+                    <div className={`font-bold ${primaryText}`}>v{APP_VERSION}</div>
+                    <ul className="mt-1 space-y-1 pl-4 list-disc">
+                      <li>Added Settings with language, appearance, accent color, and notification controls.</li>
+                      <li>Added Spanish and Mandarin language support across the supported interface.</li>
+                      <li>Improved the light theme for clearer contrast and readability.</li>
+                      <li>Added Help &amp; Feedback with bug reporting and support contact options.</li>
+                      <li>Expanded calendar customization and management features.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         </main>
