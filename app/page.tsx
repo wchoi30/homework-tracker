@@ -843,7 +843,7 @@ const safeStorageGet = <T,>(key: string, fallback: T): T => {
   }
 };
 
-type AppLanguage = "en" | "vi" | "ko" | "ja";
+type AppLanguage = "en" | "vi" | "ko" | "ja" | "es" | "zh";
 type AppThemeMode = "dark" | "light";
 type AppAccent = "blue" | "violet" | "emerald" | "rose" | "amber";
 
@@ -883,28 +883,42 @@ const SETTINGS_TEXT: Record<AppLanguage, Record<string, string>> = {
     appearance: "Appearance", appearanceDescription: "Change the look of WJ Study.", dark: "Dark", light: "Light", accent: "Accent color",
     notifications: "Notifications", notificationsDescription: "Choose which reminders and alerts WJ Study should keep enabled.",
     taskReminders: "Task reminders", taskRemindersDescription: "Reminders for upcoming tasks.", deadlineAlerts: "Deadline alerts", deadlineAlertsDescription: "Alerts for tasks approaching their due date.", focusReminders: "Focus reminders", focusRemindersDescription: "Reminders to start or return to a focus session.",
-    english: "English", vietnamese: "Vietnamese", korean: "Korean", japanese: "Japanese", saved: "Saved automatically",
+    english: "English", vietnamese: "Vietnamese", korean: "Korean", japanese: "Japanese", spanish: "Spanish", mandarin: "Mandarin Chinese", saved: "Saved automatically",
   },
   vi: {
     settings: "Cài đặt", back: "Quay lại", language: "Ngôn ngữ", languageDescription: "Chọn ngôn ngữ dùng cho cài đặt và các nhãn giao diện được hỗ trợ của WJ Study.",
     appearance: "Giao diện", appearanceDescription: "Thay đổi giao diện của WJ Study.", dark: "Tối", light: "Sáng", accent: "Màu nhấn",
     notifications: "Thông báo", notificationsDescription: "Chọn các lời nhắc và cảnh báo muốn bật trong WJ Study.",
     taskReminders: "Nhắc việc", taskRemindersDescription: "Nhắc nhở về các công việc sắp tới.", deadlineAlerts: "Cảnh báo hạn", deadlineAlertsDescription: "Cảnh báo khi công việc sắp đến hạn.", focusReminders: "Nhắc tập trung", focusRemindersDescription: "Nhắc bắt đầu hoặc quay lại phiên tập trung.",
-    english: "Tiếng Anh", vietnamese: "Tiếng Việt", korean: "Tiếng Hàn", japanese: "Tiếng Nhật", saved: "Tự động lưu",
+    english: "Tiếng Anh", vietnamese: "Tiếng Việt", korean: "Tiếng Hàn", japanese: "Tiếng Nhật", spanish: "Tiếng Tây Ban Nha", mandarin: "Tiếng Trung (Phổ thông)", saved: "Tự động lưu",
   },
   ko: {
     settings: "설정", back: "뒤로", language: "언어", languageDescription: "WJ Study 설정 및 지원되는 인터페이스 언어를 선택하세요.",
     appearance: "화면", appearanceDescription: "WJ Study의 모양을 변경합니다.", dark: "어두운 모드", light: "밝은 모드", accent: "강조 색상",
     notifications: "알림", notificationsDescription: "WJ Study에서 사용할 알림과 리마인더를 선택하세요.",
     taskReminders: "할 일 알림", taskRemindersDescription: "다가오는 할 일을 알려줍니다.", deadlineAlerts: "마감 알림", deadlineAlertsDescription: "마감일이 다가오는 할 일을 알려줍니다.", focusReminders: "집중 알림", focusRemindersDescription: "집중 세션 시작 또는 재개를 알려줍니다.",
-    english: "영어", vietnamese: "베트남어", korean: "한국어", japanese: "일본어", saved: "자동 저장됨",
+    english: "영어", vietnamese: "베트남어", korean: "한국어", japanese: "일본어", spanish: "스페인어", mandarin: "중국어(표준어)", saved: "자동 저장됨",
   },
   ja: {
     settings: "設定", back: "戻る", language: "言語", languageDescription: "WJ Studyの設定と対応インターフェースで使用する言語を選択します。",
     appearance: "外観", appearanceDescription: "WJ Studyの見た目を変更します。", dark: "ダーク", light: "ライト", accent: "アクセントカラー",
     notifications: "通知", notificationsDescription: "WJ Studyで有効にするリマインダーと通知を選択します。",
     taskReminders: "タスクのリマインダー", taskRemindersDescription: "今後のタスクを知らせます。", deadlineAlerts: "締切通知", deadlineAlertsDescription: "締切が近いタスクを知らせます。", focusReminders: "集中リマインダー", focusRemindersDescription: "集中セッションの開始や再開を知らせます。",
-    english: "英語", vietnamese: "ベトナム語", korean: "韓国語", japanese: "日本語", saved: "自動保存",
+    english: "英語", vietnamese: "ベトナム語", korean: "韓国語", japanese: "日本語", spanish: "スペイン語", mandarin: "中国語（普通話）", saved: "自動保存",
+  },
+  es: {
+    settings: "Configuración", back: "Volver", language: "Idioma", languageDescription: "Elige el idioma utilizado por la configuración de WJ Study y las etiquetas compatibles de la interfaz.",
+    appearance: "Apariencia", appearanceDescription: "Cambia el aspecto de WJ Study.", dark: "Oscuro", light: "Claro", accent: "Color de acento",
+    notifications: "Notificaciones", notificationsDescription: "Elige qué recordatorios y alertas quieres mantener activados en WJ Study.",
+    taskReminders: "Recordatorios de tareas", taskRemindersDescription: "Recordatorios sobre tareas próximas.", deadlineAlerts: "Alertas de fechas límite", deadlineAlertsDescription: "Alertas cuando una tarea se acerca a su fecha límite.", focusReminders: "Recordatorios de concentración", focusRemindersDescription: "Recordatorios para iniciar o volver a una sesión de concentración.",
+    english: "Inglés", vietnamese: "Vietnamita", korean: "Coreano", japanese: "Japonés", spanish: "Español", mandarin: "Chino mandarín", saved: "Guardado automáticamente",
+  },
+  zh: {
+    settings: "设置", back: "返回", language: "语言", languageDescription: "选择 WJ Study 设置和支持的界面标签所使用的语言。",
+    appearance: "外观", appearanceDescription: "更改 WJ Study 的外观。", dark: "深色", light: "浅色", accent: "强调色",
+    notifications: "通知", notificationsDescription: "选择要在 WJ Study 中启用的提醒和通知。",
+    taskReminders: "任务提醒", taskRemindersDescription: "提醒你即将到来的任务。", deadlineAlerts: "截止日期提醒", deadlineAlertsDescription: "任务临近截止日期时提醒你。", focusReminders: "专注提醒", focusRemindersDescription: "提醒你开始或继续专注学习。",
+    english: "英语", vietnamese: "越南语", korean: "韩语", japanese: "日语", spanish: "西班牙语", mandarin: "中文（普通话）", saved: "已自动保存",
   },
 };
 
@@ -1205,7 +1219,7 @@ function googleEventError(message: string): Error {
 function normalizeAppSettings(value: unknown): AppSettings {
   if (!value || typeof value !== "object") return DEFAULT_APP_SETTINGS;
   const source = value as Partial<AppSettings> & { notifications?: Partial<AppSettings["notifications"]> };
-  const language: AppLanguage = source.language === "vi" || source.language === "ko" || source.language === "ja" ? source.language : "en";
+  const language: AppLanguage = source.language === "vi" || source.language === "ko" || source.language === "ja" || source.language === "es" || source.language === "zh" ? source.language : "en";
   const theme: AppThemeMode = source.theme === "light" ? "light" : "dark";
   const accent: AppAccent = source.accent === "violet" || source.accent === "emerald" || source.accent === "rose" || source.accent === "amber" ? source.accent : "blue";
   return {
@@ -1503,6 +1517,9 @@ export default function AcademicOSDashboard() {
 
   const [appSettings, setAppSettings] = useState<AppSettings>(DEFAULT_APP_SETTINGS);
   const [showSettingsPage, setShowSettingsPage] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">(
+    typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported"
+  );
 
   const [learningMaterials, setLearningMaterials] = useState<LearningMaterial[]>([]);
   const [learningBundles, setLearningBundles] = useState<LearningBundle[]>([]);
@@ -2752,6 +2769,48 @@ export default function AcademicOSDashboard() {
     }
   };
 
+  const requestNotificationPermission = async () => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      setNotificationPermission("unsupported");
+      return false;
+    }
+
+    if (Notification.permission === "granted") {
+      setNotificationPermission("granted");
+      return true;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      return permission === "granted";
+    } catch {
+      setNotificationPermission(Notification.permission);
+      return false;
+    }
+  };
+
+  const showBrowserNotification = (title: string, body: string, tag: string) => {
+    if (typeof window === "undefined" || !("Notification" in window)) return false;
+    if (Notification.permission !== "granted") return false;
+    new Notification(title, { body, tag });
+    return true;
+  };
+
+  const sendTestNotification = async () => {
+    const granted = await requestNotificationPermission();
+    if (!granted) return;
+    showBrowserNotification(
+      "WJ Study",
+      appSettings.language === "es"
+        ? "Las notificaciones del navegador están activadas."
+        : appSettings.language === "zh"
+          ? "WJ Study 浏览器通知已启用。"
+          : "Browser notifications are working.",
+      "wj-study-test"
+    );
+  };
+
   const updateAppSettings = (updates: Partial<AppSettings>) => {
     setAppSettings((current) => normalizeAppSettings({
       ...current,
@@ -2761,6 +2820,77 @@ export default function AcademicOSDashboard() {
         : current.notifications,
     }));
   };
+
+  useEffect(() => {
+    if (!isLoaded || !userId || typeof window === "undefined") return;
+    if (!("Notification" in window)) return;
+
+    const markAndNotify = (kind: string, key: string, title: string, body: string) => {
+      const marker = `tracker_notification_sent_v1_${userId}_${kind}_${key}`;
+      if (localStorage.getItem(marker)) return;
+      if (showBrowserNotification(title, body, `wj-study-${kind}-${key}`)) {
+        localStorage.setItem(marker, new Date().toISOString());
+      }
+    };
+
+    const checkNotifications = () => {
+      if (Notification.permission !== "granted") {
+        setNotificationPermission(Notification.permission);
+        return;
+      }
+
+      const today = new Date();
+      const todayKey = formatDateKey(today);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowKey = formatDateKey(tomorrow);
+      const pendingTasks = tasks.filter((task) => !task.completed);
+
+      if (appSettings.notifications.taskReminders) {
+        pendingTasks
+          .filter((task) => task.dueDate === todayKey || task.dueDate === tomorrowKey)
+          .slice(0, 3)
+          .forEach((task) => {
+            markAndNotify(
+              "task",
+              `${todayKey}-${task.id}`,
+              "WJ Study · Task reminder",
+              task.dueDate === todayKey
+                ? `${task.title} is due today.`
+                : `${task.title} is due tomorrow.`
+            );
+          });
+      }
+
+      if (appSettings.notifications.deadlineAlerts) {
+        pendingTasks
+          .filter((task) => task.dueDate < todayKey)
+          .slice(0, 3)
+          .forEach((task) => {
+            markAndNotify(
+              "deadline",
+              `${todayKey}-${task.id}`,
+              "WJ Study · Deadline alert",
+              `${task.title} is overdue.`
+            );
+          });
+      }
+
+      if (appSettings.notifications.focusReminders && today.getHours() >= 17) {
+        const studiedToday = studySessions.some((session) => session.date === todayKey && session.minutes > 0);
+        markAndNotify(
+          "focus",
+          todayKey,
+          "WJ Study · Focus reminder",
+          studiedToday ? "Keep up your study momentum." : "You have not logged study time today. Start a focus session when you are ready."
+        );
+      }
+    };
+
+    checkNotifications();
+    const interval = window.setInterval(checkNotifications, 60_000);
+    return () => window.clearInterval(interval);
+  }, [appSettings.notifications.taskReminders, appSettings.notifications.deadlineAlerts, appSettings.notifications.focusReminders, isLoaded, tasks, studySessions, userId]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -5399,71 +5529,79 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
   // --- RENDER AUTHENTICATED DASHBOARD ---
   if (showSettingsPage) {
     const settingsCopy = SETTINGS_TEXT[appSettings.language];
-    const setNotification = (key: keyof AppSettings["notifications"], value: boolean) =>
+    const isLight = appSettings.theme === "light";
+    const surface = isLight
+      ? "border-slate-200 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.06)]"
+      : "border-slate-800 bg-slate-900 shadow-sm";
+    const inner = isLight
+      ? "border-slate-200 bg-slate-50 hover:bg-slate-100"
+      : "border-slate-800 bg-slate-950/50 hover:border-slate-700";
+    const subtle = isLight ? "text-slate-500" : "text-slate-400";
+    const primaryText = isLight ? "text-slate-900" : "text-white";
+    const bodyText = isLight ? "text-slate-700" : "text-slate-300";
+    const notificationStatus =
+      notificationPermission === "granted"
+        ? "granted"
+        : notificationPermission === "denied"
+          ? "denied"
+          : notificationPermission === "unsupported"
+            ? "unsupported"
+            : "default";
+
+    const setNotification = async (key: keyof AppSettings["notifications"], value: boolean) => {
+      if (value && notificationPermission !== "granted") {
+        const granted = await requestNotificationPermission();
+        if (!granted) return;
+      }
       updateAppSettings({ notifications: { ...appSettings.notifications, [key]: value } });
+    };
 
     return (
       <div
-        className={`min-h-screen font-sans ${
-          appSettings.theme === "light"
-            ? "bg-slate-100 text-slate-900"
-            : "bg-slate-950 text-slate-100"
+        className={`min-h-screen font-sans transition-colors duration-200 ${
+          isLight ? "bg-slate-50 text-slate-900" : "bg-slate-950 text-slate-100"
         }`}
         style={{ ["--wj-accent" as string]: APP_ACCENT_VALUES[appSettings.accent] } as React.CSSProperties}
       >
         <style jsx global>{`
-          [data-wj-theme="light"] body { background: #f1f5f9 !important; }
-          [data-wj-theme="light"] [class~="bg-slate-950"] { background-color: #ffffff !important; }
-          [data-wj-theme="light"] [class~="bg-slate-950/80"] { background-color: rgba(255,255,255,.9) !important; }
-          [data-wj-theme="light"] [class~="bg-slate-950/90"] { background-color: rgba(255,255,255,.94) !important; }
-          [data-wj-theme="light"] [class~="bg-slate-900"] { background-color: #ffffff !important; }
-          [data-wj-theme="light"] [class~="bg-slate-900/80"] { background-color: rgba(255,255,255,.92) !important; }
-          [data-wj-theme="light"] [class~="border-slate-800"],
-          [data-wj-theme="light"] [class~="border-slate-700"] { border-color: #dbe2ea !important; }
-          [data-wj-theme="light"] [class~="text-slate-100"] { color: #0f172a !important; }
-          [data-wj-theme="light"] [class~="text-slate-200"] { color: #1e293b !important; }
-          [data-wj-theme="light"] [class~="text-slate-300"] { color: #334155 !important; }
-          [data-wj-theme="light"] [class~="text-slate-400"] { color: #64748b !important; }
-          [data-wj-theme="light"] [class~="text-slate-500"] { color: #94a3b8 !important; }
-          [data-wj-theme="light"] input,
-          [data-wj-theme="light"] select,
-          [data-wj-theme="light"] textarea { color: #0f172a !important; }
-          [data-wj-theme="light"] .wj-accent-bg { background-color: var(--wj-accent) !important; }
-          [data-wj-theme="light"] .wj-accent-text { color: var(--wj-accent) !important; }
-        [data-wj-accent] [class~="bg-blue-600"] { background-color: var(--wj-accent) !important; }
-        [data-wj-accent] [class~="hover:bg-blue-500"]:hover { background-color: var(--wj-accent) !important; filter: brightness(1.08); }
-        [data-wj-accent] [class~="text-blue-400"] { color: var(--wj-accent) !important; }
-        [data-wj-accent] [class~="border-blue-500"],
-        [data-wj-accent] [class~="border-blue-500/30"],
-        [data-wj-accent] [class~="border-blue-500/40"] { border-color: color-mix(in srgb, var(--wj-accent) 55%, transparent) !important; }
+          [data-wj-theme="light"] body { background: #f8fafc !important; color: #0f172a !important; }
+          [data-wj-theme="light"] .wj-settings-header { background: rgba(255,255,255,.94) !important; border-color: #e2e8f0 !important; }
+          [data-wj-theme="light"] .wj-settings-accent { color: var(--wj-accent) !important; }
+          [data-wj-theme="light"] .wj-settings-accent-bg { background: var(--wj-accent) !important; }
+          [data-wj-theme="light"] .wj-settings-accent-soft { background: color-mix(in srgb, var(--wj-accent) 10%, white) !important; }
+          [data-wj-theme="light"] .wj-settings-accent-border { border-color: color-mix(in srgb, var(--wj-accent) 48%, #cbd5e1) !important; }
+          [data-wj-theme="dark"] .wj-settings-accent { color: var(--wj-accent) !important; }
+          [data-wj-theme="dark"] .wj-settings-accent-bg { background: var(--wj-accent) !important; }
         `}</style>
 
-        <header className="sticky top-0 z-20 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md">
+        <header className={`wj-settings-header sticky top-0 z-20 border-b backdrop-blur-md ${isLight ? "border-slate-200 bg-white/95" : "border-slate-800 bg-slate-900/95"}`}>
           <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
             <button
               type="button"
               onClick={() => setShowSettingsPage(false)}
-              className="inline-flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-800/70 hover:text-white"
+              className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                isLight ? "text-slate-700 hover:bg-slate-100 hover:text-slate-950" : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              }`}
             >
               <ChevronLeft size={17} /> {settingsCopy.back}
             </button>
-            <div className="flex items-center gap-2 text-sm font-bold">
-              <Settings size={17} className="wj-accent-text" style={{ color: APP_ACCENT_VALUES[appSettings.accent] }} />
+            <div className={`flex items-center gap-2 text-sm font-bold ${primaryText}`}>
+              <Settings size={17} className="wj-settings-accent" />
               <span>{settingsCopy.settings}</span>
             </div>
-            <span className="text-[11px] font-semibold text-slate-500">{settingsCopy.saved}</span>
+            <span className={`hidden text-[11px] font-semibold sm:block ${subtle}`}>{settingsCopy.saved}</span>
           </div>
         </header>
 
         <main className="mx-auto w-full max-w-4xl space-y-5 px-4 py-6 sm:px-6 sm:py-8">
-          <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm sm:p-6">
+          <section className={`rounded-2xl border p-5 sm:p-6 ${surface}`}>
             <div className="flex items-start gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-500/10 text-blue-400">
+              <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${isLight ? "bg-blue-50 text-blue-600" : "bg-blue-500/10 text-blue-400"}`}>
                 <Languages size={19} />
               </div>
               <div className="min-w-0">
-                <h2 className="text-base font-bold">{settingsCopy.language}</h2>
-                <p className="mt-1 text-xs leading-relaxed text-slate-400">{settingsCopy.languageDescription}</p>
+                <h2 className={`text-base font-bold ${primaryText}`}>{settingsCopy.language}</h2>
+                <p className={`mt-1 text-xs leading-relaxed ${subtle}`}>{settingsCopy.languageDescription}</p>
               </div>
             </div>
             <div className="mt-5 grid gap-2 sm:grid-cols-2">
@@ -5472,6 +5610,8 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 ["vi", settingsCopy.vietnamese],
                 ["ko", settingsCopy.korean],
                 ["ja", settingsCopy.japanese],
+                ["es", settingsCopy.spanish],
+                ["zh", settingsCopy.mandarin],
               ].map(([value, label]) => (
                 <button
                   key={value}
@@ -5479,25 +5619,25 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   onClick={() => updateAppSettings({ language: value as AppLanguage })}
                   className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition ${
                     appSettings.language === value
-                      ? "border-blue-500/60 bg-blue-500/10 text-white"
-                      : "border-slate-800 bg-slate-950/50 text-slate-300 hover:border-slate-700"
+                      ? `wj-settings-accent-border ${isLight ? "wj-settings-accent-soft text-slate-900" : "bg-violet-500/10 text-white"}`
+                      : `${inner} ${bodyText}`
                   }`}
                 >
                   <span>{label}</span>
-                  {appSettings.language === value && <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: APP_ACCENT_VALUES[appSettings.accent] }} />}
+                  {appSettings.language === value && <span className="h-2.5 w-2.5 rounded-full wj-settings-accent-bg" />}
                 </button>
               ))}
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm sm:p-6">
+          <section className={`rounded-2xl border p-5 sm:p-6 ${surface}`}>
             <div className="flex items-start gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-500/10 text-violet-400">
+              <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${isLight ? "bg-violet-50 text-violet-600" : "bg-violet-500/10 text-violet-400"}`}>
                 <Palette size={19} />
               </div>
               <div className="min-w-0">
-                <h2 className="text-base font-bold">{settingsCopy.appearance}</h2>
-                <p className="mt-1 text-xs leading-relaxed text-slate-400">{settingsCopy.appearanceDescription}</p>
+                <h2 className={`text-base font-bold ${primaryText}`}>{settingsCopy.appearance}</h2>
+                <p className={`mt-1 text-xs leading-relaxed ${subtle}`}>{settingsCopy.appearanceDescription}</p>
               </div>
             </div>
 
@@ -5512,32 +5652,32 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                   onClick={() => updateAppSettings({ theme: value })}
                   className={`flex items-center gap-3 rounded-xl border px-4 py-4 text-left transition ${
                     appSettings.theme === value
-                      ? "border-violet-500/60 bg-violet-500/10"
-                      : "border-slate-800 bg-slate-950/50 hover:border-slate-700"
+                      ? `wj-settings-accent-border ${isLight && value === "light" ? "wj-settings-accent-soft" : "bg-violet-500/10"}`
+                      : inner
                   }`}
                 >
-                  <div className="grid h-10 w-10 place-items-center rounded-lg bg-slate-800 text-slate-200">
+                  <div className={`grid h-10 w-10 place-items-center rounded-lg ${isLight ? "bg-slate-100 text-slate-700" : "bg-slate-800 text-slate-200"}`}>
                     <Icon size={18} />
                   </div>
                   <div>
-                    <div className="text-sm font-bold">{label}</div>
-                    <div className="mt-0.5 text-[11px] text-slate-500">{value === "dark" ? "Low-light friendly" : "Brighter interface"}</div>
+                    <div className={`text-sm font-bold ${primaryText}`}>{label}</div>
+                    <div className={`mt-0.5 text-[11px] ${subtle}`}>{value === "dark" ? (appSettings.language === "es" ? "Cómodo con poca luz" : appSettings.language === "zh" ? "适合低光环境" : "Low-light friendly") : (appSettings.language === "es" ? "Interfaz más luminosa" : appSettings.language === "zh" ? "更明亮的界面" : "Brighter interface")}</div>
                   </div>
                 </button>
               ))}
             </div>
 
             <div className="mt-5">
-              <div className="mb-2 flex items-center gap-2 text-xs font-bold text-slate-300">
+              <div className={`mb-2 flex items-center gap-2 text-xs font-bold ${bodyText}`}>
                 <Palette size={14} /> {settingsCopy.accent}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2.5">
                 {(Object.keys(APP_ACCENT_VALUES) as AppAccent[]).map((accent) => (
                   <button
                     key={accent}
                     type="button"
                     onClick={() => updateAppSettings({ accent })}
-                    className={`h-10 min-w-10 rounded-full border-2 transition ${appSettings.accent === accent ? "border-white scale-105" : "border-transparent opacity-80 hover:opacity-100"}`}
+                    className={`h-10 w-10 rounded-full border-2 transition ${appSettings.accent === accent ? "border-slate-900 ring-2 ring-white scale-105" : "border-transparent opacity-80 hover:opacity-100"}`}
                     style={{ backgroundColor: APP_ACCENT_VALUES[accent] }}
                     title={accent}
                     aria-label={`${settingsCopy.accent}: ${accent}`}
@@ -5547,18 +5687,42 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm sm:p-6">
+          <section className={`rounded-2xl border p-5 sm:p-6 ${surface}`}>
             <div className="flex items-start gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-400">
+              <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${isLight ? "bg-amber-50 text-amber-600" : "bg-amber-500/10 text-amber-400"}`}>
                 <Bell size={19} />
               </div>
-              <div className="min-w-0">
-                <h2 className="text-base font-bold">{settingsCopy.notifications}</h2>
-                <p className="mt-1 text-xs leading-relaxed text-slate-400">{settingsCopy.notificationsDescription}</p>
+              <div className="min-w-0 flex-1">
+                <h2 className={`text-base font-bold ${primaryText}`}>{settingsCopy.notifications}</h2>
+                <p className={`mt-1 text-xs leading-relaxed ${subtle}`}>{settingsCopy.notificationsDescription}</p>
               </div>
             </div>
 
-            <div className="mt-4 divide-y divide-slate-800/80">
+            <div className={`mt-4 flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between ${isLight ? "border-slate-200 bg-slate-50" : "border-slate-800 bg-slate-950/50"}`}>
+              <div>
+                <div className={`text-sm font-bold ${primaryText}`}>Browser notifications</div>
+                <div className={`mt-1 text-[11px] ${subtle}`}>
+                  {notificationStatus === "granted"
+                    ? "Enabled in this browser. WJ Study can show reminders while the app is open."
+                    : notificationStatus === "denied"
+                      ? "Blocked by this browser. Allow notifications in your browser site settings to use them."
+                      : notificationStatus === "unsupported"
+                        ? "This browser does not support web notifications."
+                        : "Enable browser permission to receive task, deadline, and focus reminders."}
+                </div>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  onClick={sendTestNotification}
+                  className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${isLight ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-100" : "border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white"}`}
+                >
+                  {notificationStatus === "granted" ? "Test notification" : "Enable notifications"}
+                </button>
+              </div>
+            </div>
+
+            <div className={`mt-4 divide-y ${isLight ? "divide-slate-200" : "divide-slate-800/80"}`}>
               {[
                 ["taskReminders", settingsCopy.taskReminders, settingsCopy.taskRemindersDescription],
                 ["deadlineAlerts", settingsCopy.deadlineAlerts, settingsCopy.deadlineAlertsDescription],
@@ -5568,20 +5732,25 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 return (
                   <div key={key} className="flex items-center justify-between gap-4 py-4">
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold">{label}</div>
-                      <div className="mt-0.5 text-[11px] leading-relaxed text-slate-500">{description}</div>
+                      <div className={`text-sm font-semibold ${primaryText}`}>{label}</div>
+                      <div className={`mt-0.5 text-[11px] leading-relaxed ${subtle}`}>{description}</div>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setNotification(key as keyof AppSettings["notifications"], !enabled)}
-                      className={`relative h-7 w-12 shrink-0 rounded-full transition ${enabled ? "wj-accent-bg" : "bg-slate-700"}`}
+                      onClick={() => void setNotification(key as keyof AppSettings["notifications"], !enabled)}
+                      className={`relative h-7 w-12 shrink-0 rounded-full transition ${enabled ? "wj-settings-accent-bg" : isLight ? "bg-slate-300" : "bg-slate-700"}`}
                       aria-pressed={enabled}
+                      aria-label={`${label}: ${enabled ? "on" : "off"}`}
                     >
                       <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${enabled ? "left-6" : "left-1"}`} />
                     </button>
                   </div>
                 );
               })}
+            </div>
+
+            <div className={`mt-3 rounded-lg border p-3 text-[11px] leading-relaxed ${isLight ? "border-slate-200 bg-slate-50 text-slate-600" : "border-slate-800 bg-slate-950/60 text-slate-500"}`}>
+              Browser notifications are checked automatically about once per minute while WJ Study is open. They are not background push notifications when the browser/app is fully closed.
             </div>
           </section>
         </main>
@@ -5596,22 +5765,29 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       style={{ ["--wj-accent" as string]: APP_ACCENT_VALUES[appSettings.accent] } as React.CSSProperties}
     >
       <style jsx global>{`
-        [data-wj-theme="light"] body { background: #f1f5f9 !important; }
+        [data-wj-theme="light"] body { background: #f8fafc !important; color: #0f172a !important; }
         [data-wj-theme="light"] [class~="bg-slate-950"] { background-color: #ffffff !important; }
-        [data-wj-theme="light"] [class~="bg-slate-950/80"] { background-color: rgba(255,255,255,.9) !important; }
-        [data-wj-theme="light"] [class~="bg-slate-950/90"] { background-color: rgba(255,255,255,.94) !important; }
+        [data-wj-theme="light"] [class*="bg-slate-950/"] { background-color: rgba(248,250,252,.96) !important; }
         [data-wj-theme="light"] [class~="bg-slate-900"] { background-color: #ffffff !important; }
-        [data-wj-theme="light"] [class~="bg-slate-900/80"] { background-color: rgba(255,255,255,.92) !important; }
+        [data-wj-theme="light"] [class*="bg-slate-900/"] { background-color: rgba(255,255,255,.97) !important; }
+        [data-wj-theme="light"] [class~="bg-slate-800"] { background-color: #e2e8f0 !important; }
+        [data-wj-theme="light"] [class*="bg-slate-800/"] { background-color: rgba(226,232,240,.75) !important; }
+        [data-wj-theme="light"] [class~="border-slate-900"],
         [data-wj-theme="light"] [class~="border-slate-800"],
-        [data-wj-theme="light"] [class~="border-slate-700"] { border-color: #dbe2ea !important; }
+        [data-wj-theme="light"] [class~="border-slate-700"],
+        [data-wj-theme="light"] [class~="border-slate-600"] { border-color: #dbe2ea !important; }
+        [data-wj-theme="light"] [class~="text-white"] { color: #0f172a !important; }
         [data-wj-theme="light"] [class~="text-slate-100"] { color: #0f172a !important; }
         [data-wj-theme="light"] [class~="text-slate-200"] { color: #1e293b !important; }
         [data-wj-theme="light"] [class~="text-slate-300"] { color: #334155 !important; }
         [data-wj-theme="light"] [class~="text-slate-400"] { color: #64748b !important; }
-        [data-wj-theme="light"] [class~="text-slate-500"] { color: #94a3b8 !important; }
+        [data-wj-theme="light"] [class~="text-slate-500"] { color: #64748b !important; }
         [data-wj-theme="light"] input,
         [data-wj-theme="light"] select,
-        [data-wj-theme="light"] textarea { color: #0f172a !important; }
+        [data-wj-theme="light"] textarea { color: #0f172a !important; background-color: #ffffff !important; border-color: #cbd5e1 !important; }
+        [data-wj-theme="light"] [class*="from-slate-950"] { --tw-gradient-from: #ffffff !important; }
+        [data-wj-theme="light"] [class*="via-slate-900"] { --tw-gradient-stops: var(--tw-gradient-from), rgba(248,250,252,.96), var(--tw-gradient-to) !important; }
+        [data-wj-theme="light"] [class*="to-slate-950"] { --tw-gradient-to: #f8fafc !important; }
         [data-wj-theme="light"] .wj-accent-bg { background-color: var(--wj-accent) !important; }
         [data-wj-theme="light"] .wj-accent-text { color: var(--wj-accent) !important; }
         [data-wj-accent] [class~="bg-blue-600"] { background-color: var(--wj-accent) !important; }
