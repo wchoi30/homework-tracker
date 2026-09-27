@@ -64,6 +64,10 @@ import {
   Bug,
   LifeBuoy,
   Info,
+  Search,
+  Keyboard,
+  UserCircle2,
+  UserRound,
 } from "lucide-react";
 
 // Place right below imports, before: export default function Page() { ...
@@ -854,6 +858,8 @@ type AppSettings = {
   language: AppLanguage;
   theme: AppThemeMode;
   accent: AppAccent;
+  profileName: string;
+  profileAvatar: string;
   notifications: {
     taskReminders: boolean;
     deadlineAlerts: boolean;
@@ -865,6 +871,8 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   language: "en",
   theme: "dark",
   accent: "blue",
+  profileName: "",
+  profileAvatar: "🎓",
   notifications: {
     taskReminders: true,
     deadlineAlerts: true,
@@ -1827,7 +1835,7 @@ const MAIN_WEEKDAY_TEXT: Record<AppLanguage, Record<string, string>> = {
   ja: { Monday: "月曜日", Tuesday: "火曜日", Wednesday: "水曜日", Thursday: "木曜日", Friday: "金曜日", Saturday: "土曜日", Sunday: "日曜日" },
 };
 
-const SUPPORT_EMAIL = "jaydenchoi26@gmail.com";
+const SUPPORT_EMAIL = "support@wjstudy.app";
 const APP_VERSION = "1.0.0";
 
 const SETTINGS_TEXT: Record<AppLanguage, Record<string, string>> = {
@@ -1836,42 +1844,42 @@ const SETTINGS_TEXT: Record<AppLanguage, Record<string, string>> = {
     appearance: "Appearance", appearanceDescription: "Change the look of WJ Study.", dark: "Dark", light: "Light", accent: "Accent color",
     notifications: "Notifications", notificationsDescription: "Choose which reminders and alerts WJ Study should keep enabled.",
     taskReminders: "Task reminders", taskRemindersDescription: "Reminders for upcoming tasks.", deadlineAlerts: "Deadline alerts", deadlineAlertsDescription: "Alerts for tasks approaching their due date.", focusReminders: "Focus reminders", focusRemindersDescription: "Reminders to start or return to a focus session.",
-    english: "English", vietnamese: "Vietnamese", korean: "Korean", japanese: "Japanese", spanish: "Spanish", mandarin: "Mandarin Chinese", saved: "Saved automatically", helpFeedback: "Help & Feedback", helpFeedbackDescription: "Get help, report a bug, or contact WJ Study support.", reportBug: "Report a bug", reportBugDescription: "Tell us what went wrong and what you were doing when it happened.", contactSupport: "Contact support", contactSupportDescription: "Send a message to the WJ Study support team.", openEmail: "Open email", about: "About", aboutDescription: "See the current app version and what has been added recently.", appVersion: "App version", changelog: "Changelog", currentRelease: "Current release",
+    english: "English", vietnamese: "Vietnamese", korean: "Korean", japanese: "Japanese", spanish: "Spanish", mandarin: "Mandarin Chinese", saved: "Saved automatically", helpFeedback: "Help & Feedback", helpFeedbackDescription: "Get help, report a bug, or contact WJ Study support.", reportBug: "Report a bug", reportBugDescription: "Tell us what went wrong and what you were doing when it happened.", contactSupport: "Contact support", contactSupportDescription: "Send a message to the WJ Study support team.", openEmail: "Open email", about: "About", aboutDescription: "See the current app version and what has been added recently.", appVersion: "App version", changelog: "Changelog", currentRelease: "Current release", account: "Profile & Account", profileName: "Profile name", profileNameDescription: "Choose the name shown around WJ Study.", avatar: "Avatar", email: "Email", emailDescription: "Your sign-in email address.", created: "Account created", changePassword: "Change password", newPassword: "New password", confirmPassword: "Confirm new password", changePasswordButton: "Update password", passwordUpdated: "Password updated successfully.", passwordMismatch: "Passwords do not match.", passwordTooShort: "Use at least 6 characters.", signOut: "Sign out", deleteAccount: "Delete account", deleteAccountDescription: "Permanently delete your WJ Study account and saved data.", deleteAccountConfirm: "Delete my account", deleteAccountWarning: "This permanently removes your account and WJ Study data. This cannot be undone.", commandSearch: "Search WJ Study", keyboardShortcuts: "Keyboard shortcuts", keyboardShortcutsDescription: "Quick controls for desktop.", shortcutCalendar: "Calendar", shortcutTasks: "Tasks", shortcutLearning: "Learning", shortcutFocus: "Focus", shortcutAnalytics: "Analytics", shortcutNewTask: "New task", shortcutClose: "Close modal", shortcutSearch: "Open search", newCalendarEvent: "New calendar event", openSettings: "Open settings", startFocus: "Start focus", noSearchResults: "No results", searchHint: "Search tasks, classes, events, clubs, and learning materials."
   },
   vi: {
     settings: "Cài đặt", back: "Quay lại", language: "Ngôn ngữ", languageDescription: "Chọn ngôn ngữ dùng cho cài đặt và các nhãn giao diện được hỗ trợ của WJ Study.",
     appearance: "Giao diện", appearanceDescription: "Thay đổi giao diện của WJ Study.", dark: "Tối", light: "Sáng", accent: "Màu nhấn",
     notifications: "Thông báo", notificationsDescription: "Chọn các lời nhắc và cảnh báo muốn bật trong WJ Study.",
     taskReminders: "Nhắc việc", taskRemindersDescription: "Nhắc nhở về các công việc sắp tới.", deadlineAlerts: "Cảnh báo hạn", deadlineAlertsDescription: "Cảnh báo khi công việc sắp đến hạn.", focusReminders: "Nhắc tập trung", focusRemindersDescription: "Nhắc bắt đầu hoặc quay lại phiên tập trung.",
-    english: "Tiếng Anh", vietnamese: "Tiếng Việt", korean: "Tiếng Hàn", japanese: "Tiếng Nhật", spanish: "Tiếng Tây Ban Nha", mandarin: "Tiếng Trung (Phổ thông)", saved: "Tự động lưu", helpFeedback: "Trợ giúp & Phản hồi", helpFeedbackDescription: "Nhận trợ giúp, báo lỗi hoặc liên hệ bộ phận hỗ trợ WJ Study.", reportBug: "Báo lỗi", reportBugDescription: "Cho chúng tôi biết lỗi gì đã xảy ra và bạn đang làm gì khi lỗi xuất hiện.", contactSupport: "Liên hệ hỗ trợ", contactSupportDescription: "Gửi tin nhắn cho đội ngũ hỗ trợ WJ Study.", openEmail: "Mở email", about: "Giới thiệu", aboutDescription: "Xem phiên bản hiện tại và những tính năng mới được thêm gần đây.", appVersion: "Phiên bản ứng dụng", changelog: "Nhật ký thay đổi", currentRelease: "Bản phát hành hiện tại",
+    english: "Tiếng Anh", vietnamese: "Tiếng Việt", korean: "Tiếng Hàn", japanese: "Tiếng Nhật", spanish: "Tiếng Tây Ban Nha", mandarin: "Tiếng Trung (Phổ thông)", saved: "Tự động lưu", helpFeedback: "Trợ giúp & Phản hồi", helpFeedbackDescription: "Nhận trợ giúp, báo lỗi hoặc liên hệ bộ phận hỗ trợ WJ Study.", reportBug: "Báo lỗi", reportBugDescription: "Cho chúng tôi biết lỗi gì đã xảy ra và bạn đang làm gì khi lỗi xuất hiện.", contactSupport: "Liên hệ hỗ trợ", contactSupportDescription: "Gửi tin nhắn cho đội ngũ hỗ trợ WJ Study.", openEmail: "Mở email", about: "Giới thiệu", aboutDescription: "Xem phiên bản hiện tại và những tính năng mới được thêm gần đây.", appVersion: "Phiên bản ứng dụng", changelog: "Nhật ký thay đổi", currentRelease: "Bản phát hành hiện tại", account: "Hồ sơ & Tài khoản", profileName: "Tên hồ sơ", profileNameDescription: "Chọn tên hiển thị trong WJ Study.", avatar: "Ảnh đại diện", email: "Email", emailDescription: "Địa chỉ email dùng để đăng nhập.", created: "Ngày tạo tài khoản", changePassword: "Đổi mật khẩu", newPassword: "Mật khẩu mới", confirmPassword: "Xác nhận mật khẩu mới", changePasswordButton: "Cập nhật mật khẩu", passwordUpdated: "Đã cập nhật mật khẩu.", passwordMismatch: "Mật khẩu không khớp.", passwordTooShort: "Hãy dùng ít nhất 6 ký tự.", signOut: "Đăng xuất", deleteAccount: "Xóa tài khoản", deleteAccountDescription: "Xóa vĩnh viễn tài khoản WJ Study và dữ liệu đã lưu.", deleteAccountConfirm: "Xóa tài khoản của tôi", deleteAccountWarning: "Thao tác này sẽ xóa vĩnh viễn tài khoản và dữ liệu WJ Study. Không thể hoàn tác.", commandSearch: "Tìm kiếm WJ Study", keyboardShortcuts: "Phím tắt", keyboardShortcutsDescription: "Điều khiển nhanh trên máy tính.", shortcutCalendar: "Lịch", shortcutTasks: "Nhiệm vụ", shortcutLearning: "Học", shortcutFocus: "Tập trung", shortcutAnalytics: "Phân tích", shortcutNewTask: "Nhiệm vụ mới", shortcutClose: "Đóng cửa sổ", shortcutSearch: "Mở tìm kiếm", newCalendarEvent: "Sự kiện lịch mới", openSettings: "Mở cài đặt", startFocus: "Bắt đầu tập trung", noSearchResults: "Không có kết quả", searchHint: "Tìm nhiệm vụ, lớp học, sự kiện, câu lạc bộ và tài liệu học tập."
   },
   ko: {
     settings: "설정", back: "뒤로", language: "언어", languageDescription: "WJ Study 설정 및 지원되는 인터페이스 언어를 선택하세요.",
     appearance: "화면", appearanceDescription: "WJ Study의 모양을 변경합니다.", dark: "어두운 모드", light: "밝은 모드", accent: "강조 색상",
     notifications: "알림", notificationsDescription: "WJ Study에서 사용할 알림과 리마인더를 선택하세요.",
     taskReminders: "할 일 알림", taskRemindersDescription: "다가오는 할 일을 알려줍니다.", deadlineAlerts: "마감 알림", deadlineAlertsDescription: "마감일이 다가오는 할 일을 알려줍니다.", focusReminders: "집중 알림", focusRemindersDescription: "집중 세션 시작 또는 재개를 알려줍니다.",
-    english: "영어", vietnamese: "베트남어", korean: "한국어", japanese: "일본어", spanish: "스페인어", mandarin: "중국어(표준어)", saved: "자동 저장됨", helpFeedback: "도움말 & 피드백", helpFeedbackDescription: "도움을 받고, 버그를 신고하거나 WJ Study 지원팀에 문의하세요.", reportBug: "버그 신고", reportBugDescription: "무슨 문제가 발생했는지와 발생 당시 하고 있던 작업을 알려주세요.", contactSupport: "지원팀 문의", contactSupportDescription: "WJ Study 지원팀에 메시지를 보내세요.", openEmail: "이메일 열기", about: "앱 정보", aboutDescription: "현재 앱 버전과 최근 추가된 기능을 확인하세요.", appVersion: "앱 버전", changelog: "변경 사항", currentRelease: "현재 릴리스",
+    english: "영어", vietnamese: "베트남어", korean: "한국어", japanese: "일본어", spanish: "스페인어", mandarin: "중국어(표준어)", saved: "자동 저장됨", helpFeedback: "도움말 & 피드백", helpFeedbackDescription: "도움을 받고, 버그를 신고하거나 WJ Study 지원팀에 문의하세요.", reportBug: "버그 신고", reportBugDescription: "무슨 문제가 발생했는지와 발생 당시 하고 있던 작업을 알려주세요.", contactSupport: "지원팀 문의", contactSupportDescription: "WJ Study 지원팀에 메시지를 보내세요.", openEmail: "이메일 열기", about: "앱 정보", aboutDescription: "현재 앱 버전과 최근 추가된 기능을 확인하세요.", appVersion: "앱 버전", changelog: "변경 사항", currentRelease: "현재 릴리스", account: "프로필 및 계정", profileName: "프로필 이름", profileNameDescription: "WJ Study에 표시할 이름을 정합니다.", avatar: "아바타", email: "이메일", emailDescription: "로그인에 사용하는 이메일 주소입니다.", created: "계정 생성일", changePassword: "비밀번호 변경", newPassword: "새 비밀번호", confirmPassword: "새 비밀번호 확인", changePasswordButton: "비밀번호 업데이트", passwordUpdated: "비밀번호가 업데이트되었습니다.", passwordMismatch: "비밀번호가 일치하지 않습니다.", passwordTooShort: "6자 이상 입력하세요.", signOut: "로그아웃", deleteAccount: "계정 삭제", deleteAccountDescription: "WJ Study 계정과 저장된 데이터를 영구적으로 삭제합니다.", deleteAccountConfirm: "내 계정 삭제", deleteAccountWarning: "계정과 WJ Study 데이터가 영구적으로 삭제됩니다. 되돌릴 수 없습니다.", commandSearch: "WJ Study 검색", keyboardShortcuts: "키보드 단축키", keyboardShortcutsDescription: "데스크톱에서 빠르게 이동하세요.", shortcutCalendar: "캘린더", shortcutTasks: "할 일", shortcutLearning: "학습", shortcutFocus: "집중", shortcutAnalytics: "분석", shortcutNewTask: "새 할 일", shortcutClose: "모달 닫기", shortcutSearch: "검색 열기", newCalendarEvent: "새 캘린더 이벤트", openSettings: "설정 열기", startFocus: "집중 시작", noSearchResults: "결과 없음", searchHint: "과제, 수업, 이벤트, 동아리 및 학습 자료를 검색하세요."
   },
   ja: {
     settings: "設定", back: "戻る", language: "言語", languageDescription: "WJ Studyの設定と対応インターフェースで使用する言語を選択します。",
     appearance: "外観", appearanceDescription: "WJ Studyの見た目を変更します。", dark: "ダーク", light: "ライト", accent: "アクセントカラー",
     notifications: "通知", notificationsDescription: "WJ Studyで有効にするリマインダーと通知を選択します。",
     taskReminders: "タスクのリマインダー", taskRemindersDescription: "今後のタスクを知らせます。", deadlineAlerts: "締切通知", deadlineAlertsDescription: "締切が近いタスクを知らせます。", focusReminders: "集中リマインダー", focusRemindersDescription: "集中セッションの開始や再開を知らせます。",
-    english: "英語", vietnamese: "ベトナム語", korean: "韓国語", japanese: "日本語", spanish: "スペイン語", mandarin: "中国語（普通話）", saved: "自動保存", helpFeedback: "ヘルプとフィードバック", helpFeedbackDescription: "ヘルプを受けたり、バグを報告したり、WJ Studyサポートに連絡できます。", reportBug: "バグを報告", reportBugDescription: "何が起きたか、発生時に何をしていたかを教えてください。", contactSupport: "サポートに連絡", contactSupportDescription: "WJ Studyサポートチームにメッセージを送ります。", openEmail: "メールを開く", about: "アプリについて", aboutDescription: "現在のアプリバージョンと最近追加された機能を確認できます。", appVersion: "アプリバージョン", changelog: "変更履歴", currentRelease: "現在のリリース",
+    english: "英語", vietnamese: "ベトナム語", korean: "韓国語", japanese: "日本語", spanish: "スペイン語", mandarin: "中国語（普通話）", saved: "自動保存", helpFeedback: "ヘルプとフィードバック", helpFeedbackDescription: "ヘルプを受けたり、バグを報告したり、WJ Studyサポートに連絡できます。", reportBug: "バグを報告", reportBugDescription: "何が起きたか、発生時に何をしていたかを教えてください。", contactSupport: "サポートに連絡", contactSupportDescription: "WJ Studyサポートチームにメッセージを送ります。", openEmail: "メールを開く", about: "アプリについて", aboutDescription: "現在のアプリバージョンと最近追加された機能を確認できます。", appVersion: "アプリバージョン", changelog: "変更履歴", currentRelease: "現在のリリース", account: "プロフィールとアカウント", profileName: "プロフィール名", profileNameDescription: "WJ Studyで表示する名前を設定します。", avatar: "アバター", email: "メール", emailDescription: "ログインに使用するメールアドレスです。", created: "アカウント作成日", changePassword: "パスワードを変更", newPassword: "新しいパスワード", confirmPassword: "新しいパスワードを確認", changePasswordButton: "パスワードを更新", passwordUpdated: "パスワードを更新しました。", passwordMismatch: "パスワードが一致しません。", passwordTooShort: "6文字以上を使用してください。", signOut: "ログアウト", deleteAccount: "アカウントを削除", deleteAccountDescription: "WJ Studyのアカウントと保存データを完全に削除します。", deleteAccountConfirm: "アカウントを削除", deleteAccountWarning: "アカウントとWJ Studyデータが完全に削除されます。この操作は元に戻せません。", commandSearch: "WJ Studyを検索", keyboardShortcuts: "キーボードショートカット", keyboardShortcutsDescription: "デスクトップですばやく操作できます。", shortcutCalendar: "カレンダー", shortcutTasks: "タスク", shortcutLearning: "学習", shortcutFocus: "集中", shortcutAnalytics: "分析", shortcutNewTask: "新しいタスク", shortcutClose: "モーダルを閉じる", shortcutSearch: "検索を開く", newCalendarEvent: "新しいカレンダーイベント", openSettings: "設定を開く", startFocus: "集中を開始", noSearchResults: "結果なし", searchHint: "タスク、クラス、イベント、クラブ、学習資料を検索します。"
   },
   es: {
     settings: "Configuración", back: "Volver", language: "Idioma", languageDescription: "Elige el idioma utilizado por la configuración de WJ Study y las etiquetas compatibles de la interfaz.",
     appearance: "Apariencia", appearanceDescription: "Cambia el aspecto de WJ Study.", dark: "Oscuro", light: "Claro", accent: "Color de acento",
     notifications: "Notificaciones", notificationsDescription: "Elige qué recordatorios y alertas quieres mantener activados en WJ Study.",
     taskReminders: "Recordatorios de tareas", taskRemindersDescription: "Recordatorios sobre tareas próximas.", deadlineAlerts: "Alertas de fechas límite", deadlineAlertsDescription: "Alertas cuando una tarea se acerca a su fecha límite.", focusReminders: "Recordatorios de concentración", focusRemindersDescription: "Recordatorios para iniciar o volver a una sesión de concentración.",
-    english: "Inglés", vietnamese: "Vietnamita", korean: "Coreano", japanese: "Japonés", spanish: "Español", mandarin: "Chino mandarín", saved: "Guardado automáticamente", helpFeedback: "Ayuda y comentarios", helpFeedbackDescription: "Obtén ayuda, informa de un error o contacta con el soporte de WJ Study.", reportBug: "Informar de un error", reportBugDescription: "Cuéntanos qué salió mal y qué estabas haciendo cuando ocurrió.", contactSupport: "Contactar con soporte", contactSupportDescription: "Envía un mensaje al equipo de soporte de WJ Study.", openEmail: "Abrir correo", about: "Acerca de", aboutDescription: "Consulta la versión actual de la aplicación y las novedades recientes.", appVersion: "Versión de la aplicación", changelog: "Registro de cambios", currentRelease: "Versión actual",
+    english: "Inglés", vietnamese: "Vietnamita", korean: "Coreano", japanese: "Japonés", spanish: "Español", mandarin: "Chino mandarín", saved: "Guardado automáticamente", helpFeedback: "Ayuda y comentarios", helpFeedbackDescription: "Obtén ayuda, informa de un error o contacta con el soporte de WJ Study.", reportBug: "Informar de un error", reportBugDescription: "Cuéntanos qué salió mal y qué estabas haciendo cuando ocurrió.", contactSupport: "Contactar con soporte", contactSupportDescription: "Envía un mensaje al equipo de soporte de WJ Study.", openEmail: "Abrir correo", about: "Acerca de", aboutDescription: "Consulta la versión actual de la aplicación y las novedades recientes.", appVersion: "Versión de la aplicación", changelog: "Registro de cambios", currentRelease: "Versión actual", account: "Perfil y cuenta", profileName: "Nombre del perfil", profileNameDescription: "Elige el nombre que se mostrará en WJ Study.", avatar: "Avatar", email: "Correo electrónico", emailDescription: "La dirección de correo que usas para iniciar sesión.", created: "Cuenta creada", changePassword: "Cambiar contraseña", newPassword: "Nueva contraseña", confirmPassword: "Confirmar nueva contraseña", changePasswordButton: "Actualizar contraseña", passwordUpdated: "Contraseña actualizada correctamente.", passwordMismatch: "Las contraseñas no coinciden.", passwordTooShort: "Usa al menos 6 caracteres.", signOut: "Cerrar sesión", deleteAccount: "Eliminar cuenta", deleteAccountDescription: "Elimina permanentemente tu cuenta de WJ Study y los datos guardados.", deleteAccountConfirm: "Eliminar mi cuenta", deleteAccountWarning: "Esto elimina permanentemente tu cuenta y tus datos de WJ Study. No se puede deshacer.", commandSearch: "Buscar en WJ Study", keyboardShortcuts: "Atajos de teclado", keyboardShortcutsDescription: "Controles rápidos para escritorio.", shortcutCalendar: "Calendario", shortcutTasks: "Tareas", shortcutLearning: "Aprendizaje", shortcutFocus: "Concentración", shortcutAnalytics: "Analíticas", shortcutNewTask: "Nueva tarea", shortcutClose: "Cerrar ventana", shortcutSearch: "Abrir búsqueda", newCalendarEvent: "Nuevo evento de calendario", openSettings: "Abrir configuración", startFocus: "Iniciar concentración", noSearchResults: "Sin resultados", searchHint: "Busca tareas, clases, eventos, clubes y materiales de aprendizaje."
   },
   zh: {
     settings: "设置", back: "返回", language: "语言", languageDescription: "选择 WJ Study 设置和支持的界面标签所使用的语言。",
     appearance: "外观", appearanceDescription: "更改 WJ Study 的外观。", dark: "深色", light: "浅色", accent: "强调色",
     notifications: "通知", notificationsDescription: "选择要在 WJ Study 中启用的提醒和通知。",
     taskReminders: "任务提醒", taskRemindersDescription: "提醒你即将到来的任务。", deadlineAlerts: "截止日期提醒", deadlineAlertsDescription: "任务临近截止日期时提醒你。", focusReminders: "专注提醒", focusRemindersDescription: "提醒你开始或继续专注学习。",
-    english: "英语", vietnamese: "越南语", korean: "韩语", japanese: "日语", spanish: "西班牙语", mandarin: "中文（普通话）", saved: "已自动保存", helpFeedback: "帮助与反馈", helpFeedbackDescription: "获取帮助、报告错误或联系 WJ Study 支持团队。", reportBug: "报告错误", reportBugDescription: "告诉我们发生了什么问题，以及问题发生时你正在做什么。", contactSupport: "联系支持", contactSupportDescription: "向 WJ Study 支持团队发送消息。", openEmail: "打开邮件", about: "关于", aboutDescription: "查看当前应用版本和最近新增的功能。", appVersion: "应用版本", changelog: "更新日志", currentRelease: "当前版本",
+    english: "英语", vietnamese: "越南语", korean: "韩语", japanese: "日语", spanish: "西班牙语", mandarin: "中文（普通话）", saved: "已自动保存", helpFeedback: "帮助与反馈", helpFeedbackDescription: "获取帮助、报告错误或联系 WJ Study 支持团队。", reportBug: "报告错误", reportBugDescription: "告诉我们发生了什么问题，以及问题发生时你正在做什么。", contactSupport: "联系支持", contactSupportDescription: "向 WJ Study 支持团队发送消息。", openEmail: "打开邮件", about: "关于", aboutDescription: "查看当前应用版本和最近新增的功能。", appVersion: "应用版本", changelog: "更新日志", currentRelease: "当前版本", account: "个人资料与账户", profileName: "个人资料名称", profileNameDescription: "选择在 WJ Study 中显示的名称。", avatar: "头像", email: "电子邮箱", emailDescription: "用于登录的邮箱地址。", created: "账户创建时间", changePassword: "修改密码", newPassword: "新密码", confirmPassword: "确认新密码", changePasswordButton: "更新密码", passwordUpdated: "密码更新成功。", passwordMismatch: "两次密码不一致。", passwordTooShort: "请至少使用 6 个字符。", signOut: "退出登录", deleteAccount: "删除账户", deleteAccountDescription: "永久删除你的 WJ Study 账户和已保存数据。", deleteAccountConfirm: "删除我的账户", deleteAccountWarning: "这会永久删除你的账户和 WJ Study 数据，无法撤销。", commandSearch: "搜索 WJ Study", keyboardShortcuts: "键盘快捷键", keyboardShortcutsDescription: "桌面端快速操作。", shortcutCalendar: "日历", shortcutTasks: "任务", shortcutLearning: "学习", shortcutFocus: "专注", shortcutAnalytics: "分析", shortcutNewTask: "新任务", shortcutClose: "关闭窗口", shortcutSearch: "打开搜索", newCalendarEvent: "新建日历事件", openSettings: "打开设置", startFocus: "开始专注", noSearchResults: "没有结果", searchHint: "搜索任务、课程、事件、社团和学习资料。"
   },
 };
 
@@ -2175,10 +2183,14 @@ function normalizeAppSettings(value: unknown): AppSettings {
   const language: AppLanguage = source.language === "vi" || source.language === "ko" || source.language === "ja" || source.language === "es" || source.language === "zh" ? source.language : "en";
   const theme: AppThemeMode = source.theme === "light" ? "light" : "dark";
   const accent: AppAccent = source.accent === "violet" || source.accent === "emerald" || source.accent === "rose" || source.accent === "amber" ? source.accent : "blue";
+  const profileName = typeof source.profileName === "string" ? source.profileName.slice(0, 80) : "";
+  const profileAvatar = typeof source.profileAvatar === "string" && source.profileAvatar.trim() ? source.profileAvatar.slice(0, 8) : "🎓";
   return {
     language,
     theme,
     accent,
+    profileName,
+    profileAvatar,
     notifications: {
       taskReminders: source.notifications?.taskReminders !== false,
       deadlineAlerts: source.notifications?.deadlineAlerts !== false,
@@ -2453,6 +2465,13 @@ export default function AcademicOSDashboard() {
 
   const [appSettings, setAppSettings] = useState<AppSettings>(DEFAULT_APP_SETTINGS);
   const [showSettingsPage, setShowSettingsPage] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [accountActionMessage, setAccountActionMessage] = useState<string | null>(null);
+  const [accountActionError, setAccountActionError] = useState<string | null>(null);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">(
     typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported"
   );
@@ -6487,6 +6506,138 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     openSupportEmail("WJ Study support", "Hi WJ Study support,\n\nHow can you help me?\n");
   };
 
+  const openNewTaskFromCommand = () => {
+    setShowSettingsPage(false);
+    setCommandPaletteOpen(false);
+    setMobileTab("tasks");
+    setTimeout(() => taskTitleInputRef.current?.focus(), 40);
+  };
+
+  const openNewCalendarEventFromCommand = () => {
+    setShowSettingsPage(false);
+    setCommandPaletteOpen(false);
+    openManualEventModal(formatDateKey(new Date()));
+  };
+
+  const openSectionFromCommand = (section: "calendar" | "learning" | "analytics" | "settings" | "tasks" | "focus") => {
+    setCommandPaletteOpen(false);
+    if (section === "settings") {
+      setShowSettingsPage(true);
+      return;
+    }
+    setShowSettingsPage(false);
+    if (section === "calendar") { setActiveTab("calendar"); setMobileTab("calendar"); return; }
+    if (section === "learning") { setActiveTab("learning"); setMobileTab("learning"); if (!learningClassId && classes[0]?.id) setLearningClassId(classes[0].id); return; }
+    if (section === "analytics") { setActiveTab("analytics"); setMobileTab("analytics"); return; }
+    if (section === "tasks") { setMobileTab("tasks"); setActiveTab("calendar"); return; }
+    if (section === "focus") {
+      const pendingTask = selectedTimerTaskId && tasks.find((task) => task.id === selectedTimerTaskId && !task.completed)
+        ? selectedTimerTaskId
+        : tasks.find((task) => !task.completed)?.id;
+      setMobileTab("tasks");
+      if (pendingTask) startFocusForTask(pendingTask);
+    }
+  };
+
+  const updateProfileName = (value: string) => updateAppSettings({ profileName: value.slice(0, 80) });
+  const updateProfileAvatar = (value: string) => updateAppSettings({ profileAvatar: value.slice(0, 8) || "🎓" });
+
+  const changePassword = async () => {
+    setAccountActionMessage(null);
+    setAccountActionError(null);
+    if (newPassword.length < 6) {
+      setAccountActionError(SETTINGS_TEXT[appSettings.language].passwordTooShort);
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setAccountActionError(SETTINGS_TEXT[appSettings.language].passwordMismatch);
+      return;
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setAccountActionError(error.message);
+      return;
+    }
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setAccountActionMessage(SETTINGS_TEXT[appSettings.language].passwordUpdated);
+  };
+
+  const deleteAccount = async () => {
+    if (!userId || deletingAccount) return;
+    const confirmed = window.confirm(SETTINGS_TEXT[appSettings.language].deleteAccountWarning);
+    if (!confirmed) return;
+    setDeletingAccount(true);
+    setAccountActionError(null);
+    setAccountActionMessage(null);
+    try {
+      const { data: currentSessionData } = await supabase.auth.getSession();
+      const accessToken = currentSessionData.session?.access_token;
+      if (!accessToken) throw new Error("Your session has expired. Please sign in again.");
+      const response = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result?.error || "Could not delete the account.");
+      const keys = [
+        `tracker_workspace_data_saved_at_v2_${userId}`, `tracker_classes_v8_${userId}`, `tracker_clubs_v8_${userId}`,
+        `tracker_tasks_v8_${userId}`, `tracker_streaks_v8_${userId}`, `tracker_study_sessions_v1_${userId}`,
+        `tracker_gamification_xp_v1_${userId}`, `tracker_app_settings_v1_${userId}`, `tracker_learning_materials_v1_${userId}`,
+        `tracker_learning_bundles_v1_${userId}`, `tracker_google_calendar_events_v1_${userId}`, `tracker_hidden_google_event_ids_v1_${userId}`,
+        `tracker_google_calendar_deletion_rules_v1_${userId}`, `tracker_google_calendar_merge_rules_v1_${userId}`,
+        `tracker_manual_calendar_events_v1_${userId}`, `tracker_calendar_event_overrides_v1_${userId}`,
+      ];
+      keys.forEach((key) => localStorage.removeItem(key));
+      await supabase.auth.signOut();
+      setShowSettingsPage(false);
+      setSession(null);
+      setUserId(null);
+      setClasses([]); setClubs([]); setTasks([]); setStreaks([]); setStudySessions([]);
+      setGamificationXp(0); setAppSettings(DEFAULT_APP_SETTINGS);
+    } catch (error: any) {
+      setAccountActionError(error?.message || "Could not delete the account.");
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
+  // Global command menu + desktop keyboard shortcuts. Typing inside an input/textarea/select never triggers navigation shortcuts.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping = Boolean(target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+      const key = event.key.toLowerCase();
+
+      if ((event.metaKey || event.ctrlKey) && key === "k") {
+        event.preventDefault();
+        setCommandPaletteOpen((open) => !open);
+        setCommandQuery("");
+        return;
+      }
+      if (event.key === "Escape") {
+        if (commandPaletteOpen) { setCommandPaletteOpen(false); setCommandQuery(""); return; }
+        if (showSettingsPage) { setShowSettingsPage(false); return; }
+        return;
+      }
+      if (isTyping || event.metaKey || event.ctrlKey || event.altKey) return;
+
+      if (key === "c") openSectionFromCommand("calendar");
+      else if (key === "t") openSectionFromCommand("tasks");
+      else if (key === "l") openSectionFromCommand("learning");
+      else if (key === "f") openSectionFromCommand("focus");
+      else if (key === "a") openSectionFromCommand("analytics");
+      else if (key === "n") openNewTaskFromCommand();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [commandPaletteOpen, showSettingsPage, userId, tasks, selectedTimerTaskId, learningClassId, classes]);
+
+  useEffect(() => {
+    if (!commandPaletteOpen) return;
+    setTimeout(() => commandSearchInputRef.current?.focus(), 0);
+  }, [commandPaletteOpen]);
+
   // --- RENDER AUTHENTICATED DASHBOARD ---
   if (showSettingsPage) {
     const settingsCopy = SETTINGS_TEXT[appSettings.language];
@@ -6557,8 +6708,86 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         <main className="mx-auto w-full max-w-4xl space-y-5 px-4 py-6 sm:px-6 sm:py-8">
           <section className={`rounded-2xl border p-5 sm:p-6 ${surface}`}>
             <div className="flex items-start gap-3">
-              <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${isLight ? "bg-blue-50 text-blue-600" : "bg-blue-500/10 text-blue-400"}`}>
-                <Languages size={19} />
+              <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${isLight ? "bg-indigo-50 text-indigo-600" : "bg-indigo-500/10 text-indigo-400"}`}>
+                <UserCircle2 size={19} />
+              </div>
+              <div className="min-w-0">
+                <h2 className={`text-base font-bold ${primaryText}`}>{settingsCopy.account}</h2>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <label className={`block text-xs font-semibold ${bodyText}`}>{settingsCopy.profileName}
+                <span className={`mt-1 block text-[11px] font-normal ${subtle}`}>{settingsCopy.profileNameDescription}</span>
+                <input
+                  value={appSettings.profileName}
+                  onChange={(e) => updateProfileName(e.target.value)}
+                  placeholder={session?.user?.email?.split("@")[0] || "Student"}
+                  maxLength={80}
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm outline-none focus:border-blue-400"
+                />
+              </label>
+
+              <div>
+                <div className={`text-xs font-semibold ${bodyText}`}>{settingsCopy.avatar}</div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {["🎓","📚","🧠","🚀","🌟","😊","🎯","🧑‍🎓"].map((avatar) => (
+                    <button key={avatar} type="button" onClick={() => updateProfileAvatar(avatar)} className={`grid h-10 w-10 place-items-center rounded-xl border text-lg transition ${appSettings.profileAvatar === avatar ? "border-blue-400 bg-blue-500/10 ring-2 ring-blue-400/30" : inner}`} aria-label={`${settingsCopy.avatar}: ${avatar}`}>{avatar}</button>
+                  ))}
+                  <input value={appSettings.profileAvatar} onChange={(e) => updateProfileAvatar(e.target.value)} maxLength={8} className="h-10 w-16 rounded-xl border border-slate-700 bg-slate-950 text-center text-lg outline-none focus:border-blue-400" aria-label={settingsCopy.avatar} />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div className={`rounded-xl border p-4 ${inner}`}>
+                <div className={`text-[10px] font-bold uppercase tracking-wide ${subtle}`}>{settingsCopy.email}</div>
+                <div className={`mt-1 break-all text-sm font-semibold ${primaryText}`}>{session?.user?.email || "—"}</div>
+                <div className={`mt-1 text-[11px] ${subtle}`}>{settingsCopy.emailDescription}</div>
+              </div>
+              <div className={`rounded-xl border p-4 ${inner}`}>
+                <div className={`text-[10px] font-bold uppercase tracking-wide ${subtle}`}>{settingsCopy.created}</div>
+                <div className={`mt-1 text-sm font-semibold ${primaryText}`}>{session?.user?.created_at ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(session.user.created_at)) : "—"}</div>
+              </div>
+            </div>
+
+            <div className="mt-5 border-t border-slate-800 pt-5">
+              <div className={`text-sm font-bold ${primaryText}`}>{settingsCopy.changePassword}</div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={settingsCopy.newPassword} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm outline-none focus:border-blue-400" />
+                <input type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} placeholder={settingsCopy.confirmPassword} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm outline-none focus:border-blue-400" />
+              </div>
+              <button type="button" onClick={() => void changePassword()} className="mt-3 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-blue-500">{settingsCopy.changePasswordButton}</button>
+              {accountActionMessage && <div className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-400">{accountActionMessage}</div>}
+              {accountActionError && <div className="mt-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-400">{accountActionError}</div>}
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <button type="button" onClick={handleLogOut} className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${inner}`}>
+                <span className="flex items-center gap-2"><LogOut size={17} /> {settingsCopy.signOut}</span>
+              </button>
+              <button type="button" onClick={() => void deleteAccount()} disabled={deletingAccount} className="rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-left text-sm font-semibold text-rose-500 transition hover:bg-rose-500/10 disabled:opacity-50">
+                <span className="flex items-center gap-2"><Trash2 size={17} /> {deletingAccount ? "…" : settingsCopy.deleteAccount}</span>
+                <span className="mt-1 block text-[11px] font-normal opacity-80">{settingsCopy.deleteAccountDescription}</span>
+              </button>
+            </div>
+          </section>
+
+          <section className={`rounded-2xl border p-5 sm:p-6 ${surface}`}>
+            <div className="flex items-start gap-3">
+              <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${isLight ? "bg-cyan-50 text-cyan-600" : "bg-cyan-500/10 text-cyan-400"}`}><Keyboard size={19} /></div>
+              <div className="min-w-0"><h2 className={`text-base font-bold ${primaryText}`}>{settingsCopy.keyboardShortcuts}</h2><p className={`mt-1 text-xs leading-relaxed ${subtle}`}>{settingsCopy.keyboardShortcutsDescription}</p></div>
+            </div>
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+              {[["C", settingsCopy.shortcutCalendar],["T", settingsCopy.shortcutTasks],["L", settingsCopy.shortcutLearning],["F", settingsCopy.shortcutFocus],["A", settingsCopy.shortcutAnalytics],["N", settingsCopy.shortcutNewTask],["Esc", settingsCopy.shortcutClose],["⌘/Ctrl K", settingsCopy.shortcutSearch]].map(([key,label]) => (
+                <div key={key} className={`flex items-center justify-between rounded-xl border px-3 py-2.5 ${inner}`}><span className={`text-xs font-semibold ${bodyText}`}>{label}</span><kbd className={`rounded-md border px-2 py-1 text-[10px] font-bold ${isLight ? "border-slate-300 bg-white text-slate-700" : "border-slate-700 bg-slate-900 text-slate-300"}`}>{key}</kbd></div>
+              ))}
+            </div>
+          </section>
+
+          <section className={`rounded-2xl border p-5 sm:p-6 ${surface}`}>
+            <div className="flex items-start gap-3">
+              <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${isLight ? "bg-blue-50 text-blue-600" : "bg-blue-500/10 text-blue-400"}`}><Languages size={19} />
               </div>
               <div className="min-w-0">
                 <h2 className={`text-base font-bold ${primaryText}`}>{settingsCopy.language}</h2>
@@ -6795,6 +7024,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       <li>Improved the light theme for clearer contrast and readability.</li>
                       <li>Added Help &amp; Feedback with bug reporting and support contact options.</li>
                       <li>Expanded calendar customization and management features.</li>
+                      <li>Added profile/account controls, desktop keyboard shortcuts, and the global command/search menu.</li>
                     </ul>
                   </div>
                 </div>
@@ -6846,6 +7076,46 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         [data-wj-accent] [class~="border-blue-500/40"] { border-color: color-mix(in srgb, var(--wj-accent) 55%, transparent) !important; }
       `}</style>
 
+      {commandPaletteOpen && (
+        <div className="fixed inset-0 z-[120] bg-slate-950/70 p-4 backdrop-blur-sm" onMouseDown={() => setCommandPaletteOpen(false)}>
+          <div className="mx-auto mt-[10vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 border-b border-slate-800 px-4 py-3">
+              <Search size={18} className="text-slate-400" />
+              <input ref={commandSearchInputRef} value={commandQuery} onChange={(e) => setCommandQuery(e.target.value)} placeholder={SETTINGS_TEXT[appSettings.language].commandSearch} className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500" />
+              <kbd className="rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[10px] font-bold text-slate-400">Esc</kbd>
+            </div>
+            {(() => {
+              const q = commandQuery.trim().toLowerCase();
+              const actions = [
+                { id: "new-task", label: SETTINGS_TEXT[appSettings.language].shortcutNewTask, icon: Plus, onClick: openNewTaskFromCommand },
+                { id: "new-event", label: SETTINGS_TEXT[appSettings.language].newCalendarEvent, icon: CalendarDays, onClick: openNewCalendarEventFromCommand },
+                { id: "calendar", label: SETTINGS_TEXT[appSettings.language].shortcutCalendar, icon: Calendar, onClick: () => openSectionFromCommand("calendar") },
+                { id: "tasks", label: SETTINGS_TEXT[appSettings.language].shortcutTasks, icon: List, onClick: () => openSectionFromCommand("tasks") },
+                { id: "learning", label: SETTINGS_TEXT[appSettings.language].shortcutLearning, icon: BookOpen, onClick: () => openSectionFromCommand("learning") },
+                { id: "focus", label: SETTINGS_TEXT[appSettings.language].startFocus, icon: Play, onClick: () => openSectionFromCommand("focus") },
+                { id: "analytics", label: SETTINGS_TEXT[appSettings.language].shortcutAnalytics, icon: BarChart3, onClick: () => openSectionFromCommand("analytics") },
+                { id: "settings", label: SETTINGS_TEXT[appSettings.language].openSettings, icon: Settings, onClick: () => openSectionFromCommand("settings") },
+              ].filter((item) => !q || item.label.toLowerCase().includes(q));
+              const searchResults = q ? [
+                ...tasks.map((task) => ({ id: `task-${task.id}`, label: task.title, meta: SETTINGS_TEXT[appSettings.language].shortcutTasks, icon: List, onClick: () => { setCommandPaletteOpen(false); setMobileTab("tasks"); } })),
+                ...classes.map((cls) => ({ id: `class-${cls.id}`, label: cls.name, meta: "Class", icon: BookOpen, onClick: () => { setCommandPaletteOpen(false); setActiveTab("standards"); setSelectedClassId(cls.id); setMobileTab("classes"); } })),
+                ...manualCalendarEvents.map((event) => ({ id: `manual-${event.id}`, label: event.name, meta: event.date, icon: CalendarDays, onClick: () => { setCommandPaletteOpen(false); setActiveTab("calendar"); setMobileTab("calendar"); setZoomedCalendarDate(event.date); } })),
+                ...googleCalendarEvents.map((event) => ({ id: `google-${event.id}`, label: event.title, meta: event.startDate, icon: Calendar, onClick: () => { setCommandPaletteOpen(false); setActiveTab("calendar"); setMobileTab("calendar"); setZoomedCalendarDate(event.startDate); } })),
+                ...learningMaterials.map((item) => ({ id: `learn-${item.id}`, label: item.title, meta: SETTINGS_TEXT[appSettings.language].shortcutLearning, icon: BookOpen, onClick: () => { setCommandPaletteOpen(false); setActiveTab("learning"); setMobileTab("learning"); } })),
+              ].filter((item) => item.label.toLowerCase().includes(q)).slice(0, 8) : [];
+              const items = q ? [...actions, ...searchResults].slice(0, 12) : actions;
+              return items.length === 0 ? (
+                <div className="px-4 py-8 text-center text-sm text-slate-500">{SETTINGS_TEXT[appSettings.language].noSearchResults}</div>
+              ) : (
+                <div className="max-h-[60vh] overflow-y-auto p-2">
+                  {items.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" onClick={item.onClick} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800"><span className="grid h-9 w-9 place-items-center rounded-lg bg-slate-800 text-blue-400"><Icon size={16} /></span><span className="min-w-0 flex-1 truncate">{item.label}</span>{"meta" in item && item.meta ? <span className="text-[10px] text-slate-500">{item.meta}</span> : null}</button>; })}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
       {/* TOP HEADER */}
       <header className="flex flex-col lg:flex-row lg:items-center justify-between px-3 py-3 sm:p-4 bg-slate-900/80 border-b border-slate-800 gap-3 sm:gap-4">
         <div>
@@ -6858,6 +7128,19 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
         {/* Header Widgets */}
         <div className="flex w-full lg:w-auto flex-nowrap items-center gap-2.5 overflow-x-auto pb-1 self-start lg:self-auto">
+          {/* Global Search / Command Menu */}
+          <button
+            type="button"
+            onClick={() => { setCommandPaletteOpen(true); setCommandQuery(""); }}
+            className="shrink-0 flex h-10 items-center gap-2 rounded-lg border border-slate-800 bg-slate-950/80 px-3 text-slate-300 transition hover:border-slate-600 hover:text-white"
+            title={SETTINGS_TEXT[appSettings.language].commandSearch}
+            aria-label={SETTINGS_TEXT[appSettings.language].commandSearch}
+          >
+            <Search size={17} />
+            <span className="hidden xl:inline text-xs font-semibold">{SETTINGS_TEXT[appSettings.language].commandSearch}</span>
+            <kbd className="hidden sm:inline rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">⌘/Ctrl K</kbd>
+          </button>
+
           {/* Settings */}
           <button
             type="button"
@@ -6871,9 +7154,9 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
           {/* User Account & Logout */}
           <div className="shrink-0 flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-3 py-2 rounded-lg text-xs min-h-10">
-            <Users size={14} className="text-blue-400" />
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-slate-800 text-sm">{appSettings.profileAvatar || "🎓"}</span>
             <span className="text-slate-300 font-medium truncate max-w-[120px] sm:max-w-[200px]">
-              {session?.user?.email || "Student"}
+              {appSettings.profileName || session?.user?.email || "Student"}
             </span>
             <button
               type="button"
@@ -7648,6 +7931,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 <input
                   type="text"
                   placeholder="Task title..."
+                  ref={taskTitleInputRef}
                   value={taskTitle}
                   onChange={(e) => setTaskTitle(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg text-xs focus:outline-none focus:border-blue-500"
@@ -10492,4 +10776,5 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     </div>
   );
 }
+
 
