@@ -9702,7 +9702,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                         type="button"
                         onClick={beautifyCalendar}
                         disabled={googleCalendarEvents.length + manualCalendarEvents.length === 0}
-                        className="lg:hidden flex items-center gap-1.5 bg-gradient-to-r from-pink-500 via-purple-600 to-blue-600 hover:from-pink-400 hover:via-purple-500 hover:to-blue-500 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 via-purple-600 to-blue-600 hover:from-pink-400 hover:via-purple-500 hover:to-blue-500 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
                         title="Automatically color-code calendar events and add matching icons"
                       >
                         <Palette size={14} />Beautify</button>
