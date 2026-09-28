@@ -613,31 +613,31 @@ export type SchoolCalendarEvent = {
 };
 
 export const SCHOOL_CALENDAR_2026_2027: SchoolCalendarEvent[] = [
-  // 2026 Fall Semester
-  { name: "Labor Day Holiday", startDate: "2026-09-01", endDate: "2026-09-02", type: "break" },
-  { name: "Mid-Autumn Festival Break", startDate: "2026-09-25", endDate: "2026-09-28", type: "break" },
-  { name: "October Fall Break", startDate: "2026-10-19", endDate: "2026-10-23", type: "break" },
-  { name: "Teacher PD Day (No School)", startDate: "2026-11-06", endDate: "2026-11-06", type: "staff_only" },
-  { name: "Thanksgiving Break", startDate: "2026-11-26", endDate: "2026-11-27", type: "break" },
-  { name: "Winter Break", startDate: "2026-12-18", endDate: "2027-01-08", type: "break" },
+  // Summer break before the 2026-2027 school year
+  { name: "Summer Break", startDate: "2026-07-01", endDate: "2026-08-09", type: "break" },
+
+  // 2026-2027 Fall Semester
+  { name: "Vietnamese National Holiday", startDate: "2026-08-31", endDate: "2026-09-02", type: "break" },
+  { name: "Faculty PD (No School)", startDate: "2026-09-25", endDate: "2026-09-25", type: "staff_only" },
+  { name: "Parent-Teacher Conferences (No School for Students)", startDate: "2026-10-08", endDate: "2026-10-09", type: "break" },
+  { name: "Fall Break", startDate: "2026-10-12", endDate: "2026-10-16", type: "break" },
+  { name: "Culture Day (No School)", startDate: "2026-11-24", endDate: "2026-11-24", type: "break" },
+  { name: "Faculty PD (No School)", startDate: "2026-11-27", endDate: "2026-11-27", type: "staff_only" },
+  { name: "Early Dismissal - 12:15 pm", startDate: "2026-12-18", endDate: "2026-12-18", type: "early_dismissal" },
+  { name: "Winter Break", startDate: "2026-12-19", endDate: "2027-01-03", type: "break" },
 
   // 2027 Spring Semester
-  { name: "Tet Lunar New Year Break", startDate: "2027-02-05", endDate: "2027-02-15", type: "break" },
-  { name: "Teacher PD Day (No School)", startDate: "2027-03-12", endDate: "2027-03-12", type: "staff_only" },
+  { name: "Faculty PD (No School)", startDate: "2027-01-04", endDate: "2027-01-04", type: "staff_only" },
+  { name: "Tet Holiday", startDate: "2027-02-03", endDate: "2027-02-12", type: "break" },
+  { name: "Parent-Teacher Conferences (No School)", startDate: "2027-03-26", endDate: "2027-03-26", type: "break" },
   { name: "Spring Break", startDate: "2027-03-29", endDate: "2027-04-02", type: "break" },
-  { name: "Hung Kings & Reunification Break", startDate: "2027-04-29", endDate: "2027-05-03", type: "break" },
-  { name: "Summer Break Starts", startDate: "2027-06-11", endDate: "2027-08-10", type: "break" },
+  { name: "Vietnamese Kings Day (No School)", startDate: "2027-04-16", endDate: "2027-04-16", type: "break" },
+  { name: "Reunification Day Holiday", startDate: "2027-04-29", endDate: "2027-04-30", type: "break" },
+  { name: "Faculty PD (No School)", startDate: "2027-05-21", endDate: "2027-05-21", type: "staff_only" },
+  { name: "Early Dismissal - 12:15 pm", startDate: "2027-06-10", endDate: "2027-06-10", type: "early_dismissal" },
 
-  // Regular Monthly Early Dismissal Days
-  { name: "Early Dismissal (12:15)", startDate: "2026-09-16", endDate: "2026-09-16", type: "early_dismissal" },
-  { name: "Early Dismissal (12:15)", startDate: "2026-10-14", endDate: "2026-10-14", type: "early_dismissal" },
-  { name: "Early Dismissal (12:15)", startDate: "2026-11-18", endDate: "2026-11-18", type: "early_dismissal" },
-  { name: "Early Dismissal (12:15)", startDate: "2026-12-16", endDate: "2026-12-16", type: "early_dismissal" },
-  { name: "Early Dismissal (12:15)", startDate: "2027-01-20", endDate: "2027-01-20", type: "early_dismissal" },
-  { name: "Early Dismissal (12:15)", startDate: "2027-02-24", endDate: "2027-02-24", type: "early_dismissal" },
-  { name: "Early Dismissal (12:15)", startDate: "2027-03-17", endDate: "2027-03-17", type: "early_dismissal" },
-  { name: "Early Dismissal (12:15)", startDate: "2027-04-21", endDate: "2027-04-21", type: "early_dismissal" },
-  { name: "Early Dismissal (12:15)", startDate: "2027-05-19", endDate: "2027-05-19", type: "early_dismissal" },
+  // Summer break after the final student day
+  { name: "Summer Break", startDate: "2027-06-11", endDate: "2027-08-09", type: "break" },
 ];
 
 export function getCalendarDayStatus(dateStr: string, isWeekend: boolean) {
