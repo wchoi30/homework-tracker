@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
@@ -7,7 +7,7 @@ const normalizeEmail = (value: unknown) =>
   typeof value === "string" ? value.trim().toLowerCase() : "";
 
 const findExistingUserByEmail = async (
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient<any>,
   email: string
 ) => {
   let page = 1;
