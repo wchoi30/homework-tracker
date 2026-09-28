@@ -3771,19 +3771,52 @@ export default function AcademicOSDashboard() {
     setAuthError(null);
     setAuthMessage(null);
     setAuthLoading(true);
+
+    const normalizedEmail = email.trim().toLowerCase();
+
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+      // Route signup through the server so the app can check the Supabase Auth
+      // directory before creating a new identity. This prevents a signup from
+      // silently creating a replacement account for an email that is already
+      // registered.
+      const response = await fetch("/api/account/signup", {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ email: normalizedEmail, password }),
       });
-      if (error) throw error;
-      if (data.user && !data.session) {
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error ||
+            (response.status === 409
+              ? "An account with this email already exists. Please sign in instead."
+              : "Failed to sign up.")
+        );
+      }
+
+      // The server returns the normal Supabase signup payload. When email
+      // confirmation is disabled, apply the returned session to this browser.
+      if (result?.session?.access_token && result?.session?.refresh_token) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: result.session.access_token,
+          refresh_token: result.session.refresh_token,
+        });
+        if (sessionError) throw sessionError;
+      }
+
+      if (result?.user && !result?.session) {
         setAuthMessage("Account created! Please check your email inbox to confirm registration.");
       } else {
         setAuthMessage("Account created and logged in!");
       }
     } catch (err: any) {
-      setAuthError(err.message || "Failed to sign up.");
+      setAuthError(err?.message || "Failed to sign up.");
     } finally {
       setAuthLoading(false);
     }
@@ -4321,6 +4354,114 @@ export default function AcademicOSDashboard() {
     setCalendarReviewGroups(groups);
     setCalendarReviewSelected(
       Object.fromEntries(groups.map((group) => [group.id, true]))
+    );
+  };
+
+  // Beautify the calendar visually without changing dates, times, titles, or
+  // merging/deleting anything. Colors/icons are chosen from existing class/club
+  // names first, then from common event-type keywords, with a colorful fallback.
+  const beautifyCalendar = () => {
+    const palette = [
+      "#2563EB",
+      "#7C3AED",
+      "#DB2777",
+      "#EA580C",
+      "#059669",
+      "#0891B2",
+      "#4F46E5",
+      "#CA8A04",
+    ];
+
+    const classifyTitle = (title: string) => {
+      const normalized = normalizeGoogleCalendarMergeText(title);
+      const classMatch = classes
+        .map((cls) => ({ cls, score: nameSimilarity(title, cls.name) }))
+        .sort((a, b) => b.score - a.score)[0];
+      const clubMatch = clubs
+        .map((club) => ({ club, score: nameSimilarity(title, club.name) }))
+        .sort((a, b) => b.score - a.score)[0];
+
+      if (classMatch && classMatch.score >= 0.5 && classMatch.score >= (clubMatch?.score || 0)) {
+        return {
+          color: classMatch.cls.color || palette[0],
+          icon: "📘",
+        };
+      }
+
+      if (clubMatch && clubMatch.score >= 0.5) {
+        return {
+          color: clubMatch.club.color || "#8B5CF6",
+          icon: clubMatch.club.icon || "👥",
+        };
+      }
+
+      if (/\b(exam|test|midterm|final|quiz|assessment)\b/.test(normalized)) {
+        return { color: "#E11D48", icon: "📝" };
+      }
+      if (/\b(homework|assignment|project|essay|paper)\b/.test(normalized)) {
+        return { color: "#2563EB", icon: "✅" };
+      }
+      if (/\b(study|review|revision|flashcards|reading)\b/.test(normalized)) {
+        return { color: "#7C3AED", icon: "📚" };
+      }
+      if (/\b(meeting|club|practice|rehearsal)\b/.test(normalized)) {
+        return { color: "#D97706", icon: "👥" };
+      }
+      if (/\b(sports|sport|gym|workout|training)\b/.test(normalized)) {
+        return { color: "#0891B2", icon: "🏃" };
+      }
+      if (/\b(birthday|doctor|appointment|personal)\b/.test(normalized)) {
+        return { color: "#64748B", icon: "👤" };
+      }
+
+      return null;
+    };
+
+    setCalendarEventOverrides((current) => {
+      const next = { ...current };
+      let paletteIndex = 0;
+      let googleStyled = 0;
+      let manualStyled = 0;
+
+      googleCalendarEvents.forEach((event) => {
+        const key = `g-${event.id}`;
+        const chosen = classifyTitle(event.title) || {
+          color: palette[paletteIndex++ % palette.length],
+          icon: "✦",
+        };
+        next[key] = {
+          ...next[key],
+          color: chosen.color,
+          icon: chosen.icon,
+        };
+        googleStyled += 1;
+      });
+
+      manualCalendarEvents.forEach((event) => {
+        const key = `m-${event.id}`;
+        const typeStyles: Record<ManualCalendarEvent["type"], { color: string; icon: string }> = {
+          Study: { color: "#7C3AED", icon: "📚" },
+          Test: { color: "#E11D48", icon: "📝" },
+          Homework: { color: "#2563EB", icon: "✅" },
+          Class: { color: "#0F766E", icon: "📘" },
+          Club: { color: "#D97706", icon: "👥" },
+          Personal: { color: "#475569", icon: "👤" },
+          Other: { color: "#64748B", icon: "✦" },
+        };
+        next[key] = {
+          ...next[key],
+          color: typeStyles[event.type].color,
+          icon: typeStyles[event.type].icon,
+        };
+        manualStyled += 1;
+      });
+
+      return next;
+    });
+
+    setCalendarSyncState("success");
+    setCalendarSyncMessage(
+      `✨ Calendar beautified — ${googleCalendarEvents.length + manualCalendarEvents.length} event${googleCalendarEvents.length + manualCalendarEvents.length === 1 ? "" : "s"} color-coded and given matching icons.`
     );
   };
 
@@ -9559,6 +9700,14 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                       </button>
                       <button
                         type="button"
+                        onClick={beautifyCalendar}
+                        disabled={googleCalendarEvents.length + manualCalendarEvents.length === 0}
+                        className="lg:hidden flex items-center gap-1.5 bg-gradient-to-r from-pink-500 via-purple-600 to-blue-600 hover:from-pink-400 hover:via-purple-500 hover:to-blue-500 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+                        title="Automatically color-code calendar events and add matching icons"
+                      >
+                        <Palette size={14} />Beautify</button>
+                      <button
+                        type="button"
                         onClick={organizeCalendarWithAI}
                         disabled={googleCalendarEvents.length === 0}
                         className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
@@ -11618,4 +11767,5 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
     </div>
   );
 }
+
 
