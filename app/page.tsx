@@ -8418,13 +8418,149 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                 {/* AI PHOTO SCAN BUTTON */}
                 <button
                   type="button"
-                  onClick={() => setShowPhotoModal(true)}
+                  onClick={() => 
+                     document.getElementById("powerschoolImport")?.click()
+                  }
                   className="shrink-0 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white px-2.5 py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-md transition min-h-9"
                   title="Scan PowerSchool Screenshot to add classes"
                 >
                   <Sparkles size={13} className="animate-pulse" />
                   <span className="hidden sm:inline">{tx("AI PowerSchool Scan")}</span>
                 </button>
+
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  id="powerschoolImport"
+                  style={{ display: "none" }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    try {
+                      const text = await file.text();
+                      const data = JSON.parse(text);
+
+                      if (!Array.isArray(data)) {
+                        throw new Error("PowerSchool import must be an array.");
+                      }
+
+                      const importedClasses: ClassItem[] = data
+                        .filter((c: any) => c && c.name)
+                        .map((c: any, index: number) => ({
+                          id: crypto.randomUUID(),
+                          name: String(c.name).trim(),
+                          color: COLOR_PALETTE[index % COLOR_PALETTE.length],
+                          targetGrade: "A",
+                          manualGrade:
+                            typeof c.grade === "string" &&
+                            LETTER_POINTS[c.grade.trim().toUpperCase() as StandardLevel] !== undefined
+                              ? (c.grade.trim().toUpperCase() as StandardLevel)
+                              : undefined,
+                          professorName: c.teacher
+                            ? String(c.teacher).trim()
+                            : undefined,
+                          roomNumber: "",
+                          officeHours: "",
+                          meetingTimes: [],
+                          standards: (() => {
+                            if (!Array.isArray(c.standards)) return [];
+
+                            const powerSchoolToLevel: Record<string, StandardLevel> = {
+                              MWE: "A+",
+                              MEET: "A-",
+                              DEV: "C+",
+                              BEG: "D",
+                              NYE: "F",
+                            };
+
+                            const standardsByCode = new Map<
+                              string,
+                              {
+                                id: string;
+                                name: string;
+                                levels: StandardLevel[];
+                              }
+                            >();
+
+                            c.standards
+                              .filter((s: any) => s && (s.code || s.description))
+                              .forEach((s: any) => {
+                                const code = s.code
+                                  ? String(s.code).trim()
+                                  : "";
+
+                                const description = s.description
+                                  ? String(s.description).trim()
+                                  : "";
+
+                                const name = [code, description]
+                                  .filter(Boolean)
+                                  .join(" - ");
+
+                                const score = String(s.score || "")
+                                  .trim()
+                                  .toUpperCase();
+
+                                const mappedLevel = powerSchoolToLevel[score];
+
+                                if (!mappedLevel) return;
+
+                                // Use the standard code to group all assessments
+                                // belonging to the same PowerSchool standard.
+                                const key = code || name;
+
+                                const existing = standardsByCode.get(key);
+
+                                if (existing) {
+                                  // Add another assessment to the same standard.
+                                  existing.levels.push(mappedLevel);
+                                } else {
+                                  // First assessment for this standard.
+                                  standardsByCode.set(key, {
+                                    id: `ps-${crypto.randomUUID()}`,
+                                    name,
+                                    levels: [mappedLevel],
+                                  });
+                                }
+                              });
+
+                            return Array.from(standardsByCode.values());
+                          })(),
+                        }));
+
+                      if (importedClasses.length === 0) {
+                        throw new Error("No classes were found in the PowerSchool file.");
+                      }
+
+                      setClasses(importedClasses);
+                      setSelectedClassId(importedClasses[0].id);
+
+                      // Save immediately so the import survives a refresh.
+                      saveWorkspaceChangeImmediately({
+                        classes: importedClasses,
+                      });
+
+                      e.target.value = "";
+
+                      alert(
+                        `PowerSchool import complete: ${importedClasses.length} class${
+                          importedClasses.length === 1 ? "" : "es"
+                        } imported.`
+                      );
+                    } catch (error) {
+                      console.error("PowerSchool import failed:", error);
+
+                      alert(
+                        error instanceof Error
+                          ? `PowerSchool import failed: ${error.message}`
+                          : "PowerSchool import failed. Please check the JSON file."
+                      );
+
+                      e.target.value = "";
+                    }
+                  }}
+                />
               </div>
 
               {/* MANUAL CLASS ADD FORM */}

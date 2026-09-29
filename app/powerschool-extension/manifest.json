@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "WJ Study PowerSchool Import",
+  "version": "1.0",
+  "description": "Import grades from PowerSchool into WJ Study",
+
+  "permissions": ["activeTab", "storage"],
+  
+  "host_permissions": ["https://*/*"],
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "WJ Study Import"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://*/*"],
+      "js": ["content.js"],
+      "all_frames": true
+    }
+  ]
+}
