@@ -6144,7 +6144,9 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
   const addMeetingTimeToClass = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!timetableClassId) return;
+    if (!timetableStartTime || !timetableEndTime) return;
 
     const newMeeting: MeetingTime = {
       day: timetableDay,
@@ -6152,31 +6154,85 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
       endTime: timetableEndTime,
     };
 
-    const nextClasses = classes.map((c) =>
-      c.id !== timetableClassId
-        ? c
-        : {
-            ...c,
-            meetingTimes: [...(c.meetingTimes || []), newMeeting],
-          }
-    );
+    const nextClasses = classes.map((c) => {
+      if (c.id !== timetableClassId) return c;
+
+      return {
+        ...c,
+        meetingTimes: [
+          ...(c.meetingTimes || []),
+          newMeeting,
+        ],
+      };
+    });
+
     setClasses(nextClasses);
-    saveWorkspaceChangeImmediately({ classes: nextClasses });
+    saveWorkspaceChangeImmediately({
+      classes: nextClasses,
+    });
   };
 
-  const removeMeetingTimeFromClass = (classId: string, indexToRemove: number) => {
-    const nextClasses = classes.map((c) =>
-      c.id !== classId
-        ? c
-        : {
-            ...c,
-            meetingTimes: (c.meetingTimes || []).filter(
-              (_, idx) => idx !== indexToRemove
-            ),
-          }
-    );
+  const updateMeetingTimeInClass = (
+    classId: string,
+    meetingIndex: number
+  ) => {
+    if (!timetableStartTime || !timetableEndTime) return;
+
+    const updatedMeeting: MeetingTime = {
+      day: timetableDay,
+      startTime: timetableStartTime,
+      endTime: timetableEndTime,
+    };
+
+    const nextClasses = classes.map((c) => {
+      if (c.id !== classId) return c;
+
+      return {
+        ...c,
+        meetingTimes: (c.meetingTimes || []).map(
+          (meeting, index) =>
+            index === meetingIndex
+              ? updatedMeeting
+              : meeting
+        ),
+      };
+    });
+
     setClasses(nextClasses);
-    saveWorkspaceChangeImmediately({ classes: nextClasses });
+    saveWorkspaceChangeImmediately({
+      classes: nextClasses,
+    });
+  };
+
+  const removeMeetingTimeFromClass = (
+    classId: string,
+    indexToRemove: number
+  ) => {
+    const nextClasses = classes.map((c) => {
+      if (c.id !== classId) return c;
+
+      return {
+        ...c,
+        meetingTimes: (c.meetingTimes || []).filter(
+          (_, idx) => idx !== indexToRemove
+        ),
+      };
+    });
+
+    setClasses(nextClasses);
+    saveWorkspaceChangeImmediately({
+      classes: nextClasses,
+    });
+  };
+
+  const editTimetableMeeting = (
+    classId: string,
+    meeting: MeetingTime
+  ) => {
+    setTimetableClassId(classId);
+    setTimetableDay(meeting.day);
+    setTimetableStartTime(meeting.startTime);
+    setTimetableEndTime(meeting.endTime);
   };
 
   const addStandardToClass = (classId: string) => {
@@ -10691,287 +10747,551 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               )}
 
               {/* TAB: TIMETABLE */}
-              {activeTab === "timetable" && (() => {
-                const weekDates = getWeekDates(timetableWeekBaseDate);
-                const weekDateKeys = weekDates.map(formatDateKey);
-                const todayKey = formatDateKey(new Date());
-                const daysOfWeek: DayOfWeek[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+              {activeTab === "timetable" &&
+                (() => {
+                  const weekDates = getWeekDates(timetableWeekBaseDate);
+                  const weekDateKeys = weekDates.map(formatDateKey);
+                  const todayKey = formatDateKey(new Date());
 
-                // Google Calendar events + tasks are date-specific, so they're
-                // resolved against the selected week (Mon–Sun) rather than
-                // repeating every week like classes/clubs do.
-                const weekGoogleEvents = weekDateKeys.map((dateKey) =>
-                  googleCalendarEvents.filter((event) => googleEventOccursOnDate(event, dateKey))
-                );
-                const weekAllDayGoogleEvents = weekGoogleEvents.map((events) =>
-                  events.filter((event) => event.allDay || !event.startTime)
-                );
-                const weekTimedGoogleEvents = weekGoogleEvents.map((events) =>
-                  events.filter((event) => !event.allDay && event.startTime)
-                );
-                const weekTasks = weekDateKeys.map((dateKey) => tasks.filter((t) => t.dueDate === dateKey));
+                  const daysOfWeek: DayOfWeek[] = [
+                    "Monday",
+                    "Tuesday",
+                    "Wednesday",
+                    "Thursday",
+                    "Friday",
+                    "Saturday",
+                    "Sunday",
+                  ];
 
-                return (
-                <div className="space-y-4 pt-1 overflow-x-auto pb-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-sm font-bold">{tx("Weekly Class Schedule")}</h3>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        Week of {weekDates[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })} – {weekDates[6].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · classes &amp; clubs repeat every week; Google Calendar events &amp; tasks shown are for this week
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={prevTimetableWeek}
-                        className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 transition"
-                        title="Previous Week"
-                      >
-                        <ChevronLeft size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={resetTimetableWeekToToday}
-                        className="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition min-h-10"
-                      >{tx("This Week")}</button>
-                      <button
-                        type="button"
-                        onClick={nextTimetableWeek}
-                        className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 transition"
-                        title="Next Week"
-                      >
-                        <ChevronRight size={16} />
-                      </button>
-                    </div>
-                  </div>
+                  const weekGoogleEvents = weekDateKeys.map((dateKey) =>
+                    googleCalendarEvents.filter((event) =>
+                      googleEventOccursOnDate(event, dateKey)
+                    )
+                  );
 
-                  <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
-                    <h4 className="text-xs font-bold text-blue-400 uppercase flex items-center gap-1.5">
-                      <Plus size={14} />{tx("Add Class Session to Timetable")}</h4>
-                    <form
-                      onSubmit={addMeetingTimeToClass}
-                      className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 items-end"
-                    >
-                      <div>
-                        <label className="text-[10px] text-slate-400 font-bold block mb-1">{tx("Select Class")}</label>
-                        <select
-                          value={timetableClassId}
-                          onChange={(e) => setTimetableClassId(e.target.value)}
-                          disabled={classes.length === 0}
-                          className="w-full bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:border-blue-500"
-                        >
-                          {classes.length === 0 && (
-                            <option value="">{tx("Add a class first")}</option>
-                          )}
-                          {classes.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                  const weekAllDayGoogleEvents = weekGoogleEvents.map(
+                    (events) =>
+                      events.filter(
+                        (event) => event.allDay || !event.startTime
+                      )
+                  );
 
-                      <div>
-                        <label className="text-[10px] text-slate-400 font-bold block mb-1">{tx("Day")}</label>
-                        <select
-                          value={timetableDay}
-                          onChange={(e) =>
-                            setTimetableDay(
-                              e.target.value as DayOfWeek
-                            )
-                          }
-                          className="w-full bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:border-blue-500"
-                        >
-                          {[
-                            "Monday",
-                            "Tuesday",
-                            "Wednesday",
-                            "Thursday",
-                            "Friday",
-                            "Saturday",
-                            "Sunday",
-                          ].map((d) => (
-                            <option key={d} value={d}>
-                              {d}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                  const weekTimedGoogleEvents = weekGoogleEvents.map(
+                    (events) =>
+                      events.filter(
+                        (event) =>
+                          !event.allDay && event.startTime
+                      )
+                  );
 
-                      <div>
-                        <label className="text-[10px] text-slate-400 font-bold block mb-1">{tx("Start Time")}</label>
-                        <input
-                          type="time"
-                          value={timetableStartTime}
-                          onChange={(e) => setTimetableStartTime(e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:border-blue-500 text-white"
-                        />
-                      </div>
+                  const weekTasks = weekDateKeys.map((dateKey) =>
+                    tasks.filter((task) => task.dueDate === dateKey)
+                  );
 
-                      <div>
-                        <label className="text-[10px] text-slate-400 font-bold block mb-1">{tx("End Time")}</label>
-                        <input
-                          type="time"
-                          value={timetableEndTime}
-                          onChange={(e) => setTimetableEndTime(e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:border-blue-500 text-white"
-                        />
-                      </div>
+                  /*
+                  * Always get the color from the actual class object.
+                  * This keeps Timetable, Class Roster, and Calendar
+                  * synchronized.
+                  */
+                  const getClassColor = (cls: typeof classes[number]) => {
+                    return cls.color || "#3B82F6";
+                  };
 
-                      <button
-                        type="submit"
-                        disabled={classes.length === 0}
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition"
-                      >
-                        <Plus size={14} />{tx("Add Slot")}</button>
-                    </form>
-                  </div>
+                  return (
+                    <div className="space-y-4 pt-1 overflow-x-auto pb-4">
 
-                  <div className="min-w-[700px] border border-slate-800 rounded-xl bg-slate-950/50 flex flex-col overflow-hidden select-none">
-                    <div className="grid grid-cols-8 border-b border-slate-800 bg-slate-900 text-xs font-bold text-slate-400 text-center py-2.5">
-                      <div className="text-[10px] text-slate-500 flex items-center justify-center">{tx("Time")}</div>
-                      {daysOfWeek.map((d, i) => (
-                        <div key={d} className="flex flex-col items-center gap-0.5">
-                          <span className={weekDateKeys[i] === todayKey ? "text-blue-400" : undefined}>{d.slice(0, 3)}</span>
-                          <span className={`text-[9px] font-mono font-normal ${weekDateKeys[i] === todayKey ? "text-blue-400" : "text-slate-600"}`}>
-                            {weekDates[i].getDate()}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                      {/* HEADER */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-bold">
+                            {tx("Weekly Class Schedule")}
+                          </h3>
 
-                    <div className="grid grid-cols-8 border-b border-slate-800/80 bg-slate-950/70 min-h-[38px]">
-                      <div className="p-1.5 border-r border-slate-800/80 text-[9px] font-mono text-slate-500 text-center flex items-center justify-center uppercase tracking-wide">{tx("All day")}</div>
-                      {daysOfWeek.map((day, dayIndex) => (
-                        <div key={day} className="p-1 border-r border-slate-800/40 space-y-1">
-                          {weekAllDayGoogleEvents[dayIndex].map((event) => (
-                            <div
-                              key={`g-allday-${event.id}`}
-                              className="px-1.5 py-0.5 rounded text-[9px] text-white font-semibold truncate flex items-center gap-1"
-                              style={{ backgroundColor: event.color }}
-                              title={event.title}
-                            >
-                              <span className="opacity-80 shrink-0">{event.icon}</span>
-                              <span className="truncate">{event.title}</span>
-                            </div>
-                          ))}
-                          {weekTasks[dayIndex].map((task) => (
-                            <div
-                              key={`task-${task.id}`}
-                              className={`px-1.5 py-0.5 rounded text-[9px] text-white font-semibold truncate ${
-                                task.type === "test" ? "bg-rose-600/90" : "bg-blue-600/90"
-                              }`}
-                              title={`Task: ${task.title}`}
-                            >
-                              {task.title}
-                            </div>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="divide-y divide-slate-800/60 max-h-[500px] overflow-y-auto">
-                      {[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((hour) => {
-                        const timeLabel = `${hour.toString().padStart(2, "0")}:00`;
-
-                        return (
-                          <div key={hour} className="grid grid-cols-8 min-h-[50px]">
-                            <div className="p-2 border-r border-slate-800/80 text-[10px] font-mono text-slate-500 text-center flex items-center justify-center bg-slate-900/30">
-                              {timeLabel}
-                            </div>
-                            {daysOfWeek.map((day, dayIndex) => {
-                              const classMatches = classes.flatMap((cls) =>
-                                (cls.meetingTimes || [])
-                                  .filter((m) => {
-                                    if (m.day !== day) return false;
-                                    const startHour = parseInt(m.startTime.split(":")[0], 10);
-                                    return startHour === hour;
-                                  })
-                                  .map((m, idx) => ({ cls, meeting: m, index: idx }))
-                              );
-
-                              const clubMatches = clubs.flatMap((club) =>
-                                (club.meetingTimes || [])
-                                  .filter((m) => {
-                                    if (m.day !== day) return false;
-                                    const startHour = parseInt(m.startTime.split(":")[0], 10);
-                                    return startHour === hour;
-                                  })
-                                  .map((m) => ({ club, meeting: m }))
-                              );
-
-                              const googleMatches = weekTimedGoogleEvents[dayIndex].filter((event) => {
-                                const startHour = parseInt((event.startTime as string).split(":")[0], 10);
-                                return startHour === hour;
-                              });
-
-                              return (
-                                <div key={day} className="p-1 border-r border-slate-800/40 relative space-y-1">
-                                  {classMatches.map(({ cls, meeting, index }) => (
-                                    <div
-                                      key={`c-slot-${cls.id}-${index}`}
-                                      className="p-1.5 rounded text-[10px] text-white font-semibold flex flex-col justify-between shadow-sm group relative"
-                                      style={{ backgroundColor: cls.color }}
-                                    >
-                                      <div className="flex items-center justify-between gap-1">
-                                        <span className="font-bold truncate">{cls.name}</span>
-                                        <button
-                                          type="button"
-                                          onClick={() => removeMeetingTimeFromClass(cls.id, index)}
-                                          className="opacity-0 group-hover:opacity-100 transition text-white hover:text-rose-200"
-                                          title="Remove session"
-                                        >
-                                          <X size={10} />
-                                        </button>
-                                      </div>
-                                      <div className="text-[9px] opacity-90 font-mono">
-                                        {meeting.startTime} - {meeting.endTime}
-                                      </div>
-                                    </div>
-                                  ))}
-
-                                  {clubMatches.map(({ club, meeting }, cIdx) => (
-                                    <div
-                                      key={`club-slot-${club.id}-${cIdx}`}
-                                      className="p-1.5 rounded text-[10px] text-white font-semibold flex flex-col justify-between shadow-sm"
-                                      style={{ backgroundColor: club.color || "#8B5CF6" }}
-                                    >
-                                      <div className="font-bold truncate flex items-center gap-1">
-                                        <span>{club.icon || "👥"}</span>
-                                        <span>{club.name}</span>
-                                      </div>
-                                      <div className="text-[9px] opacity-90 font-mono">
-                                        {meeting.startTime} - {meeting.endTime}
-                                      </div>
-                                    </div>
-                                  ))}
-
-                                  {googleMatches.map((event) => (
-                                    <div
-                                      key={`g-slot-${event.id}`}
-                                      className="p-1.5 rounded text-[10px] text-white font-semibold flex flex-col justify-between shadow-sm"
-                                      style={{ backgroundColor: event.color }}
-                                    >
-                                      <div className="font-bold truncate flex items-center gap-1">
-                                        <span>{event.icon}</span>
-                                        <span className="truncate">{event.title}</span>
-                                      </div>
-                                      <div className="text-[9px] opacity-90 font-mono">
-                                        {event.startTime}{event.endTime ? ` - ${event.endTime}` : ""}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              );
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Week of{" "}
+                            {weekDates[0].toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })}{" "}
+                            –{" "}
+                            {weekDates[6].toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
                             })}
+                            {" · "}
+                            classes &amp; clubs repeat every week
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={prevTimetableWeek}
+                            className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 transition"
+                            title="Previous Week"
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={resetTimetableWeekToToday}
+                            className="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition min-h-10"
+                          >
+                            {tx("This Week")}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={nextTimetableWeek}
+                            className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 transition"
+                            title="Next Week"
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* ADD / EDIT SESSION */}
+                      <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
+                        <h4 className="text-xs font-bold text-blue-400 uppercase flex items-center gap-1.5">
+                          <Plus size={14} />
+                          {tx("Add Class Session to Timetable")}
+                        </h4>
+
+                        <form
+                          onSubmit={addMeetingTimeToClass}
+                          className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 items-end"
+                        >
+
+                          {/* CLASS */}
+                          <div>
+                            <label className="text-[10px] text-slate-400 font-bold block mb-1">
+                              {tx("Select Class")}
+                            </label>
+
+                            <select
+                              value={timetableClassId}
+                              onChange={(e) =>
+                                setTimetableClassId(e.target.value)
+                              }
+                              disabled={classes.length === 0}
+                              className="w-full bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:border-blue-500"
+                            >
+                              {classes.length === 0 && (
+                                <option value="">
+                                  {tx("Add a class first")}
+                                </option>
+                              )}
+
+                              {classes.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name}
+                                </option>
+                              ))}
+                            </select>
                           </div>
-                        );
-                      })}
+
+                          {/* DAY */}
+                          <div>
+                            <label className="text-[10px] text-slate-400 font-bold block mb-1">
+                              {tx("Day")}
+                            </label>
+
+                            <select
+                              value={timetableDay}
+                              onChange={(e) =>
+                                setTimetableDay(
+                                  e.target.value as DayOfWeek
+                                )
+                              }
+                              className="w-full bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:border-blue-500"
+                            >
+                              {daysOfWeek.map((day) => (
+                                <option key={day} value={day}>
+                                  {day}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* START */}
+                          <div>
+                            <label className="text-[10px] text-slate-400 font-bold block mb-1">
+                              {tx("Start Time")}
+                            </label>
+
+                            <input
+                              type="time"
+                              value={timetableStartTime}
+                              onChange={(e) =>
+                                setTimetableStartTime(e.target.value)
+                              }
+                              className="w-full bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:border-blue-500 text-white"
+                            />
+                          </div>
+
+                          {/* END */}
+                          <div>
+                            <label className="text-[10px] text-slate-400 font-bold block mb-1">
+                              {tx("End Time")}
+                            </label>
+
+                            <input
+                              type="time"
+                              value={timetableEndTime}
+                              onChange={(e) =>
+                                setTimetableEndTime(e.target.value)
+                              }
+                              className="w-full bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:border-blue-500 text-white"
+                            />
+                          </div>
+
+                          {/* ADD */}
+                          <button
+                            type="submit"
+                            disabled={
+                              classes.length === 0 ||
+                              !timetableClassId
+                            }
+                            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition"
+                          >
+                            <Plus size={14} />
+                            {tx("Add Slot")}
+                          </button>
+                        </form>
+                      </div>
+
+                      {/* TIMETABLE */}
+                      <div className="min-w-[700px] border border-slate-800 rounded-xl bg-slate-950/50 flex flex-col overflow-hidden">
+
+                        {/* DAYS */}
+                        <div className="grid grid-cols-8 border-b border-slate-800 bg-slate-900 text-xs font-bold text-slate-400 text-center py-2.5">
+
+                          <div className="text-[10px] text-slate-500 flex items-center justify-center">
+                            {tx("Time")}
+                          </div>
+
+                          {daysOfWeek.map((day, index) => (
+                            <div
+                              key={day}
+                              className="flex flex-col items-center gap-0.5"
+                            >
+                              <span
+                                className={
+                                  weekDateKeys[index] === todayKey
+                                    ? "text-blue-400"
+                                    : ""
+                                }
+                              >
+                                {day.slice(0, 3)}
+                              </span>
+
+                              <span
+                                className={`text-[9px] font-mono font-normal ${
+                                  weekDateKeys[index] === todayKey
+                                    ? "text-blue-400"
+                                    : "text-slate-600"
+                                }`}
+                              >
+                                {weekDates[index].getDate()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* ALL DAY */}
+                        <div className="grid grid-cols-8 border-b border-slate-800/80 bg-slate-950/70 min-h-[38px]">
+
+                          <div className="p-1.5 border-r border-slate-800/80 text-[9px] font-mono text-slate-500 text-center flex items-center justify-center uppercase tracking-wide">
+                            {tx("All day")}
+                          </div>
+
+                          {daysOfWeek.map((day, dayIndex) => (
+                            <div
+                              key={day}
+                              className="p-1 border-r border-slate-800/40 space-y-1"
+                            >
+                              {weekAllDayGoogleEvents[dayIndex].map(
+                                (event) => (
+                                  <div
+                                    key={`g-allday-${event.id}`}
+                                    className="px-1.5 py-0.5 rounded text-[9px] text-white font-semibold truncate flex items-center gap-1"
+                                    style={{
+                                      backgroundColor: event.color,
+                                    }}
+                                    title={event.title}
+                                  >
+                                    <span className="opacity-80 shrink-0">
+                                      {event.icon}
+                                    </span>
+
+                                    <span className="truncate">
+                                      {event.title}
+                                    </span>
+                                  </div>
+                                )
+                              )}
+
+                              {weekTasks[dayIndex].map((task) => (
+                                <div
+                                  key={`task-${task.id}`}
+                                  className={`px-1.5 py-0.5 rounded text-[9px] text-white font-semibold truncate ${
+                                    task.type === "test"
+                                      ? "bg-rose-600/90"
+                                      : "bg-blue-600/90"
+                                  }`}
+                                  title={`Task: ${task.title}`}
+                                >
+                                  {task.title}
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* HOURS */}
+                        <div className="divide-y divide-slate-800/60 max-h-[500px] overflow-y-auto">
+
+                          {[
+                            8, 9, 10, 11, 12, 13, 14,
+                            15, 16, 17, 18, 19, 20,
+                          ].map((hour) => {
+
+                            const timeLabel =
+                              `${hour.toString().padStart(2, "0")}:00`;
+
+                            return (
+                              <div
+                                key={hour}
+                                className="grid grid-cols-8 min-h-[50px]"
+                              >
+
+                                {/* TIME */}
+                                <div className="p-2 border-r border-slate-800/80 text-[10px] font-mono text-slate-500 text-center flex items-center justify-center bg-slate-900/30">
+                                  {timeLabel}
+                                </div>
+
+                                {daysOfWeek.map(
+                                  (day, dayIndex) => {
+
+                                    const classMatches =
+                                      classes.flatMap((cls) =>
+                                        (cls.meetingTimes || [])
+                                          .filter((meeting) => {
+                                            if (meeting.day !== day) {
+                                              return false;
+                                            }
+
+                                            const startHour =
+                                              parseInt(
+                                                meeting.startTime.split(":")[0],
+                                                10
+                                              );
+
+                                            return startHour === hour;
+                                          })
+                                          .map(
+                                            (meeting, index) => ({
+                                              cls,
+                                              meeting,
+                                              index,
+                                            })
+                                          )
+                                      );
+
+                                    const clubMatches =
+                                      clubs.flatMap((club) =>
+                                        (club.meetingTimes || [])
+                                          .filter((meeting) => {
+                                            if (meeting.day !== day) {
+                                              return false;
+                                            }
+
+                                            const startHour =
+                                              parseInt(
+                                                meeting.startTime.split(":")[0],
+                                                10
+                                              );
+
+                                            return startHour === hour;
+                                          })
+                                          .map((meeting, index) => ({
+                                            club,
+                                            meeting,
+                                            index,
+                                          }))
+                                      );
+
+                                    const googleMatches =
+                                      weekTimedGoogleEvents[
+                                        dayIndex
+                                      ].filter((event) => {
+                                        const startHour =
+                                          parseInt(
+                                            (
+                                              event.startTime || ""
+                                            ).split(":")[0],
+                                            10
+                                          );
+
+                                        return startHour === hour;
+                                      });
+
+                                    return (
+                                      <div
+                                        key={day}
+                                        className="p-1 border-r border-slate-800/40 relative space-y-1"
+                                      >
+
+                                        {/* CLASSES */}
+                                        {classMatches.map(
+                                          ({
+                                            cls,
+                                            meeting,
+                                            index,
+                                          }) => (
+                                            <div
+                                              key={`class-${cls.id}-${index}`}
+                                              role="button"
+                                              tabIndex={0}
+                                              onClick={() =>
+                                                editTimetableMeeting(
+                                                  cls.id,
+                                                  meeting
+                                                )
+                                              }
+                                              onKeyDown={(e) => {
+                                                if (
+                                                  e.key ===
+                                                    "Enter" ||
+                                                  e.key === " "
+                                                ) {
+                                                  e.preventDefault();
+
+                                                  editTimetableMeeting(
+                                                    cls.id,
+                                                    meeting
+                                                  );
+                                                }
+                                              }}
+                                              className="p-1.5 rounded text-[10px] text-white font-semibold flex flex-col justify-between shadow-sm group relative cursor-pointer transition hover:brightness-110 hover:ring-2 hover:ring-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+                                              style={{
+                                                backgroundColor:
+                                                  getClassColor(cls),
+                                              }}
+                                              title="Click to edit this class session"
+                                            >
+
+                                              <div className="flex items-center justify-between gap-1">
+
+                                                <span className="font-bold truncate">
+                                                  {cls.name}
+                                                </span>
+
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+
+                                                    removeMeetingTimeFromClass(
+                                                      cls.id,
+                                                      index
+                                                    );
+                                                  }}
+                                                  className="shrink-0 opacity-0 group-hover:opacity-100 text-white/80 hover:text-white transition"
+                                                  title="Remove session"
+                                                >
+                                                  <X size={10} />
+                                                </button>
+
+                                              </div>
+
+                                              <div className="text-[9px] opacity-90 font-mono">
+                                                {meeting.startTime}
+                                                {" - "}
+                                                {meeting.endTime}
+                                              </div>
+                                            </div>
+                                          )
+                                        )}
+
+                                        {/* CLUBS */}
+                                        {clubMatches.map(
+                                          ({
+                                            club,
+                                            meeting,
+                                            index,
+                                          }) => (
+                                            <div
+                                              key={`club-${club.id}-${index}`}
+                                              className="p-1.5 rounded text-[10px] text-white font-semibold flex flex-col justify-between shadow-sm"
+                                               style={{ backgroundColor: cls.color }}
+                                            >
+                                              <div className="font-bold truncate flex items-center gap-1">
+                                                <span>
+                                                  {club.icon || "👥"}
+                                                </span>
+
+                                                <span className="truncate">
+                                                  {club.name}
+                                                </span>
+                                              </div>
+
+                                              <div className="text-[9px] opacity-90 font-mono">
+                                                {meeting.startTime}
+                                                {" - "}
+                                                {meeting.endTime}
+                                              </div>
+                                            </div>
+                                          )
+                                        )}
+
+                                        {/* GOOGLE EVENTS */}
+                                        {googleMatches.map(
+                                          (event) => (
+                                            <div
+                                              key={`google-${event.id}`}
+                                              className="p-1.5 rounded text-[10px] text-white font-semibold flex flex-col justify-between shadow-sm"
+                                              style={{
+                                                backgroundColor:
+                                                  event.color,
+                                              }}
+                                            >
+                                              <div className="font-bold truncate flex items-center gap-1">
+                                                <span>
+                                                  {event.icon}
+                                                </span>
+
+                                                <span className="truncate">
+                                                  {event.title}
+                                                </span>
+                                              </div>
+
+                                              <div className="text-[9px] opacity-90 font-mono">
+                                                {event.startTime}
+                                                {event.endTime
+                                                  ? ` - ${event.endTime}`
+                                                  : ""}
+                                              </div>
+                                            </div>
+                                          )
+                                        )}
+
+                                      </div>
+                                    );
+                                  }
+                                )}
+
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                );
-              })()}
+                  );
+                })()}
 
               {/* TAB: GRADES */}
               {activeTab === "grades" && (
