@@ -11227,7 +11227,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
                                             <div
                                               key={`club-${club.id}-${index}`}
                                               className="p-1.5 rounded text-[10px] text-white font-semibold flex flex-col justify-between shadow-sm"
-                                               style={{ backgroundColor: cls.color }}
+                                               style={{ backgroundColor: club.color }}
                                             >
                                               <div className="font-bold truncate flex items-center gap-1">
                                                 <span>
