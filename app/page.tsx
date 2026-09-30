@@ -8126,7 +8126,6 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
           <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2">
             <span>🎓</span>{tx("WJ Study")}</h1>
           <p className="hidden sm:block text-xs text-slate-400">
-            PowerSchool & SchoolsBuddy AI Photo Scan, School Break Calendar, SBG Evaluation, Habit Streaks, XP & Schedule
           </p>
         </div>
 
