@@ -8904,6 +8904,113 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
 
         {/* CENTER / MAIN PANEL */}
         <main className="lg:col-span-7 lg:col-start-3 lg:row-start-1 space-y-6">
+          {/* STANDARDS VIEW */}
+          {activeTab === "standards" && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div>
+                    <h2 className="text-lg font-black text-white">{tx("Standards")}</h2>
+                    <p className="text-xs text-slate-400">
+                      {tx("View your standards and assessments by class.")}
+                    </p>
+                  </div>
+                  <GraduationCap size={22} className="text-blue-400" />
+                </div>
+
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                  {tx("Choose Class")}
+                </label>
+
+                <select
+                  value={selectedClassId}
+                  onChange={(e) => setSelectedClassId(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-sm font-semibold text-white outline-none focus:border-blue-500"
+                >
+                  {classes.length === 0 ? (
+                    <option value="">{tx("No classes available")}</option>
+                  ) : (
+                    classes.map((cls) => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              {activeClass ? (
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span
+                      className="h-3 w-3 rounded-full shrink-0"
+                      style={{ backgroundColor: activeClass.color }}
+                    />
+                    <div>
+                      <h3 className="font-black text-white">{activeClass.name}</h3>
+                      {activeClass.professorName && (
+                        <p className="text-xs text-slate-400">
+                          {activeClass.professorName}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {activeClass.standards && activeClass.standards.length > 0 ? (
+                    <div className="space-y-3">
+                      {activeClass.standards.map((standard) => (
+                        <div
+                          key={standard.id}
+                          className="rounded-xl border border-slate-800 bg-slate-950/70 p-3"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-bold text-sm text-white">
+                                {standard.name}
+                              </p>
+                              <p className="mt-1 text-[10px] text-slate-500">
+                                {standard.levels?.length || 0} {tx("assessment(s)")}
+                              </p>
+                            </div>
+
+                            <div className="flex flex-wrap justify-end gap-1.5">
+                              {(standard.levels || []).map((level, index) => (
+                                <span
+                                  key={`${standard.id}-${index}`}
+                                  className="rounded-lg bg-blue-600/20 px-2 py-1 text-xs font-black text-blue-300"
+                                >
+                                  {level}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-700 p-6 text-center">
+                      <GraduationCap
+                        size={28}
+                        className="mx-auto mb-2 text-slate-600"
+                      />
+                      <p className="text-sm font-semibold text-slate-400">
+                        {tx("No standards recorded for this class.")}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {tx("Import grades from PowerSchool to populate standards.")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-700 p-8 text-center">
+                  <p className="text-sm font-semibold text-slate-400">
+                    {tx("Add a class to view standards.")}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
           {/* CLUBS VIEW */}
           <div
             className={`${
@@ -9474,6 +9581,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               mobileTab === "learning" ||
               mobileTab === "planner" ||
               mobileTab === "analytics" ||
+              mobileTab === "standards" ||
               mobileTab === "clan"
                 ? "block"
                 : "hidden"
