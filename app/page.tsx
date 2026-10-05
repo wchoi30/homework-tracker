@@ -7467,8 +7467,7 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
         ? "calendar"
         : mobileTab === "clan" || mobileTab === "streaks"
           ? "clan"
-          : mobileTab === "learning" || mobileTab === "planner" || mobileTab === "analytics" || mobileTab === "simulator" || mobileTab === "ai"
-            ? "learning"
+          : mobileTab === "learning" || mobileTab === "planner" || mobileTab === "analytics" || mobileTab === "simulator" || mobileTab === "ai" || mobileTab === "standards"                  ? "learning"
             : mobileTab === "more"
               ? "more"
               : "home";
@@ -8329,8 +8328,15 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
               <button type="button" onClick={() => { setMobileTab("simulator"); setActiveTab("simulator"); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "simulator" ? "bg-emerald-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Sliders size={15} className="mx-auto mb-1" /><span>{tx("Grade Simulator")}</span></button>
               <button
                 type="button"
-                onClick={() => { setActiveTab("standards"); }}
-                className="rounded-xl px-1.5 py-2 text-[10px] font-bold transition text-slate-400 hover:bg-slate-800 hover:text-white"
+                onClick={() => {
+                  setMobileTab("standards");
+                  setActiveTab("standards");
+                }}
+                className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${
+                  mobileTab === "standards"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                }`}
               >
                 <GraduationCap size={15} className="mx-auto mb-1" />
                 <span>{tx("Standards")}</span>
