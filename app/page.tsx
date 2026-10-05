@@ -2553,7 +2553,7 @@ function MathText({ text, className = "" }: { text: string; className?: string }
 
 export default function AcademicOSDashboard() {
   const [mobileTab, setMobileTab] = useState<
-    "home" | "more" | "classes" | "clubs" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan" | "grades"
+    "home" | "more" | "classes" | "clubs" | "tasks" | "calendar" | "timetable" | "ai" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan" | "grades" | "standards"
   >("calendar");
   const [activeTab, setActiveTab] = useState<
     "standards" | "calendar" | "timetable" | "grades" | "simulator" | "streaks" | "learning" | "planner" | "analytics" | "clan"
@@ -2566,7 +2566,10 @@ export default function AcademicOSDashboard() {
     "dueDate"
   );
 
-  const [currentCalendarDate, setCurrentCalendarDate] = useState<Date>(new Date(2026, 8, 1)); // Sep 2026 default
+  const [currentCalendarDate, setCurrentCalendarDate] = useState<Date>(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
 
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [clubs, setClubs] = useState<ClubItem[]>([]);
@@ -8319,11 +8322,19 @@ const analyzeSchoolsBuddyScreenshot = async (file: File) => {
             </div>
           )}
           {mobileBottomGroup === "learning" && (
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-5 gap-1.5">
               <button type="button" onClick={() => { setMobileTab("planner"); setActiveTab("planner"); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "planner" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Brain size={15} className="mx-auto mb-1" /><span>{tx("AI Planner")}</span></button>
               <button type="button" onClick={() => { setMobileTab("analytics"); setActiveTab("analytics"); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "analytics" ? "bg-violet-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><BarChart3 size={15} className="mx-auto mb-1" /><span>{tx("Analytics")}</span></button>
               <button type="button" onClick={() => { setMobileTab("learning"); setActiveTab("learning"); if (!learningClassId && classes[0]?.id) setLearningClassId(classes[0].id); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "learning" ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><BookOpen size={15} className="mx-auto mb-1" /><span>{tx("Learning")}</span></button>
               <button type="button" onClick={() => { setMobileTab("simulator"); setActiveTab("simulator"); }} className={`rounded-xl px-1.5 py-2 text-[10px] font-bold transition ${mobileTab === "simulator" ? "bg-emerald-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}><Sliders size={15} className="mx-auto mb-1" /><span>{tx("Grade Simulator")}</span></button>
+              <button
+                type="button"
+                onClick={() => { setActiveTab("standards"); }}
+                className="rounded-xl px-1.5 py-2 text-[10px] font-bold transition text-slate-400 hover:bg-slate-800 hover:text-white"
+              >
+                <GraduationCap size={15} className="mx-auto mb-1" />
+                <span>{tx("Standards")}</span>
+              </button>
             </div>
           )}
         </div>
